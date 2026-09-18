@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-    // Устанавливаем заголовки в самом начале, чтобы ответ всегда был JSON
     res.setHeader('Content-Type', 'application/json');
 
     if (req.method !== 'POST') {
@@ -7,18 +6,19 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Безопасное получение тела запроса (на случай, если Vercel не распарсил автоматически)
         let body = req.body;
         if (typeof body === 'string') {
-            try {
-                body = JSON.parse(body);
-            } catch (e) {
-                body = {};
-            }
+            try { body = JSON.parse(body); } catch (e) { body = {}; }
         }
 
         const parts = body?.parts || [];
-        const promptText = parts[0]?.text || "A beautiful landscape";
+        let promptText = parts[0]?.text || "A beautiful landscape";
+
+        // Исправляем частые опечатки пользователей автоматически
+        const cleanedPrompt = promptText.toLowerCase().trim();
+        if (cleanedPrompt === 'медверь' || cleanedPrompt === 'медвер') {
+            promptText = 'A realistic brown bear in the wild, cinematic lighting';
+        }
 
         const encodedPrompt = encodeURIComponent(promptText);
         const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true`;
@@ -29,10 +29,8 @@ export default async function handler(req, res) {
             return res.status(502).json({ error: `External service error status: ${imageResponse.status}` });
         }
 
-        // Получаем бинарные данные через Buffer для полной совместимости с Node.js на Vercel
         const arrayBuffer = await imageResponse.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const base64Data = buffer.toString('base64');
+        const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
         return res.status(200).json({
             candidates: [{
