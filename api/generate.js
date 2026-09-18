@@ -14,25 +14,17 @@ export default async function handler(req, res) {
         const parts = body?.parts || [];
         const promptText = parts[0]?.text || "A beautiful landscape";
 
-        // Используем публичный стабильный эндпоинт Hugging Face для генерации изображений
-        const response = await fetch(
-            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ inputs: promptText })
-            }
-        );
+        // Используем модель turbo без водяных знаков и с четким кодированием промпта
+        const encodedPrompt = encodeURIComponent(promptText);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=turbo&nologo=true&private=true`;
 
-        if (!response.ok) {
-            const errText = await response.text();
-            return res.status(502).json({ error: `Hugging Face API error: ${errText}` });
+        const imageResponse = await fetch(imageUrl);
+
+        if (!imageResponse.ok) {
+            return res.status(502).json({ error: `External service error status: ${imageResponse.status}` });
         }
 
-        // Сервис возвращает бинарные данные картинки напрямую
-        const arrayBuffer = await response.arrayBuffer();
+        const arrayBuffer = await imageResponse.arrayBuffer();
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
         return res.status(200).json({
