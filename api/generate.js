@@ -8,44 +8,26 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'API key is not configured on server in Vercel environment variables.' });
     }
 
-    const { parts } = req.body;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+    try {
+        const { parts } = req.body;
+        
+        // Используем стабильную версию gemini-1.5-flash, которая отличается высокой стабильностью без ошибок 503
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: parts }] })
+        });
 
-    let attempts = 3; // Количество попыток
-    let delay = 2000; // Начальная задержка 2 секунды
+        const data = await response.json();
 
-    for (let i = 0; i < attempts; i++) {
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: parts }] })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                return res.status(200).json(data);
-            }
-
-            // Если ошибка перегрузки (503) и это не последняя попытка — ждем и повторяем
-            const errorMessage = data.error?.message || JSON.stringify(data);
-            if (response.status === 503 && i < attempts - 1) {
-                console.warn(`Attempt ${i + 1} failed due to high demand. Retrying in ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2; // Увеличиваем паузу вдвое
-                continue;
-            }
-
+        if (!response.ok) {
             console.error("Google API Error Response:", data);
-            return res.status(response.status).json({ error: errorMessage });
-
-        } catch (error) {
-            console.error("Server Handler Exception:", error);
-            if (i === attempts - 1) {
-                return res.status(500).json({ error: error.message });
-            }
-            await new Promise(resolve => setTimeout(resolve, delay));
+            return res.status(response.status).json({ error: data.error?.message || JSON.stringify(data) });
         }
+
+        return res.status(200).json(data);
+    } catch (error) {
+        console.error("Server Handler Exception:", error);
+        return res.status(500).json({ error: error.message });
     }
 }
