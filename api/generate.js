@@ -2,7 +2,7 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
 
     // ============================================
-    // Только POST
+    // METHOD
     // ============================================
 
     if (req.method !== 'POST') {
@@ -13,7 +13,20 @@ export default async function handler(req, res) {
 
     try {
         // ============================================
-        // 1. Получаем запрос пользователя
+        // POLLINATIONS API KEY
+        // ============================================
+
+        const apiKey = process.env.POLLINATIONS_KEY;
+
+        if (!apiKey) {
+            return res.status(500).json({
+                error:
+                    'POLLINATIONS_KEY is not configured in Vercel Environment Variables'
+            });
+        }
+
+        // ============================================
+        // READ REQUEST
         // ============================================
 
         let body = req.body;
@@ -41,275 +54,195 @@ export default async function handler(req, res) {
         }
 
         // ============================================
-        // 2. AI разбирает смысл русского запроса
-        // ============================================
-
-        const analysisPrompt = `
-You are an expert image prompt engineer.
-
-The user wants to create an image from this request:
-
-"${userPrompt}"
-
-Understand the request literally and preserve its meaning.
-
-Your task is NOT to invent a new scene.
-
-Your task is to convert the user's request into
-one precise English prompt for an advanced image generator.
-
-STRICT RULES:
-
-1. Preserve the main subject exactly.
-
-2. Preserve the number of people, animals and objects.
-
-3. Preserve every important object mentioned by the user.
-
-4. Preserve the exact action.
-
-5. Preserve who performs the action.
-
-6. Preserve relationships between objects.
-
-7. Preserve the location.
-
-8. Preserve colors.
-
-9. Preserve clothing.
-
-10. Preserve age, species, breed and appearance
-when specified.
-
-11. Preserve emotions when specified.
-
-12. Preserve weather and time of day
-when specified.
-
-13. Preserve the artistic style when specified.
-
-14. Do NOT add new characters.
-
-15. Do NOT add new animals.
-
-16. Do NOT add new vehicles.
-
-17. Do NOT add buildings that were not requested.
-
-18. Do NOT add flags unless requested.
-
-19. Do NOT add logos.
-
-20. Do NOT add brands.
-
-21. Do NOT add text.
-
-22. Do NOT add signs.
-
-23. Do NOT add famous people.
-
-24. Do NOT add NASA or other organizations
-unless explicitly requested.
-
-25. Do NOT add Earth, planets or objects
-that the user did not request.
-
-26. Do NOT change the action.
-
-27. Do NOT change the location.
-
-28. Do NOT replace one object with another.
-
-29. Do NOT turn a requested object into
-a background object.
-
-30. Do NOT remove important details.
-
-You may improve ONLY the visual presentation:
-realistic materials, realistic textures,
-natural lighting, realistic shadows,
-camera composition and photographic quality.
-
-If the user says "cat driving a car",
-the cat must actually be driving the car.
-
-If the user says "dog holding a ball",
-the dog must actually hold the ball.
-
-If the user says "man standing next to a woman",
-do not change this relationship.
-
-The generated image must match the user's
-original meaning as closely as possible.
-
-Return ONLY one clean English image prompt.
-
-Do not explain your answer.
-Do not use bullet points.
-Do not add commentary.
-
-USER REQUEST:
-${userPrompt}
-`;
-
-        // ============================================
-        // 3. Получаем точный английский prompt
-        // ============================================
-
-        const textUrl =
-            'https://text.pollinations.ai/' +
-            encodeURIComponent(analysisPrompt);
-
-        const textResponse =
-            await fetch(textUrl);
-
-        if (!textResponse.ok) {
-            return res.status(502).json({
-                error:
-                    `Prompt AI error: ${textResponse.status}`
-            });
-        }
-
-        let enhancedPrompt =
-            (await textResponse.text()).trim();
-
-        if (!enhancedPrompt) {
-            enhancedPrompt = userPrompt;
-        }
-
-        // Удаляем markdown если AI его добавил
-        enhancedPrompt = enhancedPrompt
-            .replace(/^```(?:text|plaintext|prompt)?/i, '')
-            .replace(/```$/i, '')
-            .trim();
-
-        // ============================================
-        // 4. Финальный prompt
+        // DIRECT IMAGE PROMPT
+        //
+        // ВАЖНО:
+        // Русский запрос НЕ переводится другим AI.
+        // Мы передаем смысл непосредственно image-модели.
         // ============================================
 
         const finalPrompt = `
-Create an image that follows this scene EXACTLY:
+${userPrompt}
 
-${enhancedPrompt}
+Create exactly the scene described above.
 
-The content of the scene is the highest priority.
+The user's requested content has the highest priority.
 
-Do not add objects that are not described.
-Do not remove described objects.
-Do not change the action.
-Do not change the subjects.
-Do not change their relationships.
-Do not change the location.
+IMPORTANT COMPOSITION RULES:
 
-Make the image photorealistic,
-high detail,
-realistic textures,
-realistic materials,
-natural lighting,
-realistic shadows,
-accurate proportions,
-natural anatomy,
-professional photography,
-sharp details,
-natural depth of field,
-cinematic composition.
+- The main subject must be clearly visible.
+- The main subject must be the visual focus of the image.
+- Do not let secondary objects hide the main subject.
+- If the subject is a person or animal, show the face and body clearly whenever possible.
+- Show important clothing clearly.
+- Show important objects clearly.
+- Keep the requested colors exactly.
+- Keep the requested actions exactly.
+- Keep the requested relationships between objects exactly.
+- Keep the requested location exactly.
+- Do not replace objects with different objects.
+- Do not add additional characters.
+- Do not add additional animals.
+- Do not add additional vehicles.
+- Do not add famous landmarks unless they are explicitly requested.
+- Do not add logos or brands unless explicitly requested.
+- Do not add text or captions.
+- Do not change the user's scene into a different scene.
 
-No text.
-No captions.
+Use a natural medium shot when appropriate so the main subject
+and the important requested details are clearly visible.
+
+Photorealistic.
+Highly detailed.
+Realistic anatomy.
+Realistic fur, skin, fabric and materials.
+Natural lighting.
+Realistic shadows.
+Natural colors.
+Professional cinematic photography.
+Sharp focus on the main subject.
+High image quality.
+Clean composition.
 No watermark.
-No logos unless explicitly requested.
 `.trim();
 
         // ============================================
-        // 5. Генерация через GPT Image 2
+        // POLLINATIONS OFFICIAL IMAGE API
         // ============================================
 
-        const encodedPrompt =
-            encodeURIComponent(finalPrompt);
+        const apiUrl =
+            'https://gen.pollinations.ai/v1/images/generations';
 
-        const imageUrl =
-            `https://image.pollinations.ai/prompt/${encodedPrompt}` +
-            `?width=1536` +
-            `&height=1024` +
-            `&model=gpt-image-2` +
-            `&nologo=true` +
-            `&private=true`;
+        const requestBody = {
+            model: 'openai/gpt-image-2',
 
-        let imageResponse =
-            await fetch(imageUrl);
+            prompt: finalPrompt,
+
+            size: '1024x1024',
+
+            quality: 'high',
+
+            n: 1,
+
+            response_format: 'b64_json'
+        };
 
         // ============================================
-        // 6. Если GPT Image 2 недоступна,
-        // пробуем Seedream 4.5
+        // REQUEST
         // ============================================
 
-        if (!imageResponse.ok) {
+        const imageResponse = await fetch(apiUrl, {
+            method: 'POST',
 
-            const fallbackUrl =
-                `https://image.pollinations.ai/prompt/${encodedPrompt}` +
-                `?width=1536` +
-                `&height=1024` +
-                `&model=seedream-4.5` +
-                `&nologo=true` +
-                `&private=true`;
+            headers: {
+                'Authorization':
+                    `Bearer ${apiKey}`,
 
-            imageResponse =
-                await fetch(fallbackUrl);
+                'Content-Type':
+                    'application/json'
+            },
+
+            body: JSON.stringify(requestBody)
+        });
+
+        // ============================================
+        // READ API RESPONSE
+        // ============================================
+
+        let apiData = null;
+
+        try {
+            apiData = await imageResponse.json();
+        } catch {
+            apiData = null;
         }
 
         // ============================================
-        // 7. Если и запасная модель не сработала
+        // API ERROR
         // ============================================
 
         if (!imageResponse.ok) {
+            console.error(
+                'Pollinations API error:',
+                apiData
+            );
 
-            const fluxUrl =
-                `https://image.pollinations.ai/prompt/${encodedPrompt}` +
-                `?width=1024` +
-                `&height=1024` +
-                `&model=flux` +
-                `&nologo=true` +
-                `&private=true`;
-
-            imageResponse =
-                await fetch(fluxUrl);
-        }
-
-        // ============================================
-        // 8. Проверяем результат
-        // ============================================
-
-        if (!imageResponse.ok) {
             return res.status(502).json({
                 error:
-                    `Image generation error: ${imageResponse.status}`
+                    apiData?.error?.message ||
+                    apiData?.error ||
+                    `Pollinations API error: ${imageResponse.status}`,
+
+                status:
+                    imageResponse.status
             });
         }
 
         // ============================================
-        // 9. Получаем изображение
+        // CHECK IMAGE
         // ============================================
 
-        const contentType =
-            imageResponse.headers.get(
-                'content-type'
-            ) || 'image/jpeg';
+        const imageData =
+            apiData?.data?.[0];
 
-        const arrayBuffer =
-            await imageResponse.arrayBuffer();
+        if (!imageData) {
+            console.error(
+                'Pollinations returned no image:',
+                apiData
+            );
 
-        const base64Data =
-            Buffer.from(arrayBuffer)
-                .toString('base64');
+            return res.status(502).json({
+                error:
+                    'Pollinations returned no image'
+            });
+        }
 
         // ============================================
-        // 10. Возвращаем изображение
+        // BASE64 IMAGE
+        // ============================================
+
+        let base64Data =
+            imageData.b64_json;
+
+        if (!base64Data && imageData.url) {
+
+            // Некоторые ответы могут вернуть URL.
+            // Загружаем изображение с URL.
+            const imageDownload =
+                await fetch(imageData.url);
+
+            if (!imageDownload.ok) {
+                return res.status(502).json({
+                    error:
+                        `Could not download generated image: ${imageDownload.status}`
+                });
+            }
+
+            const buffer =
+                await imageDownload.arrayBuffer();
+
+            base64Data =
+                Buffer.from(buffer)
+                    .toString('base64');
+        }
+
+        if (!base64Data) {
+            return res.status(502).json({
+                error:
+                    'Generated image data is empty'
+            });
+        }
+
+        // ============================================
+        // RETURN SAME FORMAT AS CURRENT INDEX.HTML
         // ============================================
 
         return res.status(200).json({
 
-            // Показываем, что именно понял AI
-            prompt: enhancedPrompt,
+            prompt: userPrompt,
+
+            model:
+                'openai/gpt-image-2',
 
             candidates: [
                 {
@@ -318,7 +251,8 @@ No logos unless explicitly requested.
                             {
                                 inline_data: {
                                     mime_type:
-                                        contentType,
+                                        'image/png',
+
                                     data:
                                         base64Data
                                 }
