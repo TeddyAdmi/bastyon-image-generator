@@ -12,32 +12,27 @@ export default async function handler(req, res) {
         }
 
         const parts = body?.parts || [];
-        let promptText = parts[0]?.text || "A beautiful landscape";
+        const promptText = parts[0]?.text || "A beautiful landscape";
 
-        // Делаем промпт более развернутым, чтобы нейросеть не рисовала случайных людей по одному слову
-        let enhancedPrompt = promptText;
-        const lower = promptText.toLowerCase().trim();
+        // Используем публичный стабильный эндпоинт Hugging Face для генерации изображений
+        const response = await fetch(
+            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ inputs: promptText })
+            }
+        );
 
-        if (lower === 'тигр' || lower === 'tiger') {
-            enhancedPrompt = 'A majestic wild Bengal tiger in the jungle, highly detailed, photorealistic, 8k resolution, no people';
-        } else if (lower === 'медведь' || lower === 'медверь' || lower === 'bear') {
-            enhancedPrompt = 'A powerful realistic brown bear in the wild forest, cinematic lighting, highly detailed';
-        } else {
-            // Для остальных коротких запросов добавляем конкретики
-            enhancedPrompt = `${promptText}, high quality, detailed digital art, sharp focus`;
+        if (!response.ok) {
+            const errText = await response.text();
+            return res.status(502).json({ error: `Hugging Face API error: ${errText}` });
         }
 
-        const encodedPrompt = encodeURIComponent(enhancedPrompt);
-        // Используем другую модель или параметры без водяного знака
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
-
-        const imageResponse = await fetch(imageUrl);
-
-        if (!imageResponse.ok) {
-            return res.status(502).json({ error: `External service error status: ${imageResponse.status}` });
-        }
-
-        const arrayBuffer = await imageResponse.arrayBuffer();
+        // Сервис возвращает бинарные данные картинки напрямую
+        const arrayBuffer = await response.arrayBuffer();
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
         return res.status(200).json({
