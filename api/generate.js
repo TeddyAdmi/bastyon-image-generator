@@ -11,15 +11,12 @@ export default async function handler(req, res) {
     try {
         const { parts }  = req.body;
 
-        // Используем актуальную модель gemini-2.5-flash (или аналогичную мультимодальную)
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        // Обновленная модель по рекомендации Google API
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                contents: [{ parts: parts }],
-                generationConfig: {
-                    responseMimeType: "text/plain"
-                }
+                contents: [{ parts: parts }]
             })
         });
 
