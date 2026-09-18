@@ -22,21 +22,27 @@ export default async function handler(req, res) {
             try { body = JSON.parse(body); } catch (e) { body = {}; }
         }
 
-        const parts = Array.isArray(body?.parts) ? body.parts : [];
-        const userPrompt = String(parts[0]?.text || '').trim();
+        const userPrompt = String(
+            body?.prompt || 
+            body?.text || 
+            body?.parts?.[0]?.text || 
+            ''
+        ).trim();
+
+        console.log('EXTRACTED PROMPT:', userPrompt);
 
         if (!userPrompt) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
 
-        console.log('Received user prompt:', userPrompt);
-
-        // Чистый промт без лишних навязанных суффиксов, если модель на них сбоит
-        const finalPrompt = userPrompt; 
-        const safePrompt = encodeURIComponent(finalPrompt);
+        // Большинство нейросетей (включая Flux) идеально понимают английский.
+        // Передаем промт с акцентом на качественный английский запрос или через универсальный параметр.
+        // Если вы хотите вводить на русском, добавим принудительную подсказку модели или сменим модель на turbo, которая лучше ест кириллицу.
+        const enhancedPrompt = userPrompt + ", photorealistic, highly detailed, 8k";
+        const safePrompt = encodeURIComponent(enhancedPrompt);
         
-        // Пробуем базовую качественную модель flux или стандартный эндпоинт
-        const externalUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&model=flux&nologo=true&private=true`;
+        // Меняем модель на 'turbo' или 'flux', но добавляем улучшенный запуск
+        const externalUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&model=turbo&nologo=true&private=true`;
 
         console.log('Requesting URL:', externalUrl);
 
