@@ -14,8 +14,11 @@ export default async function handler(req, res) {
         const parts = body?.parts || [];
         const promptText = parts[0]?.text || "A beautiful landscape";
 
-        // Формируем чистый и качественный запрос для генератора изображений
-        const encodedPrompt = encodeURIComponent(promptText);
+        // Формируем строгий и детализированный запрос для максимальной точности
+        // Добавляем ключевые теги для высокого качества и резкости
+        const precisePrompt = `${promptText}, highly detailed, sharp focus, ultra realistic, correct anatomy, 8k resolution`;
+        const encodedPrompt = encodeURIComponent(precisePrompt);
+        
         const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&private=true`;
 
         const imageResponse = await fetch(imageUrl);
@@ -27,7 +30,6 @@ export default async function handler(req, res) {
         const arrayBuffer = await imageResponse.arrayBuffer();
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
-        // Возвращаем структуру, которую ожидает ваш фронтенд для отрисовки картинки
         return res.status(200).json({
             candidates: [{
                 content: {
