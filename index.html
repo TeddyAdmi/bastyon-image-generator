@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Bastyon Image Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background: #f4f4f9; color: #333; }
+        input[type="text"], input[type="file"], button { width: 100%; padding: 12px; margin-top: 10px; font-size: 16px; box-sizing: border-box; }
+        button { background: #4F46E5; color: white; border: none; cursor: pointer; border-radius: 6px; }
+        button:hover { background: #4338CA; }
+        .file-label { display: block; margin-top: 15px; font-weight: bold; }
+        #result { margin-top: 20px; text-align: center; }
+        img { max-width: 100%; border-radius: 8px; margin-top: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <h2>Bastyon Image Generator (с поддержкой референсов)</h2>
+    
+    <p>Введите текстовый запрос (или опишите, как улучшить референс):</p>
+    <input type="text" id="promptInput" placeholder="Например: Сделай картинку более детальной, добавь киберпанк стилистику...">
+
+    <label class="file-label" for="referenceImage">Загрузить референс (необязательно):</label>
+    <input type="file" id="referenceImage" accept="image/*">
+
+    <button id="generateBtn" onclick="generateImage()">Сгенерировать / Улучшить</button>
+
+    <div id="loading" class="hidden">Обработка изображения нейросетью, подождите...</div>
+
+    <div id="result" class="hidden">
+        <h3>Результат:</h3>
+        <img id="outputImage" src="" alt="Generated Image">
+        <button id="downloadBtn" style="background: #10B981; margin-top: 15px;" onclick="downloadImage()">Скачать на компьютер</button>
+    </div>
+
+    <script>
+        const API_KEY = "ВАШ_GOOGLE_API_KEY"; 
+        let currentImageUrl = "";
+
+        // Вспомогательная функция для конвертации файла в Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]); // Убираем префикс data:...
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        async function generateImage() {
+            const prompt = document.getElementById('promptInput').value;
+            const fileInput = document.getElementById('referenceImage');
+            
+            if (!prompt && fileInput.files.length === 0) {
+                return alert('Введите текст или загрузите референс!');
+            }
+
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('result').classList.add('hidden');
+            document.getElementById('generateBtn').disabled = true;
+
+            try {
+                let parts = [];
+
+                // Если пользователь прикрепил картинку, добавляем её в запрос
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const base64Image = await fileToBase64(file);
+                    
+                    parts.push({
+                        inline_data: {
+                            mime_type: file.type,
+                            data: base64Image
+                        }
+                    });
+                }
+
+                // Добавляем текстовый промпт
+                parts.push({ 
+                    text: prompt ? prompt : "Улучши и детализируй это изображение, сохранив исходный смысл." 
+                });
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: parts }]
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Ищем ответ с картинкой в формате base64
+                const candidatePart = data.candidates?.[0]?.content?.parts?.find(p => p.inline_data);
+                
+                if (candidatePart && candidatePart.inline_data) {
+                    const mimeType = candidatePart.inline_data.mime_type || 'image/png';
+                    const base64Data = candidatePart.inline_data.data;
+                    currentImageUrl = `data:${mimeType};base64,${base64Data}`;
+                    
+                    document.getElementById('outputImage').src = currentImageUrl;
+                    document.getElementById('result').classList.remove('hidden');
+                } else {
+                    alert('Не удалось сгенерировать изображение. Проверьте консоль ответа API.');
+                    console.error(data);
+                }
+            } catch (error) {
+                console.error('Ошибка запроса:', error);
+                alert('Произошла ошибка при отправке запроса.');
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('generateBtn').disabled = false;
+            }
+        }
+
+        async function downloadImage() {
+            if (!currentImageUrl) return;
+            try {
+                const response = await fetch(currentImageUrl);
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = `bastyon-ai-image-${Date.now()}.png`;
+                document.body.appendChild(link);
+                link.click();
+                
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (e) {
+                console.error('Ошибка скачивания:', e);
+                window.open(currentImageUrl, '_blank');
+            }
+        }
+    </script>
+</body>
+</html>
