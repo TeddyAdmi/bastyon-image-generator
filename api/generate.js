@@ -1,10 +1,6 @@
 export default async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
 
-    // ============================================
-    // METHOD
-    // ============================================
-
     if (req.method !== 'POST') {
         return res.status(405).json({
             error: 'Method not allowed'
@@ -12,25 +8,15 @@ export default async function handler(req, res) {
     }
 
     try {
-        // ============================================
-        // POLLINATIONS API KEY
-        // ============================================
-
         const apiKey = process.env.POLLINATIONS_KEY;
 
         if (!apiKey) {
             return res.status(500).json({
-                error:
-                    'POLLINATIONS_KEY is not configured in Vercel Environment Variables'
+                error: 'POLLINATIONS_KEY is not configured in Vercel Environment Variables'
             });
         }
 
-        // ============================================
-        // READ REQUEST
-        // ============================================
-
         let body = req.body;
-
         if (typeof body === 'string') {
             try {
                 body = JSON.parse(body);
@@ -39,13 +25,8 @@ export default async function handler(req, res) {
             }
         }
 
-        const parts = Array.isArray(body?.parts)
-            ? body.parts
-            : [];
-
-        const userPrompt = String(
-            parts[0]?.text || ''
-        ).trim();
+        const parts = Array.isArray(body?.parts) ? body.parts : [];
+        const userPrompt = String(parts[0]?.text || '').trim();
 
         if (!userPrompt) {
             return res.status(400).json({
@@ -53,23 +34,14 @@ export default async function handler(req, res) {
             });
         }
 
-        // ============================================
-        // DIRECT IMAGE PROMPT
-        //
-        // ВАЖНО:
-        // Русский запрос НЕ переводится другим AI.
-        // Мы передаем смысл непосредственно image-модели.
-        // ============================================
-
+        // Ваш детальный и надежный промпт
         const finalPrompt = `
 ${userPrompt}
 
 Create exactly the scene described above.
-
 The user's requested content has the highest priority.
 
 IMPORTANT COMPOSITION RULES:
-
 - The main subject must be clearly visible.
 - The main subject must be the visual focus of the image.
 - Do not let secondary objects hide the main subject.
@@ -106,155 +78,47 @@ Clean composition.
 No watermark.
 `.trim();
 
-        // ============================================
-        // POLLINATIONS OFFICIAL IMAGE API
-        // ============================================
+        // Актуальный эндпоинт Pollinations для работы с ключом
+        const encodedPrompt = encodeURIComponent(finalPrompt);
+        const apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&private=true`;
 
-        const apiUrl =
-            'https://gen.pollinations.ai/v1/images/generations';
-
-        const requestBody = {
-            model: 'openai/gpt-image-2',
-
-            prompt: finalPrompt,
-
-            size: '1024x1024',
-
-            quality: 'high',
-
-            n: 1,
-
-            response_format: 'b64_json'
-        };
-
-        // ============================================
-        // REQUEST
-        // ============================================
-
+        // Отправляем запрос с вашим Bearer-токеном
         const imageResponse = await fetch(apiUrl, {
-            method: 'POST',
-
+            method: 'GET',
             headers: {
-                'Authorization':
-                    `Bearer ${apiKey}`,
-
-                'Content-Type':
-                    'application/json'
-            },
-
-            body: JSON.stringify(requestBody)
+                'Authorization': `Bearer ${apiKey}`
+            }
         });
 
-        // ============================================
-        // READ API RESPONSE
-        // ============================================
-
-        let apiData = null;
-
-        try {
-            apiData = await imageResponse.json();
-        } catch {
-            apiData = null;
-        }
-
-        // ============================================
-        // API ERROR
-        // ============================================
-
         if (!imageResponse.ok) {
-            console.error(
-                'Pollinations API error:',
-                apiData
-            );
-
+            const errText = await imageResponse.text();
             return res.status(502).json({
-                error:
-                    apiData?.error?.message ||
-                    apiData?.error ||
-                    `Pollinations API error: ${imageResponse.status}`,
-
-                status:
-                    imageResponse.status
+                error: `Pollinations API error: ${errText || imageResponse.status}`
             });
         }
 
-        // ============================================
-        // CHECK IMAGE
-        // ============================================
-
-        const imageData =
-            apiData?.data?.[0];
-
-        if (!imageData) {
-            console.error(
-                'Pollinations returned no image:',
-                apiData
-            );
-
-            return res.status(502).json({
-                error:
-                    'Pollinations returned no image'
-            });
-        }
-
-        // ============================================
-        // BASE64 IMAGE
-        // ============================================
-
-        let base64Data =
-            imageData.b64_json;
-
-        if (!base64Data && imageData.url) {
-
-            // Некоторые ответы могут вернуть URL.
-            // Загружаем изображение с URL.
-            const imageDownload =
-                await fetch(imageData.url);
-
-            if (!imageDownload.ok) {
-                return res.status(502).json({
-                    error:
-                        `Could not download generated image: ${imageDownload.status}`
-                });
-            }
-
-            const buffer =
-                await imageDownload.arrayBuffer();
-
-            base64Data =
-                Buffer.from(buffer)
-                    .toString('base64');
-        }
+        // Получаем бинарный поток картинки и конвертируем в Base64
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
         if (!base64Data) {
             return res.status(502).json({
-                error:
-                    'Generated image data is empty'
+                error: 'Generated image data is empty'
             });
         }
 
-        // ============================================
-        // RETURN SAME FORMAT AS CURRENT INDEX.HTML
-        // ============================================
-
+        // Возвращаем результат в формате, который ждет ваш фронтенд
         return res.status(200).json({
-
             prompt: userPrompt,
-
-            model:
-                'openai/gpt-image-2',
-
+            model: 'flux',
             candidates: [
                 {
                     content: {
                         parts: [
                             {
                                 inline_data: {
-                                    mime_type:
-                                        'image/png',
-
-                                    data:
-                                        base64Data
+                                    mime_type: 'image/jpeg',
+                                    data: base64Data
                                 }
                             }
                         ]
@@ -264,16 +128,9 @@ No watermark.
         });
 
     } catch (error) {
-
-        console.error(
-            'Critical Server Error:',
-            error
-        );
-
+        console.error('Critical Server Error:', error);
         return res.status(500).json({
-            error:
-                error?.message ||
-                'Internal server error'
+            error: error?.message || 'Internal server error'
         });
     }
 }
