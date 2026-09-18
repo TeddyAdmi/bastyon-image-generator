@@ -10,21 +10,17 @@ export default async function handler(req, res) {
 
     try {
         const { parts } = req.body;
-        // Извлекаем текст промпта из структуры запроса
-        const promptText = parts?.[0]?.text || "A beautiful landscape";
-
-        // Официальный эндпоинт для генерации изображений Imagen 3
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+        
+        // Используем стандартный метод generateContent для модели gemini-3.6-flash
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                instances: [{ prompt: promptText }],
-                parameters: {
-                    sampleCount: 1,
-                    aspectRatio: "1:1",
-                    outputMimeType: "image/jpeg"
+                contents: [{ parts: parts }],
+                generationConfig: {
+                    responseModalities: ["IMAGE", "TEXT"]
                 }
             })
         });
@@ -32,32 +28,11 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("Imagen API Error Response:", data);
+            console.error("Google API Error Response:", data);
             return res.status(response.status).json({ error: data.error?.message || JSON.stringify(data) });
         }
 
-        // Imagen возвращает картинку в формате base64 внутри массива predictions
-        const base64ImageBytes = data.predictions?.[0]?.bytesBase64Encoded;
-        
-        if (!base64ImageBytes) {
-            return res.status(500).json({ error: "No image returned from Imagen API." }, data);
-        }
-
-        // Преобразуем ответ в структуру, которую ожидает наш frontend
-        const formattedResponse = {
-            candidates: [{
-                content: {
-                    parts: [{
-                        inline_data: {
-                            mime_type: "image/jpeg",
-                            data: base64ImageBytes
-                        }
-                    }]
-                }
-            }]
-        };
-
-        return res.status(200).json(formattedResponse);
+        return res.status(200).json(data);
     } catch (error) {
         console.error("Server Handler Exception:", error);
         return res.status(500).json({ error: error.message });
