@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
 
+    // Только POST
     if (req.method !== 'POST') {
         return res.status(405).json({
             error: 'Method not allowed'
@@ -8,9 +9,9 @@ export default async function handler(req, res) {
     }
 
     try {
-        // -----------------------------
-        // 1. Получаем запрос пользователя
-        // -----------------------------
+        // ============================================
+        // 1. Читаем запрос пользователя
+        // ============================================
 
         let body = req.body;
 
@@ -36,158 +37,202 @@ export default async function handler(req, res) {
             });
         }
 
-        // -----------------------------
-        // 2. AI понимает смысл запроса
-        // -----------------------------
+        // ============================================
+        // 2. AI анализирует смысл русского запроса
+        // ============================================
 
-        const promptEngineer = `
-You are an expert AI image prompt engineer.
+        const analysisPrompt = `
+You are a professional visual scene parser.
 
-The user can write the request in Russian or any other language.
+The user wants to generate an image from the following request:
 
-Your job is to understand exactly what the user wants to see
-and convert the request into ONE detailed English prompt
-for an image generation model.
+"${userPrompt}"
 
-IMPORTANT:
+Analyze the request VERY LITERALLY.
 
-1. Preserve the exact meaning of the user's request.
+Your task is to create a precise image-generation prompt.
 
-2. NEVER remove the main subject.
+CRITICAL RULES:
 
-3. NEVER change the main subject.
+- Preserve the exact main subject.
+- Preserve the exact number of subjects.
+- Preserve every important object.
+- Preserve the exact action.
+- Preserve who is doing the action.
+- Preserve the relationship between objects.
+- Preserve location.
+- Preserve colors.
+- Preserve clothing.
+- Preserve appearance.
+- Preserve species, breed, age and gender when specified.
+- Preserve emotions when specified.
+- Preserve time of day when specified.
+- Preserve weather when specified.
+- Preserve style when specified.
 
-4. NEVER change the action.
+DO NOT invent important objects.
 
-5. NEVER change the location.
+DO NOT invent additional characters.
 
-6. NEVER invent important objects, characters or events
-that were not requested.
+DO NOT change the action.
 
-7. Keep all important relationships between objects.
+DO NOT change the location.
 
-For example:
+DO NOT replace the subject.
 
-"кот сидит на крыше автомобиля"
+DO NOT add famous people.
 
-means that the CAT is sitting ON THE ROOF of the CAR.
+DO NOT add logos.
 
-Do NOT turn it into:
-"a car with a cat nearby".
+DO NOT add flags unless the user requested a flag.
 
-Another example:
+DO NOT add text.
 
-"собака держит мяч во рту"
+DO NOT add writing.
 
-means the DOG is holding the BALL IN ITS MOUTH.
+DO NOT add signs.
 
-Do NOT change the action.
+DO NOT add brands.
 
-8. If the user describes several objects or characters,
-keep all of them.
+DO NOT add NASA logos or other logos unless explicitly requested.
 
-9. If the user specifies colors, clothes, age, breed,
-appearance, emotions, weather or other details,
-preserve them.
+DO NOT add Earth, buildings, animals, vehicles or other objects
+unless they are part of the user's request.
 
-10. If the user specifies an artistic style,
-preserve that style.
-
-11. If the user does not specify a style,
-use cinematic photorealism.
-
-12. Improve the visual description without changing
-the meaning.
-
-13. Add useful visual details such as:
-- composition
-- camera angle
+You MAY improve only the visual presentation:
 - realistic lighting
-- environment
-- textures
-- depth of field
 - realistic materials
+- realistic textures
 - natural shadows
-- cinematic atmosphere
+- composition
+- camera position
+- depth of field
+- photographic realism
 
-14. Make the scene visually coherent.
+The final image must depict EXACTLY what the user described.
 
-15. Do not add text, captions, letters, logos,
-watermarks or signs unless the user explicitly asks
-for them.
+Return ONLY ONE English image prompt.
 
-16. Do not explain your answer.
-
-17. Return ONLY the final English image prompt.
+Do not explain anything.
 
 User request:
-
 ${userPrompt}
 `;
 
-        const textUrl =
+        // ============================================
+        // 3. Получаем улучшенный prompt
+        // ============================================
+
+        const promptUrl =
             'https://text.pollinations.ai/' +
-            encodeURIComponent(promptEngineer);
+            encodeURIComponent(analysisPrompt);
 
-        const textResponse = await fetch(textUrl);
+        const promptResponse =
+            await fetch(promptUrl);
 
-        if (!textResponse.ok) {
+        if (!promptResponse.ok) {
             return res.status(502).json({
                 error:
-                    `AI prompt error: ${textResponse.status}`
+                    `Prompt AI error: ${promptResponse.status}`
             });
         }
 
         let enhancedPrompt =
-            (await textResponse.text()).trim();
-
-        // -----------------------------
-        // 3. Если AI не ответил —
-        // используем оригинальный запрос
-        // -----------------------------
+            (await promptResponse.text()).trim();
 
         if (!enhancedPrompt) {
             enhancedPrompt = userPrompt;
         }
 
-        // Убираем возможные кавычки/служебный текст
+        // Убираем возможные markdown-блоки
         enhancedPrompt = enhancedPrompt
-            .replace(/^```(?:text|plaintext)?/i, '')
+            .replace(/^```(?:text|plaintext|prompt)?/i, '')
             .replace(/```$/i, '')
             .trim();
 
-        // -----------------------------
-        // 4. Добавляем качество
-        // -----------------------------
+        // ============================================
+        // 4. Финальный prompt для генератора
+        // ============================================
 
         const finalPrompt = `
+EXACT SCENE:
+
 ${enhancedPrompt}
 
-High quality cinematic photography,
-photorealistic details,
-realistic textures,
-natural lighting,
-realistic shadows,
-accurate proportions,
-natural anatomy,
-sharp focus on the main subject,
-depth of field,
-professional photography,
-highly detailed.
+IMPORTANT IMAGE INSTRUCTIONS:
+
+Follow the described scene exactly.
+Do not add or remove important objects.
+Do not change the subject.
+Do not change the action.
+Do not change the location.
+Do not introduce additional characters.
+
+Photorealistic image.
+Natural realistic proportions.
+Accurate anatomy.
+Realistic materials and textures.
+Natural lighting.
+Natural shadows.
+Professional cinematic photography.
+Sharp main subject.
+Detailed environment.
+Realistic depth of field.
+High visual fidelity.
+Clean composition.
+No text.
+No captions.
+No watermark.
+No logo unless explicitly requested.
 `.trim();
 
-        // -----------------------------
-        // 5. Генерируем изображение
-        // -----------------------------
+        // ============================================
+        // 5. Генерация изображения
+        // ============================================
 
         const encodedPrompt =
             encodeURIComponent(finalPrompt);
 
-        const imageUrl =
-            `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&private=true`;
+        /*
+         * Используем более качественную модель.
+         *
+         * Если эта модель временно недоступна,
+         * ниже автоматически делаем запасной запрос
+         * через FLUX.
+         */
 
-        const imageResponse =
-            await fetch(imageUrl);
+        const primaryImageUrl =
+            `https://image.pollinations.ai/prompt/${encodedPrompt}` +
+            `?width=1024` +
+            `&height=1024` +
+            `&model=seedream` +
+            `&nologo=true` +
+            `&private=true`;
+
+        let imageResponse =
+            await fetch(primaryImageUrl);
+
+        // ============================================
+        // 6. Запасной вариант FLUX
+        // ============================================
+
+        if (!imageResponse.ok) {
+
+            const fallbackImageUrl =
+                `https://image.pollinations.ai/prompt/${encodedPrompt}` +
+                `?width=1024` +
+                `&height=1024` +
+                `&model=flux` +
+                `&nologo=true` +
+                `&private=true`;
+
+            imageResponse =
+                await fetch(fallbackImageUrl);
+        }
+
+        // ============================================
+        // 7. Проверяем ответ генератора
+        // ============================================
 
         if (!imageResponse.ok) {
             return res.status(502).json({
@@ -196,9 +241,9 @@ highly detailed.
             });
         }
 
-        // -----------------------------
-        // 6. Получаем изображение
-        // -----------------------------
+        // ============================================
+        // 8. Получаем изображение
+        // ============================================
 
         const contentType =
             imageResponse.headers.get(
@@ -212,11 +257,14 @@ highly detailed.
             Buffer.from(arrayBuffer)
                 .toString('base64');
 
-        // -----------------------------
-        // 7. Возвращаем изображение
-        // -----------------------------
+        // ============================================
+        // 9. Возвращаем результат
+        // ============================================
 
         return res.status(200).json({
+
+            // Это полезно для проверки,
+            // что AI понял запрос правильно.
             prompt: enhancedPrompt,
 
             candidates: [
