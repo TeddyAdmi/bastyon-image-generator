@@ -5,10 +5,9 @@
     <title>Bastyon Image Generator</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background: #f4f4f9; color: #333; }
-        input[type="text"], input[type="file"], button { width: 100%; padding: 12px; margin-top: 10px; font-size: 16px; box-sizing: border-box; }
+        input[type="text"], button { width: 100%; padding: 12px; margin-top: 10px; font-size: 16px; box-sizing: border-box; }
         button { background: #4F46E5; color: white; border: none; cursor: pointer; border-radius: 6px; }
         button:hover { background: #4338CA; }
-        .file-label { display: block; margin-top: 15px; font-weight: bold; }
         #result { margin-top: 20px; text-align: center; }
         img { max-width: 100%; border-radius: 8px; margin-top: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .hidden { display: none; }
@@ -18,11 +17,8 @@
 
     <h2>Bastyon Image Generator</h2>
     
-    <p>Введите текстовый запрос или загрузите референс:</p>
-    <input type="text" id="promptInput" placeholder="Например: Футуристический пейзаж...">
-
-    <label class="file-label" for="referenceImage">Референс (необязательно):</label>
-    <input type="file" id="referenceImage" accept="image/*">
+    <p>Введите текстовый запрос для генерации изображения:</p>
+    <input type="text" id="promptInput" placeholder="Например: Футуристический пейзаж в киберпанк стиле...">
 
     <button id="generateBtn" onclick="generateImage()">Сгенерировать</button>
 
@@ -37,21 +33,11 @@
     <script>
         let currentImageUrl = "";
 
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result.split(',')[1]);
-                reader.onerror = error => reject(error);
-            });
-        }
-
         async function generateImage() {
-            const prompt = document.getElementById('promptInput').value;
-            const fileInput = document.getElementById('referenceImage');
+            const prompt = document.getElementById('promptInput').value.trim();
             
-            if (!prompt && fileInput.files.length === 0) {
-                return alert('Введите текст или загрузите референс!');
+            if (!prompt) {
+                return alert('Введите текстовый запрос!');
             }
 
             document.getElementById('loading').classList.remove('hidden');
@@ -59,19 +45,7 @@
             document.getElementById('generateBtn').disabled = true;
 
             try {
-                let parts = [];
-
-                if (fileInput.files.length > 0) {
-                    const file = fileInput.files[0];
-                    const base64Image = await fileToBase64(file);
-                    parts.push({
-                        inline_data: { mime_type: file.type, data: base64Image }
-                    });
-                }
-
-                parts.push({ 
-                    text: prompt ? prompt : "Улучши и детализируй это изображение." 
-                });
+                let parts = [{ text: prompt }];
 
                 // Запрос на бэкенд Vercel
                 const response = await fetch('/api/generate', {
@@ -82,7 +56,6 @@
 
                 const data = await response.json();
 
-                // Если сервер вернул ошибку
                 if (!response.ok) {
                     console.error("Server Error Details:", data);
                     const errorMsg = data.error?.message || data.error || JSON.stringify(data);
