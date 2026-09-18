@@ -10,17 +10,22 @@ export default async function handler(req, res) {
 
     try {
         const { parts } = req.body;
-        
-        // Используем стандартный метод generateContent для модели gemini-3.6-flash
+        const promptText = parts?.[0]?.text || "A beautiful landscape";
+
+        // Запрос к модели с указанием роли генерации изображений
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: parts }],
+                contents: [{
+                    parts: [
+                        { text: "Generate an image based on this request: " + promptText }
+                    ]
+                }],
                 generationConfig: {
-                    responseModalities: ["IMAGE", "TEXT"]
+                    responseModalities: ["IMAGE"]
                 }
             })
         });
