@@ -29,9 +29,16 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
 
-        // Используем самую качественную модель flux-realism с дополнительными параметрами детализации
-        const safePrompt = encodeURIComponent(userPrompt + ", highly detailed, sharp focus, 4k");
-        const externalUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&model=flux-realism&nologo=true&private=true`;
+        console.log('Received user prompt:', userPrompt);
+
+        // Чистый промт без лишних навязанных суффиксов, если модель на них сбоит
+        const finalPrompt = userPrompt; 
+        const safePrompt = encodeURIComponent(finalPrompt);
+        
+        // Пробуем базовую качественную модель flux или стандартный эндпоинт
+        const externalUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&model=flux&nologo=true&private=true`;
+
+        console.log('Requesting URL:', externalUrl);
 
         const response = await fetch(externalUrl, {
             method: 'GET',
@@ -48,7 +55,6 @@ export default async function handler(req, res) {
         const arrayBuffer = await response.arrayBuffer();
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
-        // Возвращаем ответ в стандартном формате для фронтенда
         return res.status(200).json({
             candidates: [{
                 content: {
