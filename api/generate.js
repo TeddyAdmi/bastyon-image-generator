@@ -29,9 +29,9 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
 
-        // Формируем чистый запрос для модели Flux
+        // Используем самую качественную модель flux-realism с дополнительными параметрами детализации
         const safePrompt = encodeURIComponent(userPrompt + ", highly detailed, sharp focus, 4k");
-        const externalUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&model=flux&nologo=true&private=true`;
+        const externalUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&model=flux-realism&nologo=true&private=true`;
 
         const response = await fetch(externalUrl, {
             method: 'GET',
