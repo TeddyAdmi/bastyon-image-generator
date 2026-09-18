@@ -1,0 +1,9 @@
+{
+  "manifest_version": 1,
+  "name": "Bastyon Image Generator",
+  "short_name": "ImageGen",
+  "description": "Мини-приложение для генерации картинок по тексту",
+  "version": "1.0.0",
+  "start_url": "/",
+  "display": "standalone"
+}
