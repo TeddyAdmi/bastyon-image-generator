@@ -47,7 +47,6 @@
             try {
                 let parts = [{ text: prompt }];
 
-                // Запрос на бэкенд Vercel
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -55,9 +54,9 @@
                 });
 
                 const data = await response.json();
+                console.log("Полный ответ от API:", data);
 
                 if (!response.ok) {
-                    console.error("Server Error Details:", data);
                     const errorMsg = data.error?.message || data.error || JSON.stringify(data);
                     alert('Ошибка сервера: ' + errorMsg);
                     return;
@@ -72,8 +71,12 @@
                     document.getElementById('outputImage').src = currentImageUrl;
                     document.getElementById('result').classList.remove('hidden');
                 } else {
-                    console.error("Unexpected API response structure:", data);
-                    alert('Не удалось найти картинку в ответе API. Проверьте консоль F12.');
+                    const textResponse = data.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
+                    if (textResponse) {
+                        alert('Модель ответила текстом вместо картинки: ' + textResponse);
+                    } else {
+                        alert('Ответ получен, но в нем нет изображения. Проверьте консоль (F12) -> вкладка Console.');
+                    }
                 }
             } catch (error) {
                 console.error('Fetch Exception:', error);
