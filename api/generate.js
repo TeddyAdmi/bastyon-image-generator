@@ -11,8 +11,10 @@ export default async function handler(req, res) {
     try {
         const { parts } = req.body;
         
-        // Используем стабильную версию gemini-1.5-flash, которая отличается высокой стабильностью без ошибок 503
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        // Используем стабильный эндпоинт v1 и актуальное название модели
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: parts }] })
