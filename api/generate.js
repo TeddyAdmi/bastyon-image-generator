@@ -5,21 +5,34 @@ export default async function handler(req, res) {
 
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-        return res.status(500).json({ error: 'API key is not configured on server' });
+        return res.status(500).json({ error: 'API key is not configured on server in Vercel environment variables.' });
     }
 
     try {
-        const { parts } = req.body;
+        const { parts }  = req.body;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`, {
+        // Используем актуальную модель gemini-2.5-flash (или аналогичную мультимодальную)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: parts }] })
+            body: JSON.stringify({ 
+                contents: [{ parts: parts }],
+                generationConfig: {
+                    responseMimeType: "text/plain"
+                }
+            })
         });
 
         const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Google API Error Response:", data);
+            return res.status(response.status).json({ error: data.error?.message || JSON.stringify(data) });
+        }
+
         return res.status(200).json(data);
     } catch (error) {
+        console.error("Server Handler Exception:", error);
         return res.status(500).json({ error: error.message });
     }
 }
