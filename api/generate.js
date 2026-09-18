@@ -3,57 +3,38 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) {
-        return res.status(500).json({ error: 'API key is not configured on server in Vercel environment variables.' });
-    }
-
     try {
         const { parts } = req.body;
-        const userPrompt = parts?.[0]?.text || "A futuristic landscape";
+        const promptText = parts?.[0]?.text || "A beautiful landscape";
 
-        // Обращаемся к модели с системной инструкцией, требующей выдать результат как изображение
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+        // Используем открытый и стабильный генератор изображений по URL
+        const encodedPrompt = encodeURIComponent(promptText);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [
-                    {
-                        role: "user",
-                        parts: [
-                            { text: `Task: Generate an image. Prompt: ${userPrompt}. Return raw image bytes in inline_data.` }
-                        ]
-                    }
-                ],
-                generationConfig: {
-                    responseModalities: ["IMAGE"]
+        // Скачиваем картинку на бэкенд Vercel, чтобы конвертировать её в Base64 для фронтенда
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+            throw new Error("Failed to generate image from external service.");
+        }
+
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const base64Data = Buffer.from(arrayBuffer).toString('base64');
+
+        // Формируем ответ в привычном для фронтенда формате
+        const formattedResponse = {
+            candidates: [{
+                content: {
+                    parts: [{
+                        inline_data: {
+                            mime_type: "image/jpeg",
+                            data: base64Data
+                        }
+                    }]
                 }
-            })
-        });
+            }]
+        };
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error("Google API Error Response:", data);
-            return res.status(response.status).json({ error: data.error?.message || JSON.stringify(data) });
-        }
-
-        // Проверяем, вернула ли модель реальный контент изображения
-        const hasImage = data.candidates?.[0]?.content?.parts?.some(p => p.inline_data);
-
-        if (!hasImage) {
-            // Если модель снова попыталась ответить текстом, перехватываем и возвращаем ошибку текстом
-            const textReply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (textReply) {
-                return res.status(400).json({ 
-                    error: "Model returned text instead of image: " + textReply.substring(0, 150) + "..." 
-                });
-            }
-        }
-
-        return res.status(200).json(data);
+        return res.status(200).json(formattedResponse);
     } catch (error) {
         console.error("Server Handler Exception:", error);
         return res.status(500).json({ error: error.message });
