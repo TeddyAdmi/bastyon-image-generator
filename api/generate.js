@@ -8,38 +8,50 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'API key is not configured on server in Vercel environment variables.' });
     }
 
-    try {
-        const { parts } = req.body;
-        const promptText = parts?.[0]?.text || "A beautiful landscape";
+    const { parts } = req.body;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
-        // Запрос к модели с указанием роли генерации изображений
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+    let attempts = 5; // Увеличиваем число попыток
+    let delay = 3000;  // Начальная пауза 3 секунды
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: "Generate an image based on this request: " + promptText }
-                    ]
-                }],
-                generationConfig: {
-                    responseModalities: ["IMAGE"]
-                }
-            })
-        });
+    for (let i = 0; i < attempts; i++) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: parts }],
+                    generationConfig: {
+                        responseModalities: ["IMAGE", "TEXT"]
+                    }
+                })
+            });
 
-        const data = await response.json();
+            const data = await response.json();
 
-        if (!response.ok) {
+            if (response.ok) {
+                return res.status(200).json(data);
+            }
+
+            const errorMessage = data.error?.message || JSON.stringify(data);
+
+            // Если сервер перегружен (503), ждем и повторяем запрос автоматически
+            if ((response.status === 503 || response.status === 429) && i < attempts - 1) {
+                console.warn(`Attempt ${i + 1} overloaded (503). Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 1.5; // Плавное увеличение паузы
+                continue;
+            }
+
             console.error("Google API Error Response:", data);
-            return res.status(response.status).json({ error: data.error?.message || JSON.stringify(data) });
-        }
+            return res.status(response.status).json({ error: errorMessage });
 
-        return res.status(200).json(data);
-    } catch (error) {
-        console.error("Server Handler Exception:", error);
-        return res.status(500).json({ error: error.message });
+        } catch (error) {
+            console.error("Server Handler Exception:", error);
+            if (i === attempts - 1) {
+                return res.status(500).json({ error: error.message });
+            }
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
     }
 }
