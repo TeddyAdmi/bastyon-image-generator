@@ -73,7 +73,7 @@
                     text: prompt ? prompt : "Улучши и детализируй это изображение." 
                 });
 
-                // Запрос идет на наш собственный бэкенд в Vercel
+                // Запрос на бэкенд Vercel
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -81,6 +81,15 @@
                 });
 
                 const data = await response.json();
+
+                // Если сервер вернул ошибку
+                if (!response.ok) {
+                    console.error("Server Error Details:", data);
+                    const errorMsg = data.error?.message || data.error || JSON.stringify(data);
+                    alert('Ошибка сервера: ' + errorMsg);
+                    return;
+                }
+                
                 const candidatePart = data.candidates?.[0]?.content?.parts?.find(p => p.inline_data);
                 
                 if (candidatePart && candidatePart.inline_data) {
@@ -90,12 +99,12 @@
                     document.getElementById('outputImage').src = currentImageUrl;
                     document.getElementById('result').classList.remove('hidden');
                 } else {
-                    alert('Ошибка генерации. Проверьте консоль.');
-                    console.error(data);
+                    console.error("Unexpected API response structure:", data);
+                    alert('Не удалось найти картинку в ответе API. Проверьте консоль F12.');
                 }
             } catch (error) {
-                console.error('Ошибка:', error);
-                alert('Произошла ошибка при отправке запроса.');
+                console.error('Fetch Exception:', error);
+                alert('Произошла сетевая ошибка: ' + error.message);
             } finally {
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('generateBtn').disabled = false;
