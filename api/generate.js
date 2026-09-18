@@ -14,14 +14,22 @@ export default async function handler(req, res) {
         const parts = body?.parts || [];
         let promptText = parts[0]?.text || "A beautiful landscape";
 
-        // Исправляем частые опечатки пользователей автоматически
-        const cleanedPrompt = promptText.toLowerCase().trim();
-        if (cleanedPrompt === 'медверь' || cleanedPrompt === 'медвер') {
-            promptText = 'A realistic brown bear in the wild, cinematic lighting';
+        // Делаем промпт более развернутым, чтобы нейросеть не рисовала случайных людей по одному слову
+        let enhancedPrompt = promptText;
+        const lower = promptText.toLowerCase().trim();
+
+        if (lower === 'тигр' || lower === 'tiger') {
+            enhancedPrompt = 'A majestic wild Bengal tiger in the jungle, highly detailed, photorealistic, 8k resolution, no people';
+        } else if (lower === 'медведь' || lower === 'медверь' || lower === 'bear') {
+            enhancedPrompt = 'A powerful realistic brown bear in the wild forest, cinematic lighting, highly detailed';
+        } else {
+            // Для остальных коротких запросов добавляем конкретики
+            enhancedPrompt = `${promptText}, high quality, detailed digital art, sharp focus`;
         }
 
-        const encodedPrompt = encodeURIComponent(promptText);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true`;
+        const encodedPrompt = encodeURIComponent(enhancedPrompt);
+        // Используем другую модель или параметры без водяного знака
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
 
         const imageResponse = await fetch(imageUrl);
 
