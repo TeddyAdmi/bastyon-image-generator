@@ -1,13 +1,11 @@
-export const config = {
-    api: {
-        bodyParser: {
-            sizeLimit: '10mb',
-        },
-    },
-};
-
 export default async function handler(req, res) {
-    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -16,7 +14,7 @@ export default async function handler(req, res) {
     try {
         const apiKey = process.env.POLLINATIONS_KEY;
         if (!apiKey) {
-            return res.status(500).json({ error: 'POLLINATIONS_KEY is not configured' });
+            return res.status(500).json({ error: 'POLLINATIONS_KEY is missing in Vercel environment variables' });
         }
 
         let body = req.body;
@@ -28,34 +26,35 @@ export default async function handler(req, res) {
         const userPrompt = String(parts[0]?.text || '').trim();
 
         if (!userPrompt) {
-            return res.status(400).json({ error: 'Введите описание изображения' });
+            return res.status(400).json({ error: 'Prompt is required' });
         }
 
-        // Чистый и качественный промпт для модели
-        const finalPrompt = `${userPrompt}, highly detailed, sharp focus, professional photography, high quality, no watermark`;
-        const encodedPrompt = encodeURIComponent(finalPrompt);
-        
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&private=true`;
+        // Формируем чистый запрос для модели Flux
+        const safePrompt = encodeURIComponent(userPrompt + ", highly detailed, sharp focus, 4k");
+        const externalUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&model=flux&nologo=true&private=true`;
 
-        const imageResponse = await fetch(imageUrl, {
+        const response = await fetch(externalUrl, {
+            method: 'GET',
             headers: {
                 'Authorization': `Bearer ${apiKey}`
             }
         });
 
-        if (!imageResponse.ok) {
-            return res.status(502).json({ error: `External API error status: ${imageResponse.status}` });
+        if (!response.ok) {
+            const errText = await response.text();
+            return res.status(502).json({ error: `Image provider error: ${errText || response.status}` });
         }
 
-        const arrayBuffer = await imageResponse.arrayBuffer();
+        const arrayBuffer = await response.arrayBuffer();
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
+        // Возвращаем ответ в стандартном формате для фронтенда
         return res.status(200).json({
             candidates: [{
                 content: {
                     parts: [{
                         inline_data: {
-                            mime_type: "image/jpeg",
+                            mime_type: 'image/jpeg',
                             data: base64Data
                         }
                     }]
@@ -63,8 +62,8 @@ export default async function handler(req, res) {
             }]
         });
 
-    } catch (error) {
-        console.error("Server Error:", error);
-        return res.status(500).json({ error: error?.message || "Internal server error" });
+    } catch (err) {
+        console.error('Generation Error:', err);
+        return res.status(500).json({ error: err.message || 'Internal Server Error' });
     }
 }
