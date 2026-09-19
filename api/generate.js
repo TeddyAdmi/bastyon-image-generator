@@ -1,3 +1,4 @@
+```javascript
 export default async function handler(req, res) {
   // Только POST
   if (req.method !== "POST") {
@@ -10,13 +11,16 @@ export default async function handler(req, res) {
   try {
     const {
       prompt,
-      model = "flux",
+      model = "gemini-3.1-flash-image",
       width = 1024,
       height = 1024,
       quality = "medium"
     } = req.body || {};
 
-    // Проверяем промт
+    // -----------------------------------------
+    // ПРОВЕРКА ПРОМТА
+    // -----------------------------------------
+
     if (!prompt || typeof prompt !== "string") {
       return res.status(400).json({
         success: false,
@@ -40,49 +44,44 @@ export default async function handler(req, res) {
       });
     }
 
-    /*
-     * Актуальные модели Pollinations.
-     *
-     * Важно:
-     * frontend использует короткие названия,
-     * здесь они превращаются в реальные ID.
-     */
+    // -----------------------------------------
+    // GEMINI API KEY
+    // -----------------------------------------
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        error:
+          "GEMINI_API_KEY не настроен в Vercel Environment Variables."
+      });
+    }
+
+    // -----------------------------------------
+    // МОДЕЛИ
+    // -----------------------------------------
+
     const models = {
-      flux: "black-forest-labs/flux.1-schnell",
+      "gpt-image-2": "gemini-3.1-flash-image",
+      flux: "gemini-3.1-flash-image",
+      zimage: "gemini-3.1-flash-image",
+      dream: "gemini-3.1-flash-image",
+      seedream: "gemini-3.1-flash-image",
+      qwen: "gemini-3.1-flash-image",
 
-      "gpt-image-2": "openai/gpt-image-2",
-
-      zimage: "tongyi-mai/z-image-turbo",
-
-      dream: "lykon/dreamshaper-8-lcm",
-
-      seedream: "bytedance/seedream-4.0",
-
-      qwen: "qwen/qwen-image"
+      "gemini": "gemini-3.1-flash-image",
+      "gemini-3.1": "gemini-3.1-flash-image",
+      "gemini-3.1-flash-image": "gemini-3.1-flash-image"
     };
 
     const selectedModel =
-      models[model] || models.flux;
+      models[model] || "gemini-3.1-flash-image";
 
+    // -----------------------------------------
+    // РАЗМЕРЫ
+    // -----------------------------------------
 
-    /*
-     * Разрешённые значения качества.
-     */
-    const allowedQuality = [
-      "low",
-      "medium",
-      "high"
-    ];
-
-    const selectedQuality =
-      allowedQuality.includes(quality)
-        ? quality
-        : "medium";
-
-
-    /*
-     * Безопасно приводим размеры.
-     */
     let imageWidth = Number(width);
     let imageHeight = Number(height);
 
@@ -94,100 +93,161 @@ export default async function handler(req, res) {
       imageHeight = 1024;
     }
 
-
-    /*
-     * Ограничения.
-     */
     imageWidth = Math.max(
       256,
-      Math.min(1536, Math.round(imageWidth))
+      Math.min(4096, Math.round(imageWidth))
     );
 
     imageHeight = Math.max(
       256,
-      Math.min(1536, Math.round(imageHeight))
+      Math.min(4096, Math.round(imageHeight))
     );
 
+    // -----------------------------------------
+    // ОПРЕДЕЛЯЕМ ASPECT RATIO
+    // -----------------------------------------
 
-    /*
-     * Большинство моделей лучше работают
-     * с размерами, кратными 16.
-     */
-    imageWidth =
-      Math.round(imageWidth / 16) * 16;
+    const ratio = imageWidth / imageHeight;
 
-    imageHeight =
-      Math.round(imageHeight / 16) * 16;
+    let aspectRatio = "1:1";
 
+    const ratios = [
+      { value: "1:1", ratio: 1 },
+      { value: "16:9", ratio: 16 / 9 },
+      { value: "9:16", ratio: 9 / 16 },
+      { value: "4:3", ratio: 4 / 3 },
+      { value: "3:4", ratio: 3 / 4 },
+      { value: "4:5", ratio: 4 / 5 },
+      { value: "5:4", ratio: 5 / 4 },
+      { value: "3:2", ratio: 3 / 2 },
+      { value: "2:3", ratio: 2 / 3 },
+      { value: "21:9", ratio: 21 / 9 }
+    ];
 
-    /*
-     * Очень важный момент:
-     *
-     * НЕ переписываем пользовательский промт.
-     * НЕ добавляем случайные описания.
-     *
-     * Передаём именно то, что пользователь написал
-     * или продиктовал.
-     */
-    const finalPrompt = cleanPrompt;
+    let closestDifference = Infinity;
 
+    for (const item of ratios) {
+      const difference =
+        Math.abs(ratio - item.ratio);
 
-    /*
-     * Pollinations OpenAI-compatible API.
-     */
-    const apiUrl =
-      "https://gen.pollinations.ai/v1/images/generations";
-
-
-    /*
-     * API key хранится только на сервере Vercel.
-     */
-    const apiKey =
-      process.env.POLLINATIONS_KEY;
-
-
-    if (!apiKey) {
-      return res.status(500).json({
-        success: false,
-        error:
-          "POLLINATIONS_KEY не настроен в Vercel Environment Variables."
-      });
+      if (difference < closestDifference) {
+        closestDifference = difference;
+        aspectRatio = item.value;
+      }
     }
 
+    // -----------------------------------------
+    // IMAGE SIZE
+    // -----------------------------------------
+    //
+    // Gemini использует:
+    //
+    // 512px
+    // 1K
+    // 2K
+    // 4K
+    //
+    // Здесь размер выбирается автоматически
+    // исходя из width / height.
+    //
 
-    /*
-     * Запрос к Pollinations.
-     */
+    const largestSide =
+      Math.max(imageWidth, imageHeight);
+
+    let imageSize = "1K";
+
+    if (largestSide <= 768) {
+      imageSize = "0.5K";
+    } else if (largestSide <= 1536) {
+      imageSize = "1K";
+    } else if (largestSide <= 3072) {
+      imageSize = "2K";
+    } else {
+      imageSize = "4K";
+    }
+
+    // -----------------------------------------
+    // QUALITY
+    // -----------------------------------------
+    //
+    // Gemini 3.1 Flash Image не использует
+    // quality=low/medium/high так же,
+    // как Pollinations.
+    //
+    // Поэтому quality переводим в размер.
+    //
+
+    if (quality === "low") {
+      imageSize = "0.5K";
+    }
+
+    if (quality === "medium") {
+      if (largestSide <= 1536) {
+        imageSize = "1K";
+      } else {
+        imageSize = "2K";
+      }
+    }
+
+    if (quality === "high") {
+      if (largestSide <= 1536) {
+        imageSize = "2K";
+      } else {
+        imageSize = "4K";
+      }
+    }
+
+    // -----------------------------------------
+    // GEMINI API
+    // -----------------------------------------
+
+    const apiUrl =
+      `https://generativelanguage.googleapis.com/v1/models/${selectedModel}:generateContent`;
+
+    const requestBody = {
+      contents: [
+        {
+          parts: [
+            {
+              text: cleanPrompt
+            }
+          ]
+        }
+      ],
+
+      generationConfig: {
+        responseModalities: ["IMAGE"]
+      }
+    };
+
+    // -----------------------------------------
+    // ВАЖНО:
+    //
+    // Добавляем параметры изображения.
+    // -----------------------------------------
+
+    requestBody.generationConfig.imageConfig = {
+      aspectRatio: aspectRatio,
+      imageSize: imageSize
+    };
+
+    // -----------------------------------------
+    // ОТПРАВЛЯЕМ ЗАПРОС
+    // -----------------------------------------
+
     const response = await fetch(apiUrl, {
       method: "POST",
 
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+        "x-goog-api-key": apiKey
       },
 
-      body: JSON.stringify({
-        prompt: finalPrompt,
-
-        model: selectedModel,
-
-        n: 1,
-
-        size: `${imageWidth}x${imageHeight}`,
-
-        quality: selectedQuality,
-
-        response_format: "b64_json"
-      })
+      body: JSON.stringify(requestBody)
     });
 
-
-    /*
-     * Получаем ответ.
-     */
     const responseText =
       await response.text();
-
 
     let data;
 
@@ -195,207 +255,141 @@ export default async function handler(req, res) {
       data = JSON.parse(responseText);
     } catch {
       console.error(
-        "Pollinations non-JSON response:",
-        responseText.slice(0, 1000)
+        "Gemini returned non-JSON:",
+        responseText.slice(0, 2000)
       );
 
       return res.status(502).json({
         success: false,
         error:
-          "Pollinations вернул некорректный ответ."
+          "Gemini вернул некорректный ответ."
       });
     }
 
+    // -----------------------------------------
+    // ОШИБКА GEMINI
+    // -----------------------------------------
 
-    /*
-     * Ошибка API.
-     */
     if (!response.ok) {
-
       console.error(
-        "Pollinations API error:",
+        "Gemini API error:",
         response.status,
         data
       );
 
-      let errorText =
-        "Ошибка генерации изображения.";
+      let errorMessage =
+        "Ошибка генерации изображения Gemini.";
 
-      if (data?.error) {
-
-        if (typeof data.error === "string") {
-          errorText = data.error;
-        }
-
-        else if (data.error.message) {
-          errorText = data.error.message;
-        }
-
+      if (data?.error?.message) {
+        errorMessage =
+          data.error.message;
       }
 
       return res.status(response.status).json({
         success: false,
-        error: errorText,
+        error: errorMessage,
         model: selectedModel
       });
     }
 
+    // -----------------------------------------
+    // ИЩЕМ IMAGE PART
+    // -----------------------------------------
 
-    /*
-     * Проверяем структуру ответа.
-     */
-    const imageData =
-      data?.data?.[0];
+    const candidates =
+      data?.candidates || [];
 
+    let imagePart = null;
 
-    if (!imageData) {
+    for (const candidate of candidates) {
+      const parts =
+        candidate?.content?.parts || [];
 
+      for (const part of parts) {
+        if (
+          part?.inlineData?.data ||
+          part?.inline_data?.data
+        ) {
+          imagePart = part;
+          break;
+        }
+      }
+
+      if (imagePart) {
+        break;
+      }
+    }
+
+    // -----------------------------------------
+    // НЕ НАШЛИ КАРТИНКУ
+    // -----------------------------------------
+
+    if (!imagePart) {
       console.error(
-        "No image data:",
-        data
+        "Gemini response without image:",
+        JSON.stringify(data).slice(0, 5000)
       );
 
       return res.status(502).json({
         success: false,
         error:
-          "Pollinations не вернул изображение."
+          "Gemini не вернул изображение. Возможно, запрос был заблокирован или модель вернула только текст."
       });
-
     }
 
+    // -----------------------------------------
+    // BASE64
+    // -----------------------------------------
 
-    /*
-     * Основной вариант:
-     * base64
-     */
-    if (imageData.b64_json) {
+    const inlineData =
+      imagePart.inlineData ||
+      imagePart.inline_data;
 
-      return res.status(200).json({
+    const base64 =
+      inlineData.data;
 
-        success: true,
+    const mimeType =
+      inlineData.mimeType ||
+      inlineData.mime_type ||
+      "image/png";
 
-        model: selectedModel,
+    // -----------------------------------------
+    // ГОТОВЫЙ ОТВЕТ
+    // -----------------------------------------
 
-        width: imageWidth,
+    return res.status(200).json({
+      success: true,
 
-        height: imageHeight,
+      model: selectedModel,
 
-        quality: selectedQuality,
+      width: imageWidth,
 
-        image: {
-          mime:
-            imageData.media_type ||
-            "image/png",
+      height: imageHeight,
 
-          data:
-            imageData.b64_json
-        }
+      aspectRatio: aspectRatio,
 
-      });
+      imageSize: imageSize,
 
-    }
+      quality: quality,
 
-
-    /*
-     * Некоторые ответы могут вернуть URL.
-     *
-     * Скачиваем изображение на сервере,
-     * превращаем его в base64 и отдаём
-     * frontend.
-     */
-    if (imageData.url) {
-
-      const imageResponse =
-        await fetch(imageData.url);
-
-
-      if (!imageResponse.ok) {
-
-        return res.status(502).json({
-          success: false,
-          error:
-            "Не удалось получить готовое изображение."
-        });
-
+      image: {
+        mime: mimeType,
+        data: base64
       }
-
-
-      const contentType =
-        imageResponse.headers.get(
-          "content-type"
-        ) || "image/png";
-
-
-      const arrayBuffer =
-        await imageResponse.arrayBuffer();
-
-
-      const base64 =
-        Buffer.from(arrayBuffer)
-          .toString("base64");
-
-
-      return res.status(200).json({
-
-        success: true,
-
-        model: selectedModel,
-
-        width: imageWidth,
-
-        height: imageHeight,
-
-        quality: selectedQuality,
-
-        image: {
-
-          mime: contentType,
-
-          data: base64
-
-        }
-
-      });
-
-    }
-
-
-    /*
-     * Ничего подходящего не пришло.
-     */
-    console.error(
-      "Unknown image response:",
-      data
-    );
-
-
-    return res.status(502).json({
-
-      success: false,
-
-      error:
-        "API вернул неизвестный формат изображения."
-
     });
 
-
   } catch (error) {
-
     console.error(
       "Generate handler error:",
       error
     );
 
-
     return res.status(500).json({
-
       success: false,
-
       error:
         error?.message ||
         "Внутренняя ошибка сервера."
-
     });
-
   }
 }
+```
