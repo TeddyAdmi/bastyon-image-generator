@@ -49,78 +49,245 @@ export default async function handler(req, res) {
         }
 
         /*
-         * Не переводим русский текст.
-         * Передаем исходный запрос непосредственно
-         * модели изображения.
+         * НАСТРОЙКИ РЕДАКТОРА
          */
+
+        const model = String(
+            body?.model || 'openai/gpt-image-2'
+        );
+
+        const size = String(
+            body?.size || '1024x1024'
+        );
+
+        const quality = String(
+            body?.quality || 'high'
+        );
+
+        const transparent =
+            body?.transparent === true;
+
+        /*
+         * Разрешённые модели.
+         * Это защищает API от случайных
+         * или нежелательных значений.
+         */
+
+        const allowedModels = [
+            'openai/gpt-image-2',
+            'openai/gpt-image-1.5',
+            'bytedance/seedream-5.0-pro',
+            'bytedance/seedream-5.0-lite',
+            'black-forest-labs/flux.2-pro',
+            'black-forest-labs/flux.2-flex',
+            'black-forest-labs/flux.2-max',
+            'google/gemini-3.1-flash-image',
+            'google/gemini-3-pro-image',
+            'ideogram-ai/ideogram-v4-quality',
+            'ideogram-ai/ideogram-v4-balanced',
+            'ideogram-ai/ideogram-v4-turbo',
+            'x-ai/grok-imagine-image-2.0',
+            'qwen/qwen-image-3'
+        ];
+
+        if (!allowedModels.includes(model)) {
+            return res.status(400).json({
+                error: `Unsupported model: ${model}`
+            });
+        }
+
+        /*
+         * Разрешённые размеры.
+         */
+
+        const allowedSizes = [
+            '1024x1024',
+            '1536x1024',
+            '1024x1536',
+            '1536x1536',
+            '1792x1024',
+            '1024x1792',
+            '2048x1152',
+            '1152x2048'
+        ];
+
+        if (!allowedSizes.includes(size)) {
+            return res.status(400).json({
+                error: `Unsupported size: ${size}`
+            });
+        }
+
+        /*
+         * Разрешённое качество.
+         */
+
+        const allowedQuality = [
+            'low',
+            'medium',
+            'high',
+            'hd'
+        ];
+
+        if (!allowedQuality.includes(quality)) {
+            return res.status(400).json({
+                error: `Unsupported quality: ${quality}`
+            });
+        }
+
+        /*
+         * Дополнительная инструкция.
+         * Исходный русский промпт сохраняем.
+         */
+
         const finalPrompt = `
 ${userPrompt}
 
 Create exactly the scene described by the user.
 
 IMPORTANT:
-- Follow the user's description exactly.
-- Keep the main subject clearly visible.
-- Do not replace the main subject.
-- Do not change the action.
-- Do not change the location.
-- Preserve requested colors and clothing.
-- Preserve requested objects.
-- Do not add people unless requested.
-- Do not add animals unless requested.
-- Do not add vehicles unless requested.
-- Do not add unnecessary landmarks.
-- Do not hide the main subject.
-- Do not put objects in front of the main subject.
-- Do not add text.
-- Do not add logos.
-- Do not add watermarks.
 
-The main subject should occupy a clear,
-natural part of the frame.
+Follow the user's description precisely.
 
-Photorealistic.
+The main subject must be clearly visible
+and remain the primary focus.
+
+Preserve:
+- subject
+- action
+- location
+- objects
+- colors
+- clothing
+- relationships between objects
+- requested composition
+
+Do not replace the main subject.
+
+Do not change the action.
+
+Do not invent additional people.
+
+Do not invent additional animals.
+
+Do not invent vehicles.
+
+Do not add unnecessary landmarks.
+
+Do not hide the main subject.
+
+Do not put important objects in front
+of the main subject.
+
+Do not add logos unless requested.
+
+Do not add text unless requested.
+
+Do not add captions.
+
+Do not add watermarks.
+
+Photorealistic image.
+
 Realistic anatomy.
+
 Realistic proportions.
+
+Realistic materials.
+
+Realistic textures.
+
 Natural lighting.
+
 Natural shadows.
-Detailed textures.
-Sharp focus.
-High image quality.
+
+Detailed environment.
+
+Sharp focus on the main subject.
+
+High visual quality.
 `.trim();
 
+        console.log('MODEL:', model);
+        console.log('SIZE:', size);
+        console.log('QUALITY:', quality);
+        console.log('TRANSPARENT:', transparent);
         console.log('USER PROMPT:', userPrompt);
 
+        /*
+         * POLLINATIONS API
+         */
+
+        const apiUrl =
+            'https://gen.pollinations.ai/v1/images/generations';
+
+        const requestBody = {
+            model,
+            prompt: finalPrompt,
+            size,
+            quality,
+            n: 1,
+            response_format: 'url'
+        };
+
+        /*
+         * Прозрачный фон.
+         * Для GPT Image моделей Pollinations
+         * поддерживает transparent.
+         */
+
+        if (
+            transparent &&
+            (
+                model === 'openai/gpt-image-2' ||
+                model === 'openai/gpt-image-1.5'
+            )
+        ) {
+            requestBody.transparent = true;
+        }
+
+        console.log(
+            'POLLINATIONS REQUEST:',
+            JSON.stringify({
+                model,
+                size,
+                quality,
+                transparent
+            })
+        );
+
         const response = await fetch(
-            'https://gen.pollinations.ai/v1/images/generations',
+            apiUrl,
             {
                 method: 'POST',
 
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
+                    'Authorization':
+                        `Bearer ${apiKey}`,
+
+                    'Content-Type':
+                        'application/json'
                 },
 
-                body: JSON.stringify({
-                    model: 'openai/gpt-image-1.5',
-                    prompt: finalPrompt,
-                    size: '1024x1024',
-                    quality: 'medium',
-                    n: 1,
-                    response_format: 'url'
-                })
+                body:
+                    JSON.stringify(requestBody)
             }
         );
 
-        const responseText = await response.text();
+        const responseText =
+            await response.text();
 
         let data;
 
         try {
-            data = JSON.parse(responseText);
+            data =
+                JSON.parse(responseText);
         } catch {
             data = null;
         }
+
+        /*
+         * Ошибка Pollinations
+         */
 
         if (!response.ok) {
             console.error(
@@ -128,36 +295,53 @@ High image quality.
                 responseText
             );
 
+            const errorMessage =
+                data?.error?.message ||
+                data?.error ||
+                responseText ||
+                `HTTP ${response.status}`;
+
             return res.status(502).json({
                 error:
-                    `Image provider error: ${
-                        data?.error?.message ||
-                        responseText ||
-                        response.status
-                    }`
-            });
-        }
-
-        const image = data?.data?.[0];
-
-        if (!image) {
-            console.error('NO IMAGE DATA:', data);
-
-            return res.status(502).json({
-                error: 'Image provider returned no image'
+                    `Image provider error: ${errorMessage}`
             });
         }
 
         /*
-         * Pollinations может вернуть URL.
-         * Скачиваем изображение на сервере Vercel
-         * и возвращаем фронтенду тот же формат,
-         * который уже использует наш index.html.
+         * Получаем результат
          */
-        let base64Data = image.b64_json;
+
+        const image =
+            data?.data?.[0];
+
+        if (!image) {
+            console.error(
+                'NO IMAGE DATA:',
+                data
+            );
+
+            return res.status(502).json({
+                error:
+                    'Image provider returned no image'
+            });
+        }
+
+        /*
+         * Pollinations возвращает URL.
+         * Скачиваем готовое изображение.
+         */
+
+        let base64Data =
+            image.b64_json;
+
+        let mimeType =
+            image.media_type ||
+            'image/png';
 
         if (!base64Data && image.url) {
-            const imageResponse = await fetch(image.url);
+
+            const imageResponse =
+                await fetch(image.url);
 
             if (!imageResponse.ok) {
                 return res.status(502).json({
@@ -166,22 +350,47 @@ High image quality.
                 });
             }
 
+            const contentType =
+                imageResponse.headers.get(
+                    'content-type'
+                );
+
+            if (contentType) {
+                mimeType =
+                    contentType.split(';')[0];
+            }
+
             const arrayBuffer =
                 await imageResponse.arrayBuffer();
 
             base64Data =
-                Buffer.from(arrayBuffer).toString('base64');
+                Buffer
+                    .from(arrayBuffer)
+                    .toString('base64');
         }
 
         if (!base64Data) {
             return res.status(502).json({
-                error: 'Generated image data is empty'
+                error:
+                    'Generated image data is empty'
             });
         }
 
+        /*
+         * Возвращаем фронтенду тот же формат,
+         * который уже понимает твой index.html.
+         */
+
         return res.status(200).json({
-            prompt: userPrompt,
-            model: 'openai/gpt-image-1.5',
+
+            prompt:
+                userPrompt,
+
+            model,
+
+            size,
+
+            quality,
 
             candidates: [
                 {
@@ -189,8 +398,11 @@ High image quality.
                         parts: [
                             {
                                 inline_data: {
-                                    mime_type: 'image/png',
-                                    data: base64Data
+                                    mime_type:
+                                        mimeType,
+
+                                    data:
+                                        base64Data
                                 }
                             }
                         ]
@@ -200,6 +412,7 @@ High image quality.
         });
 
     } catch (error) {
+
         console.error(
             'GENERATION ERROR:',
             error
