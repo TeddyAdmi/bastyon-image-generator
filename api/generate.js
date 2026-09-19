@@ -1,4 +1,4 @@
-export const maxDuration = 60;
+export const maxDuration = 60; // Увеличение лимита времени выполнения для Vercel
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,14 +19,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        const apiKey = process.env.POLLINATIONS_KEY;
-
-        if (!apiKey) {
-            return res.status(500).json({
-                error: 'POLLINATIONS_KEY is missing in Vercel'
-            });
-        }
-
         let body = req.body;
 
         if (typeof body === 'string') {
@@ -50,154 +42,31 @@ export default async function handler(req, res) {
             });
         }
 
-        const model = String(body?.model || 'black-forest-labs/flux.2-flex');
-        const size = String(body?.size || '1024x1024');
-        const quality = String(body?.quality || 'high');
-        const transparent = body?.transparent === true;
+        // Параметры для бесплатного генератора
+        const width = 1024;
+        const height = 1024;
+        const seed = Math.floor(Math.random() * 1000000);
+        
+        // Кодируем промпт для URL
+        const encodedPrompt = encodeURIComponent(userPrompt);
+        
+        // Формируем ссылку на бесплатный публичный генератор Pollinations
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
 
-        const allowedModels = [
-            'openai/gpt-image-2',
-            'openai/gpt-image-1.5',
-            'bytedance/seedream-5.0-pro',
-            'bytedance/seedream-5.0-lite',
-            'black-forest-labs/flux.2-pro',
-            'black-forest-labs/flux.2-flex',
-            'black-forest-labs/flux.2-max',
-            'google/gemini-3.1-flash-image',
-            'google/gemini-3-pro-image',
-            'ideogram-ai/ideogram-v4-quality',
-            'ideogram-ai/ideogram-v4-balanced',
-            'ideogram-ai/ideogram-v4-turbo',
-            'x-ai/grok-imagine-image-2.0',
-            'qwen/qwen-image-3'
-        ];
+        console.log(`FREE GENERATION URL: ${imageUrl}`);
 
-        if (!allowedModels.includes(model)) {
-            return res.status(400).json({
-                error: `Unsupported model: ${model}`
-            });
+        // Скачиваем сгенерированное изображение, чтобы конвертировать в base64 для фронтенда
+        const imageResponse = await fetch(imageUrl);
+
+        if (!imageResponse.ok) {
+            throw new Error(`Failed to generate image from public API: ${imageResponse.status}`);
         }
 
-        const allowedSizes = [
-            '1024x1024',
-            '1536x1024',
-            '1024x1536',
-            '1536x1536',
-            '1792x1024',
-            '1024x1792',
-            '2048x1152',
-            '1152x2048'
-        ];
+        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+        const mimeType = contentType.split(';')[0];
 
-        if (!allowedSizes.includes(size)) {
-            return res.status(400).json({
-                error: `Unsupported size: ${size}`
-            });
-        }
-
-        const allowedQuality = ['low', 'medium', 'high', 'hd'];
-
-        if (!allowedQuality.includes(quality)) {
-            return res.status(400).json({
-                error: `Unsupported quality: ${quality}`
-            });
-        }
-
-        const finalPrompt = `
-${userPrompt}
-
-Create exactly the scene described by the user.
-
-IMPORTANT:
-Follow the user's description precisely.
-The main subject must be clearly visible and remain the primary focus.
-Photorealistic image.
-Realistic anatomy, proportions, materials, and textures.
-Natural lighting and shadows.
-Detailed environment.
-Sharp focus on the main subject.
-High visual quality.
-`.trim();
-
-        const apiUrl = 'https://gen.pollinations.ai/v1/images/generations';
-
-        const requestBody = {
-            model,
-            prompt: finalPrompt,
-            size,
-            quality,
-            n: 1,
-            response_format: 'url'
-        };
-
-        const response = await fetch(
-            apiUrl,
-            {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            }
-        );
-
-        const responseText = await response.text();
-        let data;
-
-        try {
-            data = JSON.parse(responseText);
-        } catch {
-            data = null;
-        }
-
-        if (!response.ok) {
-            const errorMessage =
-                data?.error?.message ||
-                data?.error ||
-                responseText ||
-                `HTTP ${response.status}`;
-
-            console.error('POLLINATIONS ERROR:', JSON.stringify({
-                success: false,
-                error: errorMessage,
-                status: response.status
-            }));
-
-            // Пробрасываем точный статус и ошибку провайдера (например, 402 при нехватке баланса)
-            return res.status(response.status).json({
-                error: typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage)
-            });
-        }
-
-        const image = data?.data?.[0];
-
-        if (!image) {
-            return res.status(502).json({
-                error: 'Image provider returned no image'
-            });
-        }
-
-        let base64Data = image.b64_json;
-        let mimeType = image.media_type || 'image/png';
-
-        if (!base64Data && image.url) {
-            const imageResponse = await fetch(image.url);
-
-            if (!imageResponse.ok) {
-                return res.status(502).json({
-                    error: `Could not download generated image: ${imageResponse.status}`
-                });
-            }
-
-            const contentType = imageResponse.headers.get('content-type');
-            if (contentType) {
-                mimeType = contentType.split(';')[0];
-            }
-
-            const arrayBuffer = await imageResponse.arrayBuffer();
-            base64Data = Buffer.from(arrayBuffer).toString('base64');
-        }
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
         if (!base64Data) {
             return res.status(502).json({
@@ -207,9 +76,6 @@ High visual quality.
 
         return res.status(200).json({
             prompt: userPrompt,
-            model,
-            size,
-            quality,
             candidates: [
                 {
                     content: {
@@ -227,7 +93,7 @@ High visual quality.
         });
 
     } catch (error) {
-        console.error('GENERATION ERROR:', error);
+        console.error('FREE GENERATION ERROR:', error);
         return res.status(500).json({
             error: error?.message || 'Internal Server Error'
         });
