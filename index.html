@@ -384,13 +384,6 @@
         );
     }
 
-    /*
-      ВАЖНО:
-
-      Рабочее пространство теперь растягивается
-      под весь доступный блок.
-    */
-
     .canvas {
       width: 100%;
       height: 100%;
@@ -481,13 +474,6 @@
       line-height: 1.6;
     }
 
-
-    /*
-      ГАЛЕРЕЯ
-
-      Теперь одна картинка занимает всё рабочее пространство.
-    */
-
     .gallery {
       position: absolute;
 
@@ -508,12 +494,6 @@
       overflow: hidden;
     }
 
-
-    /*
-      Контейнер изображения теперь занимает
-      весь периметр canvas.
-    */
-
     .gallery-item {
       position: relative;
 
@@ -532,14 +512,6 @@
       box-shadow: none;
     }
 
-
-    /*
-      Изображение максимально заполняет
-      рабочее пространство без искажения.
-
-      contain = ничего не обрезаем.
-    */
-
     .gallery-item img {
       width: 100%;
       height: 100%;
@@ -551,7 +523,6 @@
 
       background: #f7f7f8;
     }
-
 
     .image-toolbar {
       position: absolute;
@@ -692,6 +663,9 @@
 
       font-size: 11px;
       font-weight: 700;
+
+      transition:
+        all 0.2s ease;
     }
 
     .tool-button:hover {
@@ -700,6 +674,34 @@
       border-color: var(--border-purple);
 
       background: var(--surface-purple);
+    }
+
+    .tool-button:active {
+      transform: translateY(1px);
+    }
+
+    .tool-button.listening {
+      border-color: #ef4444;
+
+      background: #fff1f2;
+
+      color: #dc2626;
+
+      animation:
+        microphonePulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes microphonePulse {
+      0%,
+      100% {
+        box-shadow:
+          0 0 0 0 rgba(239, 68, 68, 0.15);
+      }
+
+      50% {
+        box-shadow:
+          0 0 0 5px rgba(239, 68, 68, 0.08);
+      }
     }
 
     .counter {
@@ -711,8 +713,27 @@
 
 
     /* =========================================================
-       CHIPS
+       QUICK IDEAS
     ========================================================== */
+
+    .quick-ideas-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 10px;
+
+      margin-bottom: 10px;
+    }
+
+    .quick-ideas-hint {
+      color: var(--text-light);
+
+      font-size: 9px;
+      font-weight: 600;
+
+      white-space: nowrap;
+    }
 
     .chips {
       display: flex;
@@ -735,7 +756,8 @@
       transition:
         background 0.2s ease,
         border-color 0.2s ease,
-        color 0.2s ease;
+        color 0.2s ease,
+        transform 0.2s ease;
     }
 
     .chip:hover {
@@ -744,6 +766,12 @@
       background: var(--surface-purple);
 
       color: var(--purple);
+
+      transform: translateY(-1px);
+    }
+
+    .chip:active {
+      transform: translateY(0);
     }
 
 
@@ -839,7 +867,7 @@
 
 
     /* =========================================================
-       GENERATE BUTTON
+       GENERATE
     ========================================================== */
 
     .generate-button {
@@ -1468,6 +1496,12 @@
         padding: 15px;
       }
 
+      .quick-ideas-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
+      }
+
     }
 
   </style>
@@ -1652,7 +1686,9 @@
       <aside class="controls">
 
 
-        <!-- PROMPT -->
+        <!-- =================================================
+             PROMPT
+        ================================================== -->
 
         <section class="panel control-card">
 
@@ -1681,7 +1717,7 @@
                   type="button"
                   title="Голосовой ввод"
                 >
-                  🎙
+                  🎙 Микрофон
                 </button>
 
 
@@ -1689,6 +1725,7 @@
                   class="tool-button"
                   id="improvePromptBtn"
                   type="button"
+                  title="Сделать промпт более художественным"
                 >
                   ✨ Улучшить
                 </button>
@@ -1698,6 +1735,7 @@
                   class="tool-button"
                   id="clearPromptBtn"
                   type="button"
+                  title="Очистить поле"
                 >
                   Очистить
                 </button>
@@ -1719,58 +1757,36 @@
         </section>
 
 
-        <!-- QUICK PROMPTS -->
+        <!-- =================================================
+             QUICK IDEAS
+        ================================================== -->
 
         <section class="panel control-card">
 
-          <div class="control-title">
-            Быстрые идеи
-          </div>
+          <div class="quick-ideas-header">
 
+            <div class="control-title" style="margin-bottom:0">
+              Быстрые идеи
+            </div>
 
-          <div class="chips">
-
-            <button
-              class="chip"
-              data-template="A photorealistic cinematic portrait of a charismatic young woman, natural skin texture, soft studio light, shallow depth of field, premium photography"
-              type="button"
-            >
-              👤 Портрет
-            </button>
-
-
-            <button
-              class="chip"
-              data-template="A cute fluffy orange cat in a beautiful modern apartment, photorealistic, cinematic lighting, highly detailed fur, premium photography"
-              type="button"
-            >
-              🐈 Животное
-            </button>
-
-
-            <button
-              class="chip"
-              data-template="A futuristic city at night, cinematic atmosphere, neon reflections, realistic architecture, dramatic lighting, ultra detailed"
-              type="button"
-            >
-              🌃 Футуризм
-            </button>
-
-
-            <button
-              class="chip"
-              data-template="Luxury commercial product photography, premium studio setup, soft shadows, elegant composition, realistic materials, high-end advertising"
-              type="button"
-            >
-              💎 Предмет
-            </button>
+            <div class="quick-ideas-hint">
+              новые идеи при обновлении
+            </div>
 
           </div>
+
+
+          <div
+            class="chips"
+            id="quickIdeas"
+          ></div>
 
         </section>
 
 
-        <!-- SETTINGS -->
+        <!-- =================================================
+             SETTINGS
+        ================================================== -->
 
         <section class="panel control-card">
 
@@ -1965,8 +1981,6 @@
     <div class="editor-layout">
 
 
-      <!-- LEFT -->
-
       <section class="panel editor-card">
 
         <div class="editor-header">
@@ -1994,8 +2008,6 @@
 
         </div>
 
-
-        <!-- UPLOAD -->
 
         <div
           class="upload-zone"
@@ -2085,8 +2097,6 @@
         <div style="height:20px"></div>
 
 
-        <!-- EDIT PROMPT -->
-
         <div class="control-title">
           Что изменить?
         </div>
@@ -2144,8 +2154,6 @@
         <div style="height:17px"></div>
 
 
-        <!-- QUICK EDITS -->
-
         <div class="control-title">
           Быстрые изменения
         </div>
@@ -2193,8 +2201,6 @@
 
         <div style="height:18px"></div>
 
-
-        <!-- EDIT SETTINGS -->
 
         <div class="settings-grid">
 
@@ -2286,8 +2292,6 @@
 
       </section>
 
-
-      <!-- RIGHT -->
 
       <section class="panel editor-card">
 
@@ -2425,26 +2429,18 @@
 
 
   /* =========================================================
-     HELPERS
+     BASIC HELPERS
   ========================================================== */
 
-  const $ = (id) => {
-    return document.getElementById(id);
-  };
+  const $ = (id) =>
+    document.getElementById(id);
 
 
   const qa = (
     selector,
     root = document
-  ) => {
-
-    return [
-      ...root.querySelectorAll(
-        selector
-      )
-    ];
-
-  };
+  ) =>
+    [...root.querySelectorAll(selector)];
 
 
   let generatorRatio = "1:1";
@@ -2459,7 +2455,388 @@
 
 
   const HISTORY_KEY =
-    "bastyon_mya_studio_history_v2";
+    "bastyon_mya_studio_history_v3";
+
+
+  /* =========================================================
+     10 QUICK IDEA THEMES
+  ========================================================== */
+
+  const QUICK_IDEAS = [
+
+    {
+      icon: "👤",
+      title: "Портрет",
+      variants: [
+        "кинематографичный портрет харизматичного молодого человека",
+        "роскошный портрет молодой женщины в стиле fashion-журнала",
+        "эмоциональный крупный портрет человека с выразительным взглядом",
+        "стильный кинематографичный портрет модели в современном городе"
+      ]
+    },
+
+    {
+      icon: "🐈",
+      title: "Животные",
+      variants: [
+        "очень милый пушистый рыжий кот в роскошном интерьере",
+        "забавный пухлый поросёнок в голливудском стиле",
+        "харизматичная собака, сидящая в центре большого города",
+        "маленький пушистый котёнок в волшебном сказочном лесу"
+      ]
+    },
+
+    {
+      icon: "🌃",
+      title: "Неоновый город",
+      variants: [
+        "футуристический ночной город с неоновыми вывесками и мокрым асфальтом",
+        "киберпанк-улица огромного мегаполиса после дождя",
+        "неоновый Токио ночью с яркими отражениями на мокрой дороге",
+        "футуристичный мегаполис будущего с летающими автомобилями"
+      ]
+    },
+
+    {
+      icon: "🏰",
+      title: "Фэнтези",
+      variants: [
+        "огромный древний замок на вершине горы на рассвете",
+        "волшебный лес с древними деревьями и сияющими огнями",
+        "эпический фантастический город среди облаков",
+        "таинственный замок в окружении туманных гор"
+      ]
+    },
+
+    {
+      icon: "🚀",
+      title: "Космос",
+      variants: [
+        "огромная космическая станция на фоне далёкой галактики",
+        "астронавт стоит на неизвестной планете под огромной луной",
+        "футуристический космический корабль летит сквозь туманность",
+        "инопланетный город на далёкой планете"
+      ]
+    },
+
+    {
+      icon: "🏎️",
+      title: "Автомобили",
+      variants: [
+        "роскошный спортивный автомобиль на ночной улице большого города",
+        "суперкар на горной дороге во время золотого часа",
+        "классический автомобиль возле американского мотеля ночью",
+        "футуристический гиперкар на неоновой улице"
+      ]
+    },
+
+    {
+      icon: "🍔",
+      title: "Еда",
+      variants: [
+        "роскошный ресторанный бургер в профессиональной рекламной съёмке",
+        "идеальная итальянская паста в дорогом ресторане",
+        "шоколадный десерт в премиальной рекламной фотографии",
+        "сочная пицца на деревянном столе в уютной итальянской кухне"
+      ]
+    },
+
+    {
+      icon: "🏙️",
+      title: "Архитектура",
+      variants: [
+        "ультрасовременный роскошный дом у океана",
+        "огромный небоскрёб будущего среди облаков",
+        "роскошный современный интерьер премиального пентхауса",
+        "уютный минималистичный дом в окружении природы"
+      ]
+    },
+
+    {
+      icon: "🌲",
+      title: "Природа",
+      variants: [
+        "величественный водопад среди древнего тропического леса",
+        "заснеженные горы на рассвете с туманом в долине",
+        "таинственный лес после дождя с солнечными лучами",
+        "океанский берег на закате с огромными волнами"
+      ]
+    },
+
+    {
+      icon: "🎬",
+      title: "Киносцена",
+      variants: [
+        "эпическая сцена из фантастического фильма с главным героем",
+        "напряжённая сцена детективного фильма ночью под дождём",
+        "романтическая сцена фильма на крыше небоскрёба",
+        "голливудская сцена погони по ночному городу"
+      ]
+    }
+
+  ];
+
+
+  /* =========================================================
+     RANDOM
+  ========================================================== */
+
+  function randomItem(array) {
+
+    return array[
+      Math.floor(
+        Math.random() * array.length
+      )
+    ];
+
+  }
+
+
+  function shuffle(array) {
+
+    const result =
+      [...array];
+
+
+    for (
+      let i = result.length - 1;
+      i > 0;
+      i--
+    ) {
+
+      const j =
+        Math.floor(
+          Math.random() * (i + 1)
+        );
+
+
+      [
+        result[i],
+        result[j]
+      ] =
+      [
+        result[j],
+        result[i]
+      ];
+
+    }
+
+
+    return result;
+
+  }
+
+
+  /* =========================================================
+     QUICK IDEAS RENDER
+  ========================================================== */
+
+  function renderQuickIdeas() {
+
+    const container =
+      $("quickIdeas");
+
+
+    container.innerHTML =
+      "";
+
+
+    /*
+      Из 10 идей каждый раз выбираем
+      4 случайные.
+    */
+
+    const visibleIdeas =
+      shuffle(
+        QUICK_IDEAS
+      ).slice(
+        0,
+        4
+      );
+
+
+    visibleIdeas.forEach(
+      (idea) => {
+
+        const button =
+          document.createElement(
+            "button"
+          );
+
+
+        button.type =
+          "button";
+
+
+        button.className =
+          "chip";
+
+
+        button.innerHTML =
+          `${idea.icon} ${idea.title}`;
+
+
+        /*
+          При каждом клике выбирается
+          новый случайный вариант текста
+          именно этой темы.
+        */
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const variant =
+              randomItem(
+                idea.variants
+              );
+
+
+            $("prompt").value =
+              makeBeautifulPrompt(
+                variant,
+                false
+              );
+
+
+            updateCounters();
+
+
+            $("prompt").focus();
+
+
+            /*
+              Прокручиваем поле немного,
+              если текст длинный.
+            */
+
+            $("prompt").scrollTop =
+              $("prompt").scrollHeight;
+
+          }
+        );
+
+
+        container.appendChild(
+          button
+        );
+
+      }
+    );
+
+  }
+
+
+  /* =========================================================
+     BEAUTIFUL PROMPT BUILDER
+  ========================================================== */
+
+  function makeBeautifulPrompt(
+    text,
+    isImprove = false
+  ) {
+
+    const clean =
+      text
+        .replace(/\s+/g, " ")
+        .trim();
+
+
+    if (!clean) {
+      return "";
+    }
+
+
+    /*
+      Если это уже улучшенный промпт,
+      не добавляем всё повторно.
+    */
+
+    if (
+      isImprove
+    ) {
+
+      return `${clean}, ultra-detailed cinematic masterpiece, breathtaking visual storytelling, sophisticated composition, dramatic yet natural lighting, rich atmospheric depth, realistic textures, subtle volumetric light, beautiful color harmony, realistic shadows and reflections, premium professional photography, shallow depth of field, highly refined details, visually striking, immersive atmosphere, photorealistic quality`;
+
+    }
+
+
+    return `${clean}, cinematic composition, beautiful natural lighting, highly detailed, realistic textures, professional photography, atmospheric depth`;
+
+  }
+
+
+  /* =========================================================
+     IMPROVE PROMPT
+  ========================================================== */
+
+  function improvePrompt() {
+
+    const textarea =
+      $("prompt");
+
+
+    const text =
+      textarea.value.trim();
+
+
+    if (!text) {
+
+      /*
+        Если поле пустое — предлагаем
+        красивый случайный стартовый промпт.
+      */
+
+      const idea =
+        randomItem(
+          QUICK_IDEAS
+        );
+
+
+      const variant =
+        randomItem(
+          idea.variants
+        );
+
+
+      textarea.value =
+        makeBeautifulPrompt(
+          variant,
+          true
+        );
+
+
+      updateCounters();
+
+      textarea.focus();
+
+      return;
+
+    }
+
+
+    /*
+      Реальное художественное улучшение
+      существующего промпта.
+    */
+
+    textarea.value =
+      makeBeautifulPrompt(
+        text,
+        true
+      );
+
+
+    updateCounters();
+
+
+    textarea.focus();
+
+
+    textarea.scrollTop =
+      textarea.scrollHeight;
+
+  }
 
 
   /* =========================================================
@@ -2473,6 +2850,7 @@
 
     element.textContent =
       message || "";
+
 
     element.classList.toggle(
       "show",
@@ -2493,10 +2871,14 @@
   ) {
 
     $("loadingTitle")
-      .textContent = title;
+      .textContent =
+      title;
+
 
     $("loadingText")
-      .textContent = text;
+      .textContent =
+      text;
+
 
     $("loading")
       .classList
@@ -2517,6 +2899,7 @@
     $("promptCounter")
       .textContent =
       `${$("prompt").value.length} / 2000`;
+
 
     $("editPromptCounter")
       .textContent =
@@ -2544,6 +2927,7 @@
           "'": "&#039;"
 
         };
+
 
         return map[character];
 
@@ -2580,7 +2964,9 @@
 
 
       const objectUrl =
-        URL.createObjectURL(blob);
+        URL.createObjectURL(
+          blob
+        );
 
 
       const link =
@@ -2634,7 +3020,7 @@
 
 
   /* =========================================================
-     GENERATOR GALLERY
+     GALLERY
   ========================================================== */
 
   function renderGallery(urls) {
@@ -3185,53 +3571,7 @@
 
 
   /* =========================================================
-     IMPROVE PROMPT
-  ========================================================== */
-
-  function improvePrompt() {
-
-    const textarea =
-      $("prompt");
-
-
-    const text =
-      textarea.value.trim();
-
-
-    if (!text) {
-
-      textarea.focus();
-
-      return;
-
-    }
-
-
-    const additions =
-      "photorealistic, cinematic composition, natural lighting, realistic textures, highly detailed, professional photography, shallow depth of field";
-
-
-    if (
-      !text
-        .toLowerCase()
-        .includes(
-          "photorealistic"
-        )
-    ) {
-
-      textarea.value =
-        `${text}, ${additions}`;
-
-    }
-
-
-    updateCounters();
-
-  }
-
-
-  /* =========================================================
-     SELECT RATIO
+     RATIO
   ========================================================== */
 
   function selectRatio(
@@ -3608,7 +3948,7 @@
 
 
   /* =========================================================
-     FILE -> DATA URL
+     FILE TO DATA URL
   ========================================================== */
 
   function fileToDataUrl(
@@ -3923,7 +4263,17 @@
         $("prompt").value =
           "";
 
+
         updateCounters();
+
+
+        showError(
+          $("generatorError"),
+          ""
+        );
+
+
+        $("prompt").focus();
 
       }
     );
@@ -3940,66 +4290,6 @@
     .addEventListener(
       "input",
       updateCounters
-    );
-
-
-  /* =========================================================
-     TEMPLATES
-  ========================================================== */
-
-  qa(
-    "[data-template]"
-  )
-    .forEach(
-      (button) => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            $("prompt").value =
-              button.dataset.template;
-
-
-            updateCounters();
-
-
-            $("prompt").focus();
-
-          }
-        );
-
-      }
-    );
-
-
-  /* =========================================================
-     EDIT TEMPLATES
-  ========================================================== */
-
-  qa(
-    "[data-edit]"
-  )
-    .forEach(
-      (button) => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            $("editPrompt").value =
-              button.dataset.edit;
-
-
-            updateCounters();
-
-
-            $("editPrompt").focus();
-
-          }
-        );
-
-      }
     );
 
 
@@ -4090,7 +4380,7 @@
 
 
   /* =========================================================
-     OPEN EDITOR FROM GENERATOR
+     OPEN EDITOR
   ========================================================== */
 
   $("openEditorFromGenerator")
@@ -4275,6 +4565,7 @@
         $("editPrompt").value =
           "";
 
+
         updateCounters();
 
       }
@@ -4405,7 +4696,7 @@
 
 
   /* =========================================================
-     VOICE INPUT
+     MICROPHONE / SPEECH RECOGNITION
   ========================================================== */
 
   const SpeechRecognition =
@@ -4424,6 +4715,10 @@
 
 
     recognition.interimResults =
+      true;
+
+
+    recognition.continuous =
       false;
 
 
@@ -4431,47 +4726,152 @@
       1;
 
 
+    let recognitionStarted =
+      false;
+
+
     $("voiceBtn")
       .addEventListener(
         "click",
         () => {
 
+          if (
+            recognitionStarted
+          ) {
+
+            try {
+
+              recognition.stop();
+
+            } catch {}
+
+            return;
+
+          }
+
+
           try {
 
             recognition.start();
 
+          } catch {
 
-            $("voiceBtn").textContent =
-              "🔴";
+            return;
 
-          } catch {}
+          }
 
         }
       );
 
 
+    recognition.onstart =
+      () => {
+
+        recognitionStarted =
+          true;
+
+
+        $("voiceBtn")
+          .classList
+          .add(
+            "listening"
+          );
+
+
+        $("voiceBtn")
+          .textContent =
+          "🔴 Слушаю…";
+
+      };
+
+
     recognition.onresult =
       (event) => {
 
-        const text =
-          event
-            .results[0][0]
-            .transcript;
+        let transcript =
+          "";
 
 
-        const current =
-          $("prompt")
-            .value
-            .trim();
+        for (
+          let i = event.resultIndex;
+          i < event.results.length;
+          i++
+        ) {
+
+          transcript +=
+            event.results[i][0]
+              .transcript;
+
+        }
 
 
-        $("prompt").value =
-          current
-            ? `${current} ${text}`
-            : text;
+        transcript =
+          transcript.trim();
 
 
-        updateCounters();
+        if (
+          transcript
+        ) {
+
+          $("prompt").value =
+            transcript;
+
+
+          updateCounters();
+
+        }
+
+      };
+
+
+    recognition.onerror =
+      (event) => {
+
+        console.error(
+          "Speech recognition error:",
+          event.error
+        );
+
+
+        let message =
+          "";
+
+
+        if (
+          event.error ===
+          "not-allowed"
+        ) {
+
+          message =
+            "Браузер заблокировал микрофон. Разрешите доступ к микрофону для этого сайта.";
+
+        } else if (
+          event.error ===
+          "no-speech"
+        ) {
+
+          message =
+            "Речь не была распознана. Попробуйте ещё раз.";
+
+        } else if (
+          event.error ===
+          "network"
+        ) {
+
+          message =
+            "Не удалось подключить распознавание речи. Проверьте соединение.";
+
+        }
+
+
+        if (message) {
+
+          showError(
+            $("generatorError"),
+            message
+          );
+
+        }
 
       };
 
@@ -4479,8 +4879,20 @@
     recognition.onend =
       () => {
 
-        $("voiceBtn").textContent =
-          "🎙";
+        recognitionStarted =
+          false;
+
+
+        $("voiceBtn")
+          .classList
+          .remove(
+            "listening"
+          );
+
+
+        $("voiceBtn")
+          .textContent =
+          "🎙 Микрофон";
 
       };
 
@@ -4493,7 +4905,7 @@
 
           showError(
             $("generatorError"),
-            "Голосовой ввод не поддерживается этим браузером."
+            "Голосовой ввод не поддерживается этим браузером. Попробуйте Chrome или Edge."
           );
 
         }
@@ -4541,6 +4953,8 @@
   /* =========================================================
      INIT
   ========================================================== */
+
+  renderQuickIdeas();
 
   updateCounters();
 
