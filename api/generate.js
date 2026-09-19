@@ -1,3 +1,5 @@
+export const maxDuration = 60; // Увеличиваем лимит времени выполнения до 60 секунд (для Vercel Pro)
+
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -48,30 +50,10 @@ export default async function handler(req, res) {
             });
         }
 
-        /*
-         * НАСТРОЙКИ РЕДАКТОРА
-         */
-
-        const model = String(
-            body?.model || 'openai/gpt-image-2'
-        );
-
-        const size = String(
-            body?.size || '1024x1024'
-        );
-
-        const quality = String(
-            body?.quality || 'high'
-        );
-
-        const transparent =
-            body?.transparent === true;
-
-        /*
-         * Разрешённые модели.
-         * Это защищает API от случайных
-         * или нежелательных значений.
-         */
+        const model = String(body?.model || 'openai/gpt-image-2');
+        const size = String(body?.size || '1024x1024');
+        const quality = String(body?.quality || 'high');
+        const transparent = body?.transparent === true;
 
         const allowedModels = [
             'openai/gpt-image-2',
@@ -96,10 +78,6 @@ export default async function handler(req, res) {
             });
         }
 
-        /*
-         * Разрешённые размеры.
-         */
-
         const allowedSizes = [
             '1024x1024',
             '1536x1024',
@@ -117,16 +95,7 @@ export default async function handler(req, res) {
             });
         }
 
-        /*
-         * Разрешённое качество.
-         */
-
-        const allowedQuality = [
-            'low',
-            'medium',
-            'high',
-            'hd'
-        ];
+        const allowedQuality = ['low', 'medium', 'high', 'hd'];
 
         if (!allowedQuality.includes(quality)) {
             return res.status(400).json({
@@ -134,91 +103,23 @@ export default async function handler(req, res) {
             });
         }
 
-        /*
-         * Дополнительная инструкция.
-         * Исходный русский промпт сохраняем.
-         */
-
         const finalPrompt = `
 ${userPrompt}
 
 Create exactly the scene described by the user.
 
 IMPORTANT:
-
 Follow the user's description precisely.
-
-The main subject must be clearly visible
-and remain the primary focus.
-
-Preserve:
-- subject
-- action
-- location
-- objects
-- colors
-- clothing
-- relationships between objects
-- requested composition
-
-Do not replace the main subject.
-
-Do not change the action.
-
-Do not invent additional people.
-
-Do not invent additional animals.
-
-Do not invent vehicles.
-
-Do not add unnecessary landmarks.
-
-Do not hide the main subject.
-
-Do not put important objects in front
-of the main subject.
-
-Do not add logos unless requested.
-
-Do not add text unless requested.
-
-Do not add captions.
-
-Do not add watermarks.
-
+The main subject must be clearly visible and remain the primary focus.
 Photorealistic image.
-
-Realistic anatomy.
-
-Realistic proportions.
-
-Realistic materials.
-
-Realistic textures.
-
-Natural lighting.
-
-Natural shadows.
-
+Realistic anatomy, proportions, materials, and textures.
+Natural lighting and shadows.
 Detailed environment.
-
 Sharp focus on the main subject.
-
 High visual quality.
 `.trim();
 
-        console.log('MODEL:', model);
-        console.log('SIZE:', size);
-        console.log('QUALITY:', quality);
-        console.log('TRANSPARENT:', transparent);
-        console.log('USER PROMPT:', userPrompt);
-
-        /*
-         * POLLINATIONS API
-         */
-
-        const apiUrl =
-            'https://gen.pollinations.ai/v1/images/generations';
+        const apiUrl = 'https://gen.pollinations.ai/v1/images/generations';
 
         const requestBody = {
             model,
@@ -228,12 +129,6 @@ High visual quality.
             n: 1,
             response_format: 'url'
         };
-
-        /*
-         * Прозрачный фон.
-         * Для GPT Image моделей Pollinations
-         * поддерживает transparent.
-         */
 
         if (
             transparent &&
@@ -245,56 +140,28 @@ High visual quality.
             requestBody.transparent = true;
         }
 
-        console.log(
-            'POLLINATIONS REQUEST:',
-            JSON.stringify({
-                model,
-                size,
-                quality,
-                transparent
-            })
-        );
-
         const response = await fetch(
             apiUrl,
             {
                 method: 'POST',
-
                 headers: {
-                    'Authorization':
-                        `Bearer ${apiKey}`,
-
-                    'Content-Type':
-                        'application/json'
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
                 },
-
-                body:
-                    JSON.stringify(requestBody)
+                body: JSON.stringify(requestBody)
             }
         );
 
-        const responseText =
-            await response.text();
-
+        const responseText = await response.text();
         let data;
 
         try {
-            data =
-                JSON.parse(responseText);
+            data = JSON.parse(responseText);
         } catch {
             data = null;
         }
 
-        /*
-         * Ошибка Pollinations
-         */
-
         if (!response.ok) {
-            console.error(
-                'POLLINATIONS ERROR:',
-                responseText
-            );
-
             const errorMessage =
                 data?.error?.message ||
                 data?.error ||
@@ -302,107 +169,58 @@ High visual quality.
                 `HTTP ${response.status}`;
 
             return res.status(502).json({
-                error:
-                    `Image provider error: ${errorMessage}`
+                error: `Image provider error: ${errorMessage}`
             });
         }
 
-        /*
-         * Получаем результат
-         */
-
-        const image =
-            data?.data?.[0];
+        const image = data?.data?.[0];
 
         if (!image) {
-            console.error(
-                'NO IMAGE DATA:',
-                data
-            );
-
             return res.status(502).json({
-                error:
-                    'Image provider returned no image'
+                error: 'Image provider returned no image'
             });
         }
 
-        /*
-         * Pollinations возвращает URL.
-         * Скачиваем готовое изображение.
-         */
-
-        let base64Data =
-            image.b64_json;
-
-        let mimeType =
-            image.media_type ||
-            'image/png';
+        let base64Data = image.b64_json;
+        let mimeType = image.media_type || 'image/png';
 
         if (!base64Data && image.url) {
-
-            const imageResponse =
-                await fetch(image.url);
+            const imageResponse = await fetch(image.url);
 
             if (!imageResponse.ok) {
                 return res.status(502).json({
-                    error:
-                        `Could not download generated image: ${imageResponse.status}`
+                    error: `Could not download generated image: ${imageResponse.status}`
                 });
             }
 
-            const contentType =
-                imageResponse.headers.get(
-                    'content-type'
-                );
-
+            const contentType = imageResponse.headers.get('content-type');
             if (contentType) {
-                mimeType =
-                    contentType.split(';')[0];
+                mimeType = contentType.split(';')[0];
             }
 
-            const arrayBuffer =
-                await imageResponse.arrayBuffer();
-
-            base64Data =
-                Buffer
-                    .from(arrayBuffer)
-                    .toString('base64');
+            const arrayBuffer = await imageResponse.arrayBuffer();
+            base64Data = Buffer.from(arrayBuffer).toString('base64');
         }
 
         if (!base64Data) {
             return res.status(502).json({
-                error:
-                    'Generated image data is empty'
+                error: 'Generated image data is empty'
             });
         }
 
-        /*
-         * Возвращаем фронтенду тот же формат,
-         * который уже понимает твой index.html.
-         */
-
         return res.status(200).json({
-
-            prompt:
-                userPrompt,
-
+            prompt: userPrompt,
             model,
-
             size,
-
             quality,
-
             candidates: [
                 {
                     content: {
                         parts: [
                             {
                                 inline_data: {
-                                    mime_type:
-                                        mimeType,
-
-                                    data:
-                                        base64Data
+                                    mime_type: mimeType,
+                                    data: base64Data
                                 }
                             }
                         ]
@@ -412,16 +230,9 @@ High visual quality.
         });
 
     } catch (error) {
-
-        console.error(
-            'GENERATION ERROR:',
-            error
-        );
-
+        console.error('GENERATION ERROR:', error);
         return res.status(500).json({
-            error:
-                error?.message ||
-                'Internal Server Error'
+            error: error?.message || 'Internal Server Error'
         });
     }
 }
