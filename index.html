@@ -2,58 +2,82 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <title>Bastyon Mya Studio</title>
+
   <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    name="description"
+    content="Bastyon Mya Studio — AI Image Generator & Mya Editor"
   >
-  <meta name="theme-color" content="#0b0b0f">
-  <title>Bastyon AI Studio</title>
+
+  <meta name="theme-color" content="#faf8ff">
 
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --bg: #faf9fd;
+      --surface: #ffffff;
+      --surface-soft: #f7f4fc;
+      --surface-purple: #f2eaff;
+
+      --text: #17131f;
+      --text-soft: #6f687b;
+      --text-light: #9b94a8;
+
+      --purple: #7c3aed;
+      --purple-dark: #6828d5;
+      --purple-light: #a855f7;
+      --purple-soft: #eee7ff;
+
+      --border: #e9e4f0;
+      --border-purple: #d8c8fa;
+
+      --success: #20a66a;
+      --danger: #dc3545;
+
+      --shadow-sm:
+        0 2px 8px rgba(39, 20, 68, 0.04);
+
+      --shadow:
+        0 12px 35px rgba(39, 20, 68, 0.07);
+
+      --shadow-purple:
+        0 14px 30px rgba(124, 58, 237, 0.22);
+
+      --radius-sm: 12px;
+      --radius: 18px;
+      --radius-lg: 26px;
+    }
+
     * {
       box-sizing: border-box;
     }
 
-    :root {
-      --bg: #08080b;
-      --bg2: #0e0e13;
-      --panel: #121218;
-      --panel2: #17171f;
-      --panel3: #1d1d27;
-      --border: rgba(255,255,255,.09);
-      --border2: rgba(255,255,255,.14);
-      --text: #f5f5f7;
-      --muted: #92929d;
-      --muted2: #6e6e78;
-      --accent: #ffffff;
-      --accentText: #08080b;
-      --danger: #ff5d6c;
-      --success: #51d88a;
-      --shadow: 0 20px 60px rgba(0,0,0,.35);
-      --radius: 18px;
+    html {
+      scroll-behavior: smooth;
     }
 
-    html,
     body {
       margin: 0;
-      padding: 0;
-      min-height: 100%;
+      min-height: 100vh;
       background:
-        radial-gradient(circle at 50% -10%, rgba(255,255,255,.055), transparent 35%),
+        radial-gradient(
+          circle at 80% 0%,
+          rgba(168, 85, 247, 0.08),
+          transparent 30%
+        ),
         var(--bg);
       color: var(--text);
       font-family:
+        "Manrope",
         Inter,
-        ui-sans-serif,
-        system-ui,
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
         sans-serif;
-    }
-
-    body {
-      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
 
     button,
@@ -67,787 +91,1073 @@
       cursor: pointer;
     }
 
-    .app {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+    img {
+      max-width: 100%;
     }
 
-    /* HEADER */
+    .hidden {
+      display: none !important;
+    }
 
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      height: 68px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(8,8,11,.82);
-      backdrop-filter: blur(22px);
+    /* =========================================================
+       APP
+    ========================================================= */
+
+    .app {
+      width: min(1500px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 24px 0 50px;
+    }
+
+    /* =========================================================
+       HEADER
+    ========================================================= */
+
+    .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
+      gap: 20px;
+      margin-bottom: 22px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 11px;
-      min-width: 0;
+      gap: 13px;
     }
 
     .brand-logo {
-      width: 36px;
-      height: 36px;
-      border-radius: 11px;
-      background: #fff;
-      color: #000;
+      width: 48px;
+      height: 48px;
+      border-radius: 15px;
+
       display: grid;
       place-items: center;
-      font-size: 17px;
-      font-weight: 900;
-      letter-spacing: -1px;
-    }
 
-    .brand-text {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.1;
+      color: white;
+      font-size: 20px;
+      font-weight: 800;
+
+      background:
+        linear-gradient(
+          135deg,
+          #8b5cf6,
+          #7c3aed 55%,
+          #6d28d9
+        );
+
+      box-shadow:
+        0 9px 24px rgba(124, 58, 237, 0.25);
     }
 
     .brand-name {
-      font-size: 15px;
-      font-weight: 750;
-      letter-spacing: -.3px;
+      font-size: 19px;
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: -0.04em;
     }
 
     .brand-sub {
-      color: var(--muted);
+      margin-top: 3px;
+      color: var(--text-soft);
       font-size: 11px;
-      margin-top: 4px;
+      font-weight: 600;
     }
 
-    .status {
+    .header-right {
       display: flex;
       align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 12px;
+      gap: 10px;
     }
 
-    .status-dot {
+    .online-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+
+      padding: 9px 12px;
+
+      border: 1px solid var(--border);
+      border-radius: 999px;
+
+      background: rgba(255, 255, 255, 0.8);
+
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .online-dot {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: var(--success);
-      box-shadow: 0 0 10px rgba(81,216,138,.7);
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.11);
     }
 
-    /* MODE SWITCH */
-
-    .modebar {
-      display: flex;
-      justify-content: center;
-      padding: 18px 20px 0;
-    }
+    /* =========================================================
+       MODE NAV
+    ========================================================= */
 
     .mode-switch {
-      display: inline-flex;
-      padding: 4px;
-      background: var(--panel);
+      width: fit-content;
+
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      margin-bottom: 18px;
+      padding: 5px;
+
       border: 1px solid var(--border);
       border-radius: 15px;
-      box-shadow: var(--shadow);
+
+      background: rgba(255, 255, 255, 0.88);
+
+      box-shadow: var(--shadow-sm);
     }
 
-    .mode-btn {
+    .mode-button {
+      min-width: 140px;
+
       border: 0;
-      background: transparent;
-      color: var(--muted);
-      padding: 10px 20px;
       border-radius: 11px;
+
+      padding: 10px 16px;
+
+      background: transparent;
+
+      color: var(--text-soft);
+
       font-size: 13px;
       font-weight: 700;
-      transition: .2s ease;
+
+      transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
     }
 
-    .mode-btn:hover {
+    .mode-button:hover {
       color: var(--text);
     }
 
-    .mode-btn.active {
-      color: #000;
-      background: #fff;
+    .mode-button.active {
+      background: var(--text);
+      color: white;
+      box-shadow: 0 5px 14px rgba(23, 19, 31, 0.12);
     }
 
-    /* MAIN */
-
-    .main {
-      width: min(1450px, 100%);
-      margin: 0 auto;
-      padding: 22px 22px 60px;
-      flex: 1;
-    }
-
-    .mode {
-      display: none;
-    }
-
-    .mode.active {
-      display: block;
-    }
+    /* =========================================================
+       MAIN WORKSPACE
+    ========================================================= */
 
     .workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(330px, .72fr);
+      grid-template-columns: minmax(0, 1.5fr) minmax(360px, 0.7fr);
       gap: 18px;
-      align-items: start;
+      align-items: stretch;
     }
-
-    .editor-workspace {
-      display: grid;
-      grid-template-columns: minmax(0, 1.25fr) minmax(350px, .75fr);
-      gap: 18px;
-      align-items: start;
-    }
-
-    /* PANELS */
 
     .panel {
-      background: linear-gradient(
-        145deg,
-        rgba(255,255,255,.035),
-        rgba(255,255,255,.018)
-      );
       border: 1px solid var(--border);
-      border-radius: var(--radius);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--shadow);
+    }
+
+    /* =========================================================
+       CANVAS
+    ========================================================= */
+
+    .canvas-panel {
+      min-height: 690px;
+
+      display: flex;
+      flex-direction: column;
+
       overflow: hidden;
     }
 
-    .panel-header {
-      min-height: 58px;
-      padding: 15px 17px;
-      border-bottom: 1px solid var(--border);
+    .canvas-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 15px;
+
+      padding: 18px 20px;
+
+      border-bottom: 1px solid var(--border);
     }
 
-    .panel-title {
-      font-size: 13px;
-      font-weight: 750;
+    .canvas-title {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
     }
 
-    .panel-subtitle {
-      color: var(--muted);
-      font-size: 11px;
+    .canvas-description {
       margin-top: 3px;
+
+      color: var(--text-soft);
+
+      font-size: 11px;
+      font-weight: 500;
     }
 
-    .panel-body {
-      padding: 17px;
+    .canvas-actions {
+      display: flex;
+      gap: 7px;
     }
 
-    /* PREVIEW */
+    .small-button {
+      border: 1px solid var(--border);
+      border-radius: 10px;
 
-    .preview-panel {
-      min-height: 620px;
+      padding: 8px 11px;
+
+      background: white;
+      color: var(--text-soft);
+
+      font-size: 11px;
+      font-weight: 700;
+
+      transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
     }
 
-    .preview-area {
-      min-height: 560px;
-      padding: 18px;
+    .small-button:hover {
+      border-color: var(--border-purple);
+      color: var(--purple);
+      background: var(--surface-soft);
+    }
+
+    .canvas-area {
+      flex: 1;
+
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
+
+      padding: 22px;
+
       background:
-        linear-gradient(45deg, rgba(255,255,255,.025) 25%, transparent 25%),
-        linear-gradient(-45deg, rgba(255,255,255,.025) 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, rgba(255,255,255,.025) 75%),
-        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,.025) 75%);
-      background-size: 28px 28px;
-      background-position: 0 0, 0 14px, 14px -14px, -14px 0;
+        radial-gradient(
+          circle at center,
+          rgba(124, 58, 237, 0.025),
+          transparent 50%
+        );
     }
 
-    .empty-preview {
+    .canvas {
+      width: 100%;
+      height: 100%;
+      min-height: 560px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border: 1px solid #e6e1eb;
+      border-radius: 22px;
+
+      overflow: hidden;
+
+      background-color: #fafafa;
+
+      background-image:
+        linear-gradient(45deg, #f1eff4 25%, transparent 25%),
+        linear-gradient(-45deg, #f1eff4 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f1eff4 75%),
+        linear-gradient(-45deg, transparent 75%, #f1eff4 75%);
+
+      background-size: 28px 28px;
+      background-position:
+        0 0,
+        0 14px,
+        14px -14px,
+        -14px 0;
+    }
+
+    .empty-state {
+      width: min(430px, 90%);
+
       text-align: center;
-      max-width: 390px;
-      color: var(--muted);
     }
 
     .empty-icon {
-      width: 70px;
-      height: 70px;
-      border-radius: 20px;
-      border: 1px solid var(--border2);
-      background: rgba(255,255,255,.035);
+      width: 64px;
+      height: 64px;
+
+      margin: 0 auto 17px;
+
       display: grid;
       place-items: center;
-      margin: 0 auto 18px;
-      font-size: 28px;
+
+      border-radius: 20px;
+
+      background: var(--surface-purple);
+      color: var(--purple);
+
+      font-size: 27px;
+      font-weight: 800;
     }
 
     .empty-title {
-      color: var(--text);
-      font-size: 18px;
-      font-weight: 750;
-      margin-bottom: 7px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
     }
 
     .empty-text {
+      margin-top: 8px;
+
+      color: var(--text-soft);
+
       font-size: 13px;
       line-height: 1.6;
     }
 
-    .preview-image {
-      display: none;
-      max-width: 100%;
-      max-height: 540px;
-      object-fit: contain;
-      border-radius: 12px;
-      box-shadow: 0 25px 70px rgba(0,0,0,.5);
-    }
-
-    .preview-image.visible {
-      display: block;
-    }
-
-    /* RESULT GALLERY */
-
     .gallery {
+      width: 100%;
+      height: 100%;
+
       display: grid;
-      grid-template-columns: repeat(2, minmax(0,1fr));
-      gap: 14px;
-      width: 100%;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+
+      padding: 10px;
+
+      overflow: auto;
     }
 
-    .result-card {
+    .gallery-item {
       position: relative;
-      background: #0b0b0f;
-      border: 1px solid var(--border);
-      border-radius: 14px;
+
       overflow: hidden;
+
+      border: 1px solid var(--border);
+      border-radius: 17px;
+
+      background: white;
+
+      box-shadow: var(--shadow-sm);
     }
 
-    .result-card img {
+    .gallery-item img {
       width: 100%;
+      height: 100%;
+
       display: block;
-      aspect-ratio: 1 / 1;
+
       object-fit: contain;
-      background: #0a0a0d;
+
+      background: #f7f7f8;
     }
 
-    .result-actions {
+    .image-toolbar {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+
       display: flex;
-      gap: 7px;
-      padding: 8px;
+      gap: 6px;
+    }
+
+    .image-tool {
+      border: 0;
+      border-radius: 10px;
+
+      padding: 8px 10px;
+
+      background: rgba(24, 19, 31, 0.84);
+      color: white;
+
+      font-size: 11px;
+      font-weight: 700;
+
+      backdrop-filter: blur(8px);
+    }
+
+    .canvas-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+
+      padding: 14px 20px;
+
       border-top: 1px solid var(--border);
     }
 
-    .small-btn {
-      border: 1px solid var(--border);
-      background: var(--panel2);
+    /* =========================================================
+       CONTROL PANEL
+    ========================================================= */
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .control-card {
+      padding: 18px;
+    }
+
+    .control-title {
+      margin-bottom: 10px;
+
       color: var(--text);
-      border-radius: 9px;
-      padding: 8px 10px;
-      font-size: 11px;
-      flex: 1;
-    }
 
-    .small-btn:hover {
-      background: var(--panel3);
-    }
-
-    /* CONTROLS */
-
-    .control-panel {
-      position: sticky;
-      top: 86px;
-    }
-
-    .control-section {
-      padding: 16px 17px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .control-section:last-child {
-      border-bottom: 0;
-    }
-
-    .section-label {
-      font-size: 11px;
-      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: .08em;
-      font-weight: 700;
-      margin-bottom: 9px;
+      letter-spacing: 0.07em;
     }
 
-    .prompt-wrap {
+    /* =========================================================
+       PROMPT
+    ========================================================= */
+
+    .prompt-box {
       position: relative;
     }
 
-    textarea {
+    .prompt {
       width: 100%;
-      min-height: 150px;
+      min-height: 165px;
+
       resize: vertical;
-      border: 1px solid var(--border2);
-      background: rgba(0,0,0,.22);
-      color: var(--text);
-      border-radius: 13px;
-      padding: 13px 13px 40px;
+
+      padding: 15px 15px 48px;
+
+      border: 1px solid var(--border);
+      border-radius: 15px;
+
       outline: none;
-      line-height: 1.55;
+
+      background: #fcfbfe;
+      color: var(--text);
+
       font-size: 13px;
-      transition: .2s ease;
+      line-height: 1.6;
+
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
     }
 
-    textarea:focus {
-      border-color: rgba(255,255,255,.28);
-      background: rgba(0,0,0,.3);
+    .prompt::placeholder {
+      color: #a39cad;
     }
 
-    textarea::placeholder {
-      color: var(--muted2);
+    .prompt:focus {
+      border-color: var(--border-purple);
+      background: white;
+
+      box-shadow:
+        0 0 0 4px rgba(124, 58, 237, 0.07);
     }
 
-    .prompt-counter {
+    .prompt-bottom {
       position: absolute;
+      left: 10px;
       right: 10px;
       bottom: 9px;
-      color: var(--muted2);
-      font-size: 10px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .prompt-tools {
       display: flex;
-      gap: 7px;
-      margin-top: 8px;
+      gap: 5px;
     }
 
-    .tool-btn {
+    .tool-button {
       border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--muted);
-      padding: 8px 10px;
       border-radius: 9px;
+
+      padding: 7px 9px;
+
+      background: white;
+      color: var(--text-soft);
+
       font-size: 11px;
+      font-weight: 700;
     }
 
-    .tool-btn:hover {
-      color: var(--text);
-      background: var(--panel3);
+    .tool-button:hover {
+      color: var(--purple);
+      border-color: var(--border-purple);
+      background: var(--surface-purple);
     }
 
-    /* TEMPLATE BUTTONS */
+    .counter {
+      color: var(--text-light);
+      font-size: 10px;
+      font-weight: 600;
+    }
 
-    .templates {
+    /* =========================================================
+       CHIPS
+    ========================================================= */
+
+    .chips {
       display: flex;
-      gap: 7px;
       flex-wrap: wrap;
+      gap: 7px;
     }
 
-    .template {
+    .chip {
       border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--muted);
-      border-radius: 9px;
-      padding: 8px 10px;
+
+      border-radius: 999px;
+
+      padding: 7px 10px;
+
+      background: white;
+      color: var(--text-soft);
+
       font-size: 11px;
+      font-weight: 600;
+
+      transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
     }
 
-    .template:hover {
-      color: var(--text);
-      border-color: var(--border2);
+    .chip:hover {
+      border-color: var(--border-purple);
+      background: var(--surface-purple);
+      color: var(--purple);
     }
 
-    /* OPTIONS */
+    /* =========================================================
+       SELECTS
+    ========================================================= */
 
-    .select-row {
+    .settings-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 9px;
     }
 
-    .field-label {
-      color: var(--muted);
-      font-size: 10px;
-      margin-bottom: 6px;
+    .field label {
       display: block;
+
+      margin-bottom: 6px;
+
+      color: var(--text-soft);
+
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
 
     select {
       width: 100%;
+
+      padding: 11px 12px;
+
       border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--text);
-      padding: 10px;
-      border-radius: 10px;
+      border-radius: 11px;
+
       outline: none;
+
+      background: white;
+      color: var(--text);
+
       font-size: 12px;
+      font-weight: 600;
     }
 
-    /* RATIO */
+    select:focus {
+      border-color: var(--border-purple);
+      box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.07);
+    }
 
-    .ratios {
+    /* =========================================================
+       RATIOS
+    ========================================================= */
+
+    .ratio-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 7px;
     }
 
-    .ratio {
-      min-height: 43px;
+    .ratio-button {
       border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--muted);
-      border-radius: 9px;
-      font-size: 11px;
-      transition: .15s ease;
-    }
 
-    .ratio:hover {
-      color: var(--text);
-    }
+      border-radius: 10px;
 
-    .ratio.active {
-      color: #000;
-      background: #fff;
-      border-color: #fff;
-      font-weight: 750;
-    }
+      padding: 9px 4px;
 
-    /* GENERATE */
+      background: white;
+      color: var(--text-soft);
 
-    .generate-btn {
-      width: 100%;
-      border: 0;
-      background: #fff;
-      color: #000;
-      border-radius: 12px;
-      min-height: 48px;
-      font-size: 13px;
-      font-weight: 800;
-      transition: .2s ease;
-    }
-
-    .generate-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 12px 35px rgba(255,255,255,.1);
-    }
-
-    .generate-btn:disabled {
-      opacity: .45;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .secondary-btn {
-      width: 100%;
-      margin-top: 8px;
-      min-height: 43px;
-      border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--text);
-      border-radius: 11px;
-      font-size: 12px;
+      font-size: 10px;
       font-weight: 700;
     }
 
-    .secondary-btn:hover {
-      background: var(--panel3);
+    .ratio-button:hover {
+      border-color: var(--border-purple);
     }
 
-    /* EDITOR UPLOAD */
+    .ratio-button.active {
+      border-color: var(--purple);
 
-    .upload-zone {
-      min-height: 280px;
-      border: 1px dashed rgba(255,255,255,.2);
-      border-radius: 16px;
-      background: rgba(255,255,255,.018);
+      background: var(--surface-purple);
+
+      color: var(--purple);
+    }
+
+    /* =========================================================
+       GENERATE BUTTON
+    ========================================================= */
+
+    .generate-button {
+      width: 100%;
+
       display: flex;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      padding: 25px;
-      transition: .2s ease;
-      position: relative;
-      overflow: hidden;
+      gap: 9px;
+
+      margin-top: 14px;
+
+      padding: 14px 17px;
+
+      border: 0;
+      border-radius: 13px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #8b5cf6,
+          #7c3aed
+        );
+
+      color: white;
+
+      font-size: 13px;
+      font-weight: 800;
+
+      box-shadow: var(--shadow-purple);
+
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
     }
 
-    .upload-zone.dragover {
-      border-color: #fff;
-      background: rgba(255,255,255,.06);
+    .generate-button:hover {
+      transform: translateY(-1px);
+
+      box-shadow:
+        0 17px 35px rgba(124, 58, 237, 0.27);
     }
 
-    .upload-content {
-      position: relative;
-      z-index: 2;
+    .generate-button:active {
+      transform: translateY(0);
     }
 
-    .upload-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 17px;
-      background: var(--panel3);
-      border: 1px solid var(--border2);
-      display: grid;
-      place-items: center;
-      margin: 0 auto 14px;
-      font-size: 25px;
+    .generate-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      transform: none;
     }
 
-    .upload-title {
-      font-size: 15px;
-      font-weight: 750;
-      margin-bottom: 6px;
-    }
+    /* =========================================================
+       ERROR
+    ========================================================= */
 
-    .upload-text {
-      color: var(--muted);
-      font-size: 12px;
+    .error {
+      display: none;
+
+      margin-top: 10px;
+      padding: 10px 12px;
+
+      border: 1px solid #f4c7cd;
+      border-radius: 10px;
+
+      background: #fff5f6;
+      color: #b42318;
+
+      font-size: 11px;
       line-height: 1.5;
     }
 
-    .upload-button {
-      margin-top: 14px;
-      border: 1px solid var(--border2);
-      background: #fff;
-      color: #000;
-      border-radius: 10px;
-      padding: 9px 14px;
-      font-size: 12px;
-      font-weight: 750;
-    }
-
-    #editorFile {
-      display: none;
-    }
-
-    .editor-source {
-      display: none;
-      position: relative;
-    }
-
-    .editor-source.visible {
+    .error.show {
       display: block;
     }
 
-    .source-image {
-      width: 100%;
-      max-height: 590px;
-      object-fit: contain;
-      display: block;
-      border-radius: 14px;
-      background: #08080b;
-    }
+    /* =========================================================
+       HISTORY
+    ========================================================= */
 
-    .source-toolbar {
-      display: flex;
-      gap: 7px;
-      margin-top: 9px;
-    }
-
-    .source-toolbar button {
-      flex: 1;
-      border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--text);
-      padding: 9px;
-      border-radius: 9px;
-      font-size: 11px;
-    }
-
-    /* QUICK EDIT ACTIONS */
-
-    .quick-actions {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-    }
-
-    .quick-action {
-      border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--muted);
-      padding: 10px;
-      border-radius: 10px;
-      font-size: 11px;
-      text-align: left;
-      transition: .15s ease;
-    }
-
-    .quick-action:hover {
-      color: var(--text);
-      background: var(--panel3);
-      border-color: var(--border2);
-    }
-
-    .quick-action strong {
-      color: var(--text);
-      display: block;
-      margin-bottom: 3px;
-      font-size: 11px;
-    }
-
-    /* COMPARE */
-
-    .compare {
-      display: none;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      width: 100%;
-    }
-
-    .compare.visible {
-      display: grid;
-    }
-
-    .compare-item {
-      min-width: 0;
-    }
-
-    .compare-label {
-      font-size: 10px;
-      color: var(--muted);
-      margin: 0 0 7px 2px;
-    }
-
-    .compare-image {
-      width: 100%;
-      max-height: 500px;
-      object-fit: contain;
-      background: #09090c;
-      border-radius: 12px;
-      display: block;
-    }
-
-    .compare-placeholder {
-      width: 100%;
-      min-height: 260px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      color: var(--muted);
-      font-size: 12px;
-      background: rgba(0,0,0,.18);
-    }
-
-    /* EDITOR RESULT */
-
-    .editor-result {
-      margin-top: 14px;
-      display: none;
-    }
-
-    .editor-result.visible {
-      display: block;
-    }
-
-    .result-toolbar {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 9px;
-    }
-
-    .result-toolbar button {
-      border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--text);
-      padding: 9px 13px;
-      border-radius: 9px;
-      font-size: 11px;
-    }
-
-    /* HISTORY */
-
-    .history {
+    .history-panel {
       margin-top: 18px;
+      padding: 20px;
+    }
+
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-bottom: 14px;
+    }
+
+    .history-title {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .history-subtitle {
+      margin-top: 3px;
+
+      color: var(--text-soft);
+
+      font-size: 11px;
     }
 
     .history-grid {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0,1fr));
+      grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 9px;
     }
 
     .history-item {
-      border: 1px solid var(--border);
-      background: var(--panel);
-      border-radius: 10px;
       overflow: hidden;
+
+      border: 1px solid var(--border);
+      border-radius: 12px;
+
+      background: white;
+
       cursor: pointer;
+
+      transition:
+        transform 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .history-item:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-purple);
     }
 
     .history-item img {
-      display: block;
       width: 100%;
       aspect-ratio: 1 / 1;
-      object-fit: cover;
-    }
 
-    .history-empty {
-      color: var(--muted);
-      font-size: 12px;
-      padding: 15px 0;
-    }
-
-    /* ERROR */
-
-    .error-box {
-      display: none;
-      margin-top: 12px;
-      padding: 11px 12px;
-      border: 1px solid rgba(255,93,108,.25);
-      background: rgba(255,93,108,.07);
-      color: #ff9aa4;
-      border-radius: 10px;
-      font-size: 11px;
-      line-height: 1.5;
-    }
-
-    .error-box.visible {
       display: block;
+
+      object-fit: cover;
+
+      background: #f3f2f5;
     }
 
-    /* LOADING */
+    .history-caption {
+      padding: 7px 8px;
+
+      color: var(--text-soft);
+
+      font-size: 9px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* =========================================================
+       EDITOR
+    ========================================================= */
+
+    .editor-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 18px;
+    }
+
+    .editor-card {
+      padding: 20px;
+    }
+
+    .editor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+
+      margin-bottom: 16px;
+    }
+
+    .editor-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .editor-subtitle {
+      margin-top: 4px;
+
+      color: var(--text-soft);
+
+      font-size: 11px;
+    }
+
+    .upload-zone {
+      min-height: 270px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border: 1.5px dashed #d8d0e3;
+      border-radius: 19px;
+
+      background:
+        radial-gradient(
+          circle at center,
+          rgba(124, 58, 237, 0.035),
+          transparent 65%
+        );
+
+      overflow: hidden;
+
+      transition:
+        border-color 0.2s ease,
+        background 0.2s ease;
+    }
+
+    .upload-zone.dragover {
+      border-color: var(--purple);
+      background: var(--surface-purple);
+    }
+
+    .upload-placeholder {
+      width: min(380px, 90%);
+
+      padding: 30px;
+
+      text-align: center;
+    }
+
+    .upload-icon {
+      width: 58px;
+      height: 58px;
+
+      display: grid;
+      place-items: center;
+
+      margin: 0 auto 12px;
+
+      border-radius: 17px;
+
+      background: var(--surface-purple);
+      color: var(--purple);
+
+      font-size: 24px;
+    }
+
+    .upload-title {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .upload-text {
+      margin-top: 6px;
+      margin-bottom: 15px;
+
+      color: var(--text-soft);
+
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .upload-image {
+      max-width: 100%;
+      max-height: 500px;
+
+      display: block;
+
+      object-fit: contain;
+    }
+
+    .editor-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+
+      margin-top: 11px;
+    }
+
+    .secondary-button {
+      border: 1px solid var(--border);
+
+      border-radius: 10px;
+
+      padding: 9px 12px;
+
+      background: white;
+      color: var(--text-soft);
+
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .secondary-button:hover {
+      border-color: var(--border-purple);
+      background: var(--surface-purple);
+      color: var(--purple);
+    }
+
+    .editor-prompt {
+      width: 100%;
+      min-height: 120px;
+
+      resize: vertical;
+
+      padding: 13px;
+
+      border: 1px solid var(--border);
+      border-radius: 14px;
+
+      outline: none;
+
+      background: #fcfbfe;
+      color: var(--text);
+
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .editor-prompt:focus {
+      border-color: var(--border-purple);
+
+      box-shadow:
+        0 0 0 4px rgba(124, 58, 237, 0.07);
+
+      background: white;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .compare-box {
+      position: relative;
+
+      min-height: 300px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      overflow: hidden;
+
+      border: 1px solid var(--border);
+      border-radius: 16px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #faf9fc,
+          #f5f2fa
+        );
+    }
+
+    .compare-label {
+      position: absolute;
+      top: 9px;
+      left: 9px;
+      z-index: 2;
+
+      padding: 5px 8px;
+
+      border-radius: 7px;
+
+      background: rgba(255,255,255,.85);
+
+      color: var(--text-soft);
+
+      font-size: 9px;
+      font-weight: 800;
+
+      backdrop-filter: blur(8px);
+    }
+
+    .compare-box img {
+      width: 100%;
+      height: 100%;
+
+      display: block;
+
+      object-fit: contain;
+    }
+
+    /* =========================================================
+       LOADING
+    ========================================================= */
 
     .loading {
       position: fixed;
       inset: 0;
-      z-index: 100;
+      z-index: 1000;
+
       display: none;
       align-items: center;
       justify-content: center;
-      background: rgba(0,0,0,.7);
+
+      padding: 20px;
+
+      background: rgba(250, 249, 253, 0.78);
+
       backdrop-filter: blur(12px);
     }
 
-    .loading.visible {
+    .loading.show {
       display: flex;
     }
 
-    .loading-card {
-      width: min(340px, calc(100vw - 35px));
+    .loading-box {
+      width: min(390px, 100%);
+
       padding: 28px;
-      border-radius: 20px;
-      border: 1px solid var(--border2);
-      background: #111117;
+
+      border: 1px solid var(--border);
+      border-radius: 21px;
+
+      background: white;
+
       text-align: center;
-      box-shadow: var(--shadow);
+
+      box-shadow:
+        0 25px 70px rgba(40, 20, 70, 0.17);
     }
 
     .spinner {
-      width: 42px;
-      height: 42px;
-      margin: 0 auto 17px;
+      width: 38px;
+      height: 38px;
+
+      margin: 0 auto 15px;
+
+      border: 3px solid #eee9f4;
+      border-top-color: var(--purple);
+
       border-radius: 50%;
-      border: 3px solid rgba(255,255,255,.12);
-      border-top-color: #fff;
-      animation: spin .8s linear infinite;
+
+      animation: spin 0.8s linear infinite;
     }
 
     @keyframes spin {
@@ -857,111 +1167,121 @@
     }
 
     .loading-title {
-      font-size: 14px;
-      font-weight: 750;
+      font-size: 15px;
+      font-weight: 800;
     }
 
     .loading-text {
-      color: var(--muted);
+      margin-top: 5px;
+
+      color: var(--text-soft);
+
       font-size: 11px;
-      margin-top: 6px;
-      line-height: 1.5;
     }
 
-    /* FOOTER */
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
 
-    .footer {
-      padding: 18px 22px 30px;
-      text-align: center;
-      color: var(--muted2);
-      font-size: 10px;
-    }
-
-    /* RESPONSIVE */
-
-    @media (max-width: 1050px) {
-      .workspace,
-      .editor-workspace {
+    @media (max-width: 1100px) {
+      .workspace {
         grid-template-columns: 1fr;
       }
 
-      .control-panel {
-        position: static;
-      }
-
-      .preview-panel {
-        min-height: 500px;
-      }
-
-      .preview-area {
-        min-height: 440px;
+      .canvas-panel {
+        min-height: 620px;
       }
 
       .history-grid {
-        grid-template-columns: repeat(4, minmax(0,1fr));
+        grid-template-columns: repeat(6, 1fr);
       }
     }
 
-    @media (max-width: 650px) {
-      .topbar {
-        padding: 0 13px;
-        height: 61px;
+    @media (max-width: 800px) {
+      .editor-layout {
+        grid-template-columns: 1fr;
       }
 
-      .brand-sub,
-      .status span {
+      .history-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .app {
+        width: min(100% - 20px, 1500px);
+        padding-top: 14px;
+      }
+
+      .header {
+        align-items: flex-start;
+      }
+
+      .header-right {
         display: none;
       }
 
-      .main {
-        padding: 14px 10px 45px;
+      .brand-logo {
+        width: 42px;
+        height: 42px;
       }
 
-      .modebar {
-        padding: 12px 10px 0;
+      .brand-name {
+        font-size: 17px;
       }
 
-      .mode-btn {
-        padding: 9px 14px;
-        font-size: 12px;
+      .brand-sub {
+        font-size: 10px;
       }
 
-      .panel-body,
-      .control-section {
-        padding: 13px;
+      .mode-switch {
+        width: 100%;
       }
 
-      .preview-area {
-        min-height: 360px;
-        padding: 10px;
+      .mode-button {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 8px;
+        font-size: 11px;
       }
 
-      .preview-panel {
-        min-height: 410px;
+      .canvas-panel {
+        min-height: 500px;
+      }
+
+      .canvas {
+        min-height: 390px;
+        border-radius: 17px;
+      }
+
+      .canvas-area {
+        padding: 12px;
+      }
+
+      .empty-title {
+        font-size: 18px;
       }
 
       .gallery {
         grid-template-columns: 1fr;
       }
 
-      .compare {
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .compare-grid {
         grid-template-columns: 1fr;
       }
 
       .history-grid {
-        grid-template-columns: repeat(3, minmax(0,1fr));
-      }
-
-      .ratios {
         grid-template-columns: repeat(3, 1fr);
       }
 
-      .upload-zone {
-        min-height: 230px;
-      }
-
-      textarea {
-        min-height: 125px;
+      .control-card,
+      .editor-card,
+      .history-panel {
+        padding: 15px;
       }
     }
   </style>
@@ -971,744 +1291,746 @@
 
 <div class="app">
 
-  <!-- HEADER -->
+  <!-- =======================================================
+       HEADER
+  ======================================================== -->
 
-  <header class="topbar">
+  <header class="header">
+
     <div class="brand">
-      <div class="brand-logo">AI</div>
 
-      <div class="brand-text">
-        <div class="brand-name">Bastyon AI Studio</div>
-        <div class="brand-sub">AI Image Generator & Editor</div>
+      <div class="brand-logo">
+        M
       </div>
+
+      <div>
+        <div class="brand-name">
+          Bastyon Mya Studio
+        </div>
+
+        <div class="brand-sub">
+          AI Image Generator &amp; Mya Editor
+        </div>
+      </div>
+
     </div>
 
-    <div class="status">
-      <span class="status-dot"></span>
-      <span>AI online</span>
+    <div class="header-right">
+
+      <div class="online-status">
+        <span class="online-dot"></span>
+        Online
+      </div>
+
     </div>
+
   </header>
 
-  <!-- MODE SWITCH -->
 
-  <div class="modebar">
-    <div class="mode-switch">
-      <button
-        class="mode-btn active"
-        id="generatorModeBtn"
-        type="button"
-      >
-        ✨ Генератор
-      </button>
+  <!-- =======================================================
+       MODE SWITCH
+  ======================================================== -->
 
-      <button
-        class="mode-btn"
-        id="editorModeBtn"
-        type="button"
-      >
-        🪄 AI Editor
-      </button>
-    </div>
+  <div class="mode-switch">
+
+    <button
+      class="mode-button active"
+      id="generatorModeBtn"
+      type="button"
+    >
+      ✨ Генератор
+    </button>
+
+    <button
+      class="mode-button"
+      id="editorModeBtn"
+      type="button"
+    >
+      🪄 Mya Editor
+    </button>
+
   </div>
 
-  <main class="main">
 
-    <!-- ========================================================= -->
-    <!-- GENERATOR MODE -->
-    <!-- ========================================================= -->
+  <!-- =======================================================
+       GENERATOR
+  ======================================================== -->
 
-    <section class="mode active" id="generatorMode">
+  <main id="generatorMode">
 
-      <div class="workspace">
+    <div class="workspace">
 
-        <!-- PREVIEW -->
 
-        <div class="panel preview-panel">
+      <!-- ===================================================
+           IMAGE CANVAS
+      ==================================================== -->
 
-          <div class="panel-header">
-            <div>
-              <div class="panel-title">Результат</div>
-              <div class="panel-subtitle">
-                Flux Dev
-              </div>
+      <section class="panel canvas-panel">
+
+        <div class="canvas-header">
+
+          <div>
+
+            <div class="canvas-title">
+              Рабочее пространство
             </div>
 
-            <button
-              class="small-btn"
-              id="downloadAllBtn"
-              type="button"
-              style="display:none;max-width:120px;"
-            >
-              Скачать всё
-            </button>
+            <div class="canvas-description">
+              Создавайте и редактируйте изображения в одном месте
+            </div>
+
           </div>
 
-          <div class="preview-area">
+          <div class="canvas-actions">
+
+            <button
+              class="small-button hidden"
+              id="downloadAllBtn"
+              type="button"
+            >
+              ↓ Скачать
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div class="canvas-area">
+
+          <div class="canvas" id="generatorStage">
 
             <div
-              class="empty-preview"
+              class="empty-state"
               id="generatorEmpty"
             >
-              <div class="empty-icon">✦</div>
+
+              <div class="empty-icon">
+                ✦
+              </div>
 
               <div class="empty-title">
-                Создай изображение
+                Что создадим сегодня?
               </div>
 
               <div class="empty-text">
-                Опиши изображение слева или выбери готовый шаблон.
-                После генерации результат появится здесь.
+                Опишите изображение в поле справа.
+                Mya создаст его по вашему описанию.
               </div>
+
             </div>
 
+
             <div
-              class="gallery"
+              class="gallery hidden"
               id="generatorGallery"
             ></div>
 
           </div>
+
         </div>
 
-        <!-- CONTROLS -->
 
-        <aside class="panel control-panel">
+        <div class="canvas-footer">
 
-          <!-- PROMPT -->
+          <button
+            class="small-button hidden"
+            id="openEditorFromGenerator"
+            type="button"
+          >
+            🪄 Открыть Mya Editor
+          </button>
 
-          <div class="control-section">
+        </div>
 
-            <div class="section-label">
-              Prompt
-            </div>
+      </section>
 
-            <div class="prompt-wrap">
 
-              <textarea
-                id="prompt"
-                maxlength="4000"
-                placeholder="Например: маленький рыжий кот сидит на улице Нью-Йорка ночью, кинематографический свет, фотореализм..."
-              ></textarea>
+      <!-- ===================================================
+           CONTROLS
+      ==================================================== -->
+
+      <aside class="controls">
+
+
+        <!-- PROMPT -->
+
+        <section class="panel control-card">
+
+          <div class="control-title">
+            Что создать?
+          </div>
+
+          <div class="prompt-box">
+
+            <textarea
+              class="prompt"
+              id="prompt"
+              maxlength="2000"
+              placeholder="Опишите изображение, которое хотите получить…"
+            ></textarea>
+
+
+            <div class="prompt-bottom">
+
+              <div class="prompt-tools">
+
+                <button
+                  class="tool-button"
+                  id="voiceBtn"
+                  type="button"
+                  title="Голосовой ввод"
+                >
+                  🎙
+                </button>
+
+                <button
+                  class="tool-button"
+                  id="improvePromptBtn"
+                  type="button"
+                >
+                  ✨ Улучшить
+                </button>
+
+                <button
+                  class="tool-button"
+                  id="clearPromptBtn"
+                  type="button"
+                >
+                  Очистить
+                </button>
+
+              </div>
 
               <div
-                class="prompt-counter"
+                class="counter"
                 id="promptCounter"
               >
-                0 / 4000
-              </div>
-
-            </div>
-
-            <div class="prompt-tools">
-
-              <button
-                class="tool-btn"
-                id="voiceBtn"
-                type="button"
-              >
-                🎙 Голос
-              </button>
-
-              <button
-                class="tool-btn"
-                id="improvePromptBtn"
-                type="button"
-              >
-                ✨ Улучшить
-              </button>
-
-              <button
-                class="tool-btn"
-                id="clearPromptBtn"
-                type="button"
-              >
-                Очистить
-              </button>
-
-            </div>
-
-          </div>
-
-          <!-- TEMPLATES -->
-
-          <div class="control-section">
-
-            <div class="section-label">
-              Быстрые шаблоны
-            </div>
-
-            <div class="templates">
-
-              <button
-                class="template"
-                data-template="photorealistic"
-                type="button"
-              >
-                📷 Фотореализм
-              </button>
-
-              <button
-                class="template"
-                data-template="cinematic"
-                type="button"
-              >
-                🎬 Cinematic
-              </button>
-
-              <button
-                class="template"
-                data-template="portrait"
-                type="button"
-              >
-                👤 Портрет
-              </button>
-
-              <button
-                class="template"
-                data-template="product"
-                type="button"
-              >
-                📦 Product
-              </button>
-
-              <button
-                class="template"
-                data-template="anime"
-                type="button"
-              >
-                🎨 Anime
-              </button>
-
-            </div>
-
-          </div>
-
-          <!-- OPTIONS -->
-
-          <div class="control-section">
-
-            <div class="section-label">
-              Параметры
-            </div>
-
-            <div class="select-row">
-
-              <div>
-                <label class="field-label">
-                  Модель
-                </label>
-
-                <select id="model">
-                  <option value="flux">
-                    Flux Dev
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label class="field-label">
-                  Количество
-                </label>
-
-                <select id="copies">
-                  <option value="1">1 изображение</option>
-                  <option value="2">2 изображения</option>
-                  <option value="3">3 изображения</option>
-                  <option value="4">4 изображения</option>
-                </select>
+                0 / 2000
               </div>
 
             </div>
 
           </div>
 
-          <!-- RATIO -->
+        </section>
 
-          <div class="control-section">
 
-            <div class="section-label">
-              Соотношение сторон
-            </div>
+        <!-- QUICK PROMPTS -->
 
-            <div class="ratios" id="generatorRatios">
+        <section class="panel control-card">
 
-              <button class="ratio active" data-ratio="1:1" type="button">1:1</button>
-              <button class="ratio" data-ratio="16:9" type="button">16:9</button>
-              <button class="ratio" data-ratio="9:16" type="button">9:16</button>
-              <button class="ratio" data-ratio="4:3" type="button">4:3</button>
-              <button class="ratio" data-ratio="3:4" type="button">3:4</button>
-              <button class="ratio" data-ratio="2:1" type="button">2:1</button>
-              <button class="ratio" data-ratio="1:2" type="button">1:2</button>
-              <button class="ratio" data-ratio="3:2" type="button">3:2</button>
-              <button class="ratio" data-ratio="2:3" type="button">2:3</button>
-              <button class="ratio" data-ratio="4:5" type="button">4:5</button>
-              <button class="ratio" data-ratio="5:4" type="button">5:4</button>
-
-            </div>
-
+          <div class="control-title">
+            Быстрые идеи
           </div>
 
-          <!-- GENERATE -->
-
-          <div class="control-section">
+          <div class="chips">
 
             <button
-              class="generate-btn"
-              id="generateBtn"
+              class="chip"
+              data-template="A photorealistic cinematic portrait of a charismatic young woman, natural skin texture, soft studio light, shallow depth of field, premium photography"
               type="button"
             >
-              ✨ Создать изображение
+              👤 Портрет
             </button>
 
             <button
-              class="secondary-btn"
-              id="openEditorFromGenerator"
+              class="chip"
+              data-template="A cute fluffy orange cat in a beautiful modern apartment, photorealistic, cinematic lighting, highly detailed fur, premium photography"
               type="button"
             >
-              🪄 Открыть AI Editor
+              🐈 Животное
             </button>
 
-            <div
-              class="error-box"
-              id="generatorError"
-            ></div>
+            <button
+              class="chip"
+              data-template="A futuristic city at night, cinematic atmosphere, neon reflections, realistic architecture, dramatic lighting, ultra detailed"
+              type="button"
+            >
+              🌃 Футуризм
+            </button>
+
+            <button
+              class="chip"
+              data-template="Luxury commercial product photography, premium studio setup, soft shadows, elegant composition, realistic materials, high-end advertising"
+              type="button"
+            >
+              💎 Предмет
+            </button>
 
           </div>
 
-        </aside>
+        </section>
+
+
+        <!-- SETTINGS -->
+
+        <section class="panel control-card">
+
+          <div class="control-title">
+            Настройки
+          </div>
+
+
+          <div class="settings-grid">
+
+            <div class="field">
+
+              <label for="model">
+                Модель
+              </label>
+
+              <select id="model">
+
+                <option value="flux-dev">
+                  Flux Dev
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <div class="field">
+
+              <label for="copies">
+                Количество
+              </label>
+
+              <select id="copies">
+
+                <option value="1">
+                  1 изображение
+                </option>
+
+                <option value="2">
+                  2 изображения
+                </option>
+
+                <option value="3">
+                  3 изображения
+                </option>
+
+                <option value="4">
+                  4 изображения
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+
+          <div style="height:16px"></div>
+
+
+          <div class="control-title">
+            Формат
+          </div>
+
+
+          <div
+            class="ratio-grid"
+            id="generatorRatios"
+          >
+
+            <button
+              class="ratio-button active"
+              data-ratio="1:1"
+              type="button"
+            >
+              1:1
+            </button>
+
+            <button
+              class="ratio-button"
+              data-ratio="16:9"
+              type="button"
+            >
+              16:9
+            </button>
+
+            <button
+              class="ratio-button"
+              data-ratio="9:16"
+              type="button"
+            >
+              9:16
+            </button>
+
+            <button
+              class="ratio-button"
+              data-ratio="4:3"
+              type="button"
+            >
+              4:3
+            </button>
+
+          </div>
+
+
+          <button
+            class="generate-button"
+            id="generateBtn"
+            type="button"
+          >
+            ✨ Создать изображение
+          </button>
+
+
+          <div
+            class="error"
+            id="generatorError"
+          ></div>
+
+        </section>
+
+      </aside>
+
+    </div>
+
+
+    <!-- =====================================================
+         HISTORY
+    ====================================================== -->
+
+    <section class="panel history-panel">
+
+      <div class="history-header">
+
+        <div>
+
+          <div class="history-title">
+            История
+          </div>
+
+          <div class="history-subtitle">
+            Ваши последние изображения
+          </div>
+
+        </div>
+
+        <button
+          class="small-button"
+          id="clearHistoryBtn"
+          type="button"
+        >
+          Очистить
+        </button>
 
       </div>
 
-      <!-- GENERATOR HISTORY -->
 
-      <div class="panel history">
+      <div
+        class="history-grid"
+        id="historyGrid"
+      ></div>
 
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">История</div>
-            <div class="panel-subtitle">
-              Изображения сохраняются локально в браузере
-            </div>
-          </div>
 
-          <button
-            class="small-btn"
-            id="clearHistoryBtn"
-            type="button"
-            style="max-width:110px;"
-          >
-            Очистить
-          </button>
-        </div>
-
-        <div class="panel-body">
-
-          <div
-            class="history-grid"
-            id="historyGrid"
-          ></div>
-
-          <div
-            class="history-empty"
-            id="historyEmpty"
-          >
-            История пока пуста.
-          </div>
-
-        </div>
-
+      <div
+        class="empty-text"
+        id="historyEmpty"
+      >
+        Здесь появятся ваши изображения.
       </div>
 
     </section>
 
+  </main>
 
-    <!-- ========================================================= -->
-    <!-- AI EDITOR MODE -->
-    <!-- ========================================================= -->
 
-    <section class="mode" id="editorMode">
+  <!-- =======================================================
+       MYA EDITOR
+  ======================================================== -->
 
-      <div class="editor-workspace">
+  <main
+    id="editorMode"
+    class="hidden"
+  >
 
-        <!-- EDITOR CANVAS -->
+    <div class="editor-layout">
 
-        <div class="panel">
 
-          <div class="panel-header">
+      <!-- LEFT -->
 
-            <div>
-              <div class="panel-title">
-                AI Editor
-              </div>
+      <section class="panel editor-card">
 
-              <div class="panel-subtitle">
-                Flux Kontext Dev · Image to Image
-              </div>
+        <div class="editor-header">
+
+          <div>
+
+            <div class="editor-title">
+              Mya Editor
+            </div>
+
+            <div class="editor-subtitle">
+              Изменяйте изображение с помощью текста
+            </div>
+
+          </div>
+
+          <button
+            class="secondary-button"
+            id="resetEditorBtn"
+            type="button"
+          >
+            Сбросить
+          </button>
+
+        </div>
+
+
+        <!-- UPLOAD -->
+
+        <div
+          class="upload-zone"
+          id="uploadZone"
+        >
+
+          <div
+            class="upload-placeholder"
+            id="uploadPlaceholder"
+          >
+
+            <div class="upload-icon">
+              🖼
+            </div>
+
+            <div class="upload-title">
+              Загрузите изображение
+            </div>
+
+            <div class="upload-text">
+              Перетащите изображение сюда
+              или выберите файл с устройства.
             </div>
 
             <button
-              class="small-btn"
-              id="resetEditorBtn"
+              class="secondary-button"
+              id="chooseImageBtn"
               type="button"
-              style="max-width:100px;"
             >
-              Сбросить
+              Выбрать изображение
             </button>
 
           </div>
 
-          <div class="panel-body">
 
-            <!-- UPLOAD -->
+          <img
+            id="editorSource"
+            class="upload-image hidden"
+            alt="Исходное изображение"
+          >
 
-            <div
-              class="upload-zone"
-              id="uploadZone"
+        </div>
+
+
+        <input
+          id="editorFile"
+          type="file"
+          accept="image/*"
+          class="hidden"
+        >
+
+
+        <div class="editor-buttons">
+
+          <button
+            class="secondary-button hidden"
+            id="changeImageBtn"
+            type="button"
+          >
+            Заменить
+          </button>
+
+          <button
+            class="secondary-button hidden"
+            id="removeImageBtn"
+            type="button"
+          >
+            Удалить
+          </button>
+
+          <button
+            class="secondary-button hidden"
+            id="useGeneratorImageBtn"
+            type="button"
+          >
+            Использовать результат
+          </button>
+
+        </div>
+
+
+        <div style="height:20px"></div>
+
+
+        <!-- EDIT PROMPT -->
+
+        <div class="control-title">
+          Что изменить?
+        </div>
+
+
+        <textarea
+          class="editor-prompt"
+          id="editPrompt"
+          maxlength="1200"
+          placeholder="Например: замени фон на роскошный современный интерьер, сохрани человека и лицо без изменений…"
+        ></textarea>
+
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-top:7px;
+          "
+        >
+
+          <div class="prompt-tools">
+
+            <button
+              class="tool-button"
+              id="clearEditPromptBtn"
+              type="button"
             >
+              Очистить
+            </button>
 
-              <div class="upload-content">
-
-                <div class="upload-icon">
-                  ↑
-                </div>
-
-                <div class="upload-title">
-                  Загрузите изображение
-                </div>
-
-                <div class="upload-text">
-                  Перетащите JPG, PNG или WebP сюда<br>
-                  или выберите файл с компьютера
-                </div>
-
-                <button
-                  class="upload-button"
-                  id="chooseImageBtn"
-                  type="button"
-                >
-                  Выбрать изображение
-                </button>
-
-              </div>
-
-              <input
-                type="file"
-                id="editorFile"
-                accept="image/png,image/jpeg,image/webp"
-              >
-
-            </div>
-
-            <!-- SOURCE -->
-
-            <div
-              class="editor-source"
-              id="editorSource"
+            <button
+              class="tool-button"
+              id="copyEditPromptBtn"
+              type="button"
             >
+              Копировать
+            </button>
 
-              <img
-                class="source-image"
-                id="sourceImage"
-                alt="Исходное изображение"
-              >
+          </div>
 
-              <div class="source-toolbar">
-
-                <button
-                  id="changeImageBtn"
-                  type="button"
-                >
-                  Заменить
-                </button>
-
-                <button
-                  id="removeImageBtn"
-                  type="button"
-                >
-                  Удалить
-                </button>
-
-                <button
-                  id="useGeneratorImageBtn"
-                  type="button"
-                >
-                  Использовать результат
-                </button>
-
-              </div>
-
-            </div>
-
-            <!-- COMPARE -->
-
-            <div
-              class="compare"
-              id="editorCompare"
-              style="margin-top:16px;"
-            >
-
-              <div class="compare-item">
-
-                <div class="compare-label">
-                  Оригинал
-                </div>
-
-                <img
-                  class="compare-image"
-                  id="compareOriginal"
-                  alt="Original"
-                >
-
-              </div>
-
-              <div class="compare-item">
-
-                <div class="compare-label">
-                  Результат
-                </div>
-
-                <div
-                  class="compare-placeholder"
-                  id="compareResultPlaceholder"
-                >
-                  Здесь появится результат
-                </div>
-
-                <img
-                  class="compare-image"
-                  id="compareResult"
-                  alt="Result"
-                  style="display:none;"
-                >
-
-              </div>
-
-            </div>
-
-            <!-- EDIT RESULT -->
-
-            <div
-              class="editor-result"
-              id="editorResult"
-            >
-
-              <img
-                class="compare-image"
-                id="editorResultImage"
-                alt="AI edited result"
-              >
-
-              <div class="result-toolbar">
-
-                <button
-                  id="downloadEditedBtn"
-                  type="button"
-                >
-                  ↓ Скачать
-                </button>
-
-                <button
-                  id="sendEditedToGeneratorBtn"
-                  type="button"
-                >
-                  ✨ В генератор
-                </button>
-
-              </div>
-
-            </div>
-
+          <div
+            class="counter"
+            id="editPromptCounter"
+          >
+            0 / 1200
           </div>
 
         </div>
 
 
-        <!-- EDITOR CONTROLS -->
+        <div style="height:17px"></div>
 
-        <aside class="panel control-panel">
 
-          <!-- EDIT PROMPT -->
+        <!-- QUICK EDITS -->
 
-          <div class="control-section">
+        <div class="control-title">
+          Быстрые изменения
+        </div>
 
-            <div class="section-label">
-              Что изменить?
-            </div>
 
-            <div class="prompt-wrap">
+        <div class="chips">
 
-              <textarea
-                id="editPrompt"
-                maxlength="4000"
-                placeholder="Например: замени фон на ночной Нью-Йорк, сохрани человека и его лицо без изменений..."
-              ></textarea>
+          <button
+            class="chip"
+            data-edit="Remove the background and replace it with a clean premium studio background"
+            type="button"
+          >
+            Убрать фон
+          </button>
 
-              <div
-                class="prompt-counter"
-                id="editPromptCounter"
-              >
-                0 / 4000
-              </div>
+          <button
+            class="chip"
+            data-edit="Make the lighting cinematic and natural while preserving the subject and composition"
+            type="button"
+          >
+            Киносвет
+          </button>
 
-            </div>
+          <button
+            class="chip"
+            data-edit="Improve realism, details and textures while preserving the original subject"
+            type="button"
+          >
+            Улучшить детали
+          </button>
 
-            <div class="prompt-tools">
+          <button
+            class="chip"
+            data-edit="Replace the background with a modern luxury interior"
+            type="button"
+          >
+            Новый интерьер
+          </button>
 
-              <button
-                class="tool-btn"
-                id="clearEditPromptBtn"
-                type="button"
-              >
-                Очистить
-              </button>
+        </div>
 
-              <button
-                class="tool-btn"
-                id="copyEditPromptBtn"
-                type="button"
-              >
-                Копировать
-              </button>
 
-            </div>
+        <div style="height:18px"></div>
 
-          </div>
 
-          <!-- QUICK ACTIONS -->
+        <!-- EDIT SETTINGS -->
 
-          <div class="control-section">
+        <div class="settings-grid">
 
-            <div class="section-label">
-              Быстрые действия
-            </div>
+          <div class="field">
 
-            <div class="quick-actions">
-
-              <button
-                class="quick-action"
-                data-edit="background"
-                type="button"
-              >
-                <strong>🌅 Фон</strong>
-                Изменить окружение
-              </button>
-
-              <button
-                class="quick-action"
-                data-edit="lighting"
-                type="button"
-              >
-                <strong>💡 Свет</strong>
-                Сделать свет кинематографичным
-              </button>
-
-              <button
-                class="quick-action"
-                data-edit="style"
-                type="button"
-              >
-                <strong>🎨 Стиль</strong>
-                Изменить визуальный стиль
-              </button>
-
-              <button
-                class="quick-action"
-                data-edit="clothes"
-                type="button"
-              >
-                <strong>👕 Одежда</strong>
-                Изменить одежду
-              </button>
-
-              <button
-                class="quick-action"
-                data-edit="quality"
-                type="button"
-              >
-                <strong>✨ Детализация</strong>
-                Сделать фотореалистичным
-              </button>
-
-              <button
-                class="quick-action"
-                data-edit="cinematic"
-                type="button"
-              >
-                <strong>🎬 Cinematic</strong>
-                Голливудский кадр
-              </button>
-
-            </div>
-
-          </div>
-
-          <!-- RATIO -->
-
-          <div class="control-section">
-
-            <div class="section-label">
-              Соотношение
-            </div>
+            <label>
+              Формат
+            </label>
 
             <div
-              class="ratios"
+              class="ratio-grid"
               id="editorRatios"
             >
 
-              <button class="ratio active" data-ratio="auto" type="button">
+              <button
+                class="ratio-button active"
+                data-ratio="auto"
+                type="button"
+              >
                 Auto
               </button>
 
-              <button class="ratio" data-ratio="1:1" type="button">
+              <button
+                class="ratio-button"
+                data-ratio="1:1"
+                type="button"
+              >
                 1:1
               </button>
 
-              <button class="ratio" data-ratio="16:9" type="button">
+              <button
+                class="ratio-button"
+                data-ratio="16:9"
+                type="button"
+              >
                 16:9
               </button>
 
-              <button class="ratio" data-ratio="9:16" type="button">
+              <button
+                class="ratio-button"
+                data-ratio="9:16"
+                type="button"
+              >
                 9:16
-              </button>
-
-              <button class="ratio" data-ratio="4:3" type="button">
-                4:3
-              </button>
-
-              <button class="ratio" data-ratio="3:4" type="button">
-                3:4
-              </button>
-
-              <button class="ratio" data-ratio="3:2" type="button">
-                3:2
-              </button>
-
-              <button class="ratio" data-ratio="2:3" type="button">
-                2:3
-              </button>
-
-              <button class="ratio" data-ratio="4:5" type="button">
-                4:5
-              </button>
-
-              <button class="ratio" data-ratio="5:4" type="button">
-                5:4
               </button>
 
             </div>
 
           </div>
 
-          <!-- MODEL -->
 
-          <div class="control-section">
+          <div class="field">
 
-            <div class="section-label">
-              AI модель
-            </div>
+            <label for="editorModel">
+              Модель
+            </label>
 
             <select id="editorModel">
 
-              <option value="flux-kontext">
+              <option value="flux-kontext-dev">
                 Flux Kontext Dev
               </option>
 
@@ -1716,57 +2038,129 @@
 
           </div>
 
-          <!-- EDIT -->
+        </div>
 
-          <div class="control-section">
 
-            <button
-              class="generate-btn"
-              id="editBtn"
-              type="button"
-              disabled
-            >
-              🪄 Редактировать изображение
-            </button>
+        <button
+          class="generate-button"
+          id="editBtn"
+          type="button"
+        >
+          🪄 Изменить изображение
+        </button>
 
-            <button
-              class="secondary-btn"
-              id="editorToGeneratorBtn"
-              type="button"
-            >
-              ← Вернуться к генератору
-            </button>
 
-            <div
-              class="error-box"
-              id="editorError"
-            ></div>
+        <div
+          class="error"
+          id="editorError"
+        ></div>
+
+      </section>
+
+
+      <!-- RIGHT -->
+
+      <section class="panel editor-card">
+
+        <div class="editor-header">
+
+          <div>
+
+            <div class="editor-title">
+              Результат
+            </div>
+
+            <div class="editor-subtitle">
+              Сравните исходное и изменённое изображение
+            </div>
 
           </div>
 
-        </aside>
+        </div>
 
-      </div>
 
-    </section>
+        <div class="compare-grid">
+
+
+          <div class="compare-box">
+
+            <div class="compare-label">
+              Оригинал
+            </div>
+
+            <div
+              class="empty-text"
+              id="compareOriginal"
+            >
+              Изображение ещё не загружено
+            </div>
+
+          </div>
+
+
+          <div class="compare-box">
+
+            <div class="compare-label">
+              Mya Editor
+            </div>
+
+            <div
+              class="empty-text"
+              id="compareResultPlaceholder"
+            >
+              Результат появится здесь
+            </div>
+
+            <img
+              id="editorResultImage"
+              class="hidden"
+              alt="Результат редактирования"
+            >
+
+          </div>
+
+        </div>
+
+
+        <div class="editor-buttons">
+
+          <button
+            class="secondary-button hidden"
+            id="downloadEditedBtn"
+            type="button"
+          >
+            ↓ Скачать
+          </button>
+
+          <button
+            class="secondary-button hidden"
+            id="sendEditedToGeneratorBtn"
+            type="button"
+          >
+            ✨ В генератор
+          </button>
+
+        </div>
+
+      </section>
+
+    </div>
 
   </main>
-
-  <footer class="footer">
-    Bastyon AI Studio · Flux Dev · Flux Kontext Dev
-  </footer>
 
 </div>
 
 
-<!-- LOADING -->
+<!-- =========================================================
+     LOADING
+========================================================== -->
 
 <div
   class="loading"
   id="loading"
 >
 
-  <div class="loading-card">
+  <div class="loading-box">
 
     <div class="spinner"></div>
 
@@ -1774,14 +2168,14 @@
       class="loading-title"
       id="loadingTitle"
     >
-      Генерируем изображение
+      Создаём изображение
     </div>
 
     <div
       class="loading-text"
       id="loadingText"
     >
-      Это может занять некоторое время.
+      Подождите немного…
     </div>
 
   </div>
@@ -1790,1424 +2184,295 @@
 
 
 <script>
-  /* ============================================================
-     STATE
-  ============================================================ */
+
+(() => {
+
+  "use strict";
+
+
+  /* =========================================================
+     HELPERS
+  ========================================================== */
+
+  const $ = (id) => {
+    return document.getElementById(id);
+  };
+
+
+  const qa = (selector, root = document) => {
+    return [...root.querySelectorAll(selector)];
+  };
+
 
   let generatorRatio = "1:1";
+
   let editorRatio = "auto";
 
+  let lastImages = [];
+
   let editorImageBase64 = "";
-  let editorImageDataUrl = "";
 
-  let lastGeneratorImage = "";
-
-  let generatorResults = [];
-
-  const HISTORY_KEY = "bastyon_ai_studio_history";
+  let editorImageUrl = "";
 
 
-  /* ============================================================
-     ELEMENTS
-  ============================================================ */
-
-  const generatorModeBtn =
-    document.getElementById("generatorModeBtn");
-
-  const editorModeBtn =
-    document.getElementById("editorModeBtn");
-
-  const generatorMode =
-    document.getElementById("generatorMode");
-
-  const editorMode =
-    document.getElementById("editorMode");
+  const HISTORY_KEY =
+    "bastyon_mya_studio_history_v2";
 
 
-  /* ============================================================
-     MODE SWITCH
-  ============================================================ */
+  /* =========================================================
+     ERROR
+  ========================================================== */
 
-  function showMode(mode) {
+  function showError(element, message) {
 
-    const generator =
-      mode === "generator";
+    element.textContent = message || "";
 
-    generatorMode.classList.toggle(
-      "active",
-      generator
+    element.classList.toggle(
+      "show",
+      Boolean(message)
     );
 
-    editorMode.classList.toggle(
-      "active",
-      !generator
-    );
-
-    generatorModeBtn.classList.toggle(
-      "active",
-      generator
-    );
-
-    editorModeBtn.classList.toggle(
-      "active",
-      !generator
-    );
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
   }
 
-  generatorModeBtn.addEventListener(
-    "click",
-    () => showMode("generator")
-  );
 
-  editorModeBtn.addEventListener(
-    "click",
-    () => showMode("editor")
-  );
+  /* =========================================================
+     LOADING
+  ========================================================== */
 
-  document
-    .getElementById("openEditorFromGenerator")
-    .addEventListener(
-      "click",
-      () => showMode("editor")
-    );
-
-  document
-    .getElementById("editorToGeneratorBtn")
-    .addEventListener(
-      "click",
-      () => showMode("generator")
-    );
-
-
-  /* ============================================================
-     GENERATOR PROMPT
-  ============================================================ */
-
-  const prompt =
-    document.getElementById("prompt");
-
-  const promptCounter =
-    document.getElementById("promptCounter");
-
-  function updatePromptCounter() {
-
-    promptCounter.textContent =
-      `${prompt.value.length} / 4000`;
-  }
-
-  prompt.addEventListener(
-    "input",
-    updatePromptCounter
-  );
-
-
-  document
-    .getElementById("clearPromptBtn")
-    .addEventListener(
-      "click",
-      () => {
-        prompt.value = "";
-        updatePromptCounter();
-        prompt.focus();
-      }
-    );
-
-
-  /* ============================================================
-     GENERATOR TEMPLATES
-  ============================================================ */
-
-  const templates = {
-
-    photorealistic:
-      "Photorealistic image, extremely detailed natural textures, realistic lighting, professional photography, sharp focus, realistic colors, high-end camera quality",
-
-    cinematic:
-      "Cinematic Hollywood frame, dramatic professional lighting, realistic environment, natural skin and material textures, shallow depth of field, anamorphic look, premium film production",
-
-    portrait:
-      "Professional cinematic portrait, realistic face and skin texture, natural expression, detailed eyes, soft directional lighting, shallow depth of field, premium photography",
-
-    product:
-      "Luxury commercial product photography, premium studio lighting, realistic materials, subtle reflections, clean composition, extremely detailed, high-end advertising photography",
-
-    anime:
-      "High quality anime illustration, detailed character design, beautiful lighting, expressive face, cinematic composition, polished professional artwork"
-  };
-
-
-  document
-    .querySelectorAll(".template")
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          const type =
-            button.dataset.template;
-
-          const addition =
-            templates[type];
-
-          if (!addition) return;
-
-          if (prompt.value.trim()) {
-
-            prompt.value =
-              `${prompt.value.trim()}, ${addition}`;
-
-          } else {
-
-            prompt.value = addition;
-          }
-
-          updatePromptCounter();
-          prompt.focus();
-        }
-      );
-    });
-
-
-  /* ============================================================
-     IMPROVE PROMPT
-  ============================================================ */
-
-  document
-    .getElementById("improvePromptBtn")
-    .addEventListener(
-      "click",
-      () => {
-
-        const value =
-          prompt.value.trim();
-
-        if (!value) {
-          prompt.focus();
-          return;
-        }
-
-        prompt.value =
-          `${value}, ultra detailed, photorealistic, cinematic composition, realistic textures, natural lighting, professional photography, sharp focus, high dynamic range`;
-
-        updatePromptCounter();
-      }
-    );
-
-
-  /* ============================================================
-     VOICE
-  ============================================================ */
-
-  const voiceBtn =
-    document.getElementById("voiceBtn");
-
-  let recognition = null;
-
-  if (
-    "SpeechRecognition" in window ||
-    "webkitSpeechRecognition" in window
+  function setLoading(
+    visible,
+    title = "Создаём изображение",
+    text = "Подождите немного…"
   ) {
 
-    const SpeechRecognition =
-      window.SpeechRecognition ||
-      window.webkitSpeechRecognition;
+    $("loadingTitle").textContent = title;
 
-    recognition =
-      new SpeechRecognition();
+    $("loadingText").textContent = text;
 
-    recognition.lang = "ru-RU";
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => {
-      voiceBtn.textContent = "🔴 Слушаю...";
-    };
-
-    recognition.onend = () => {
-      voiceBtn.textContent = "🎙 Голос";
-    };
-
-    recognition.onerror = () => {
-      voiceBtn.textContent = "🎙 Голос";
-    };
-
-    recognition.onresult = event => {
-
-      const text =
-        event.results[0][0].transcript;
-
-      prompt.value =
-        prompt.value.trim()
-          ? `${prompt.value.trim()} ${text}`
-          : text;
-
-      updatePromptCounter();
-    };
-
-    voiceBtn.addEventListener(
-      "click",
-      () => {
-
-        try {
-          recognition.start();
-        } catch {}
-      }
+    $("loading").classList.toggle(
+      "show",
+      visible
     );
 
-  } else {
-
-    voiceBtn.addEventListener(
-      "click",
-      () => {
-        alert(
-          "Голосовой ввод не поддерживается этим браузером."
-        );
-      }
-    );
   }
 
 
-  /* ============================================================
-     GENERATOR RATIOS
-  ============================================================ */
+  /* =========================================================
+     COUNTERS
+  ========================================================== */
 
-  document
-    .querySelectorAll("#generatorRatios .ratio")
-    .forEach(button => {
+  function updateCounters() {
 
-      button.addEventListener(
-        "click",
-        () => {
+    $("promptCounter").textContent =
+      `${$("prompt").value.length} / 2000`;
 
-          document
-            .querySelectorAll("#generatorRatios .ratio")
-            .forEach(item =>
-              item.classList.remove("active")
-            );
+    $("editPromptCounter").textContent =
+      `${$("editPrompt").value.length} / 1200`;
 
-          button.classList.add("active");
-
-          generatorRatio =
-            button.dataset.ratio;
-        }
-      );
-    });
+  }
 
 
-  /* ============================================================
-     GENERATE IMAGE
-  ============================================================ */
+  /* =========================================================
+     HTML ESCAPE
+  ========================================================== */
 
-  async function generateOne(
-    promptText,
-    ratio
+  function escapeHtml(value) {
+
+    return String(value).replace(
+      /[&<>"']/g,
+      (character) => {
+
+        const map = {
+
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;"
+
+        };
+
+        return map[character];
+
+      }
+    );
+
+  }
+
+
+  /* =========================================================
+     DOWNLOAD
+  ========================================================== */
+
+  async function downloadImage(
+    url,
+    filename = "mya-image.png"
   ) {
 
-    const response =
-      await fetch(
-        "/api/generate",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-            prompt: promptText,
-            ratio
-          })
-        }
-      );
-
-    const text =
-      await response.text();
-
-    let data;
-
     try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error(
-        "Сервер вернул некорректный ответ."
-      );
-    }
-
-    if (!response.ok || !data.success) {
-
-      throw new Error(
-        data.error ||
-        "Ошибка генерации изображения."
-      );
-    }
-
-    if (!data.imageUrl) {
-
-      throw new Error(
-        "Сервер не вернул изображение."
-      );
-    }
-
-    return data;
-  }
-
-
-  async function generateImages() {
-
-    const promptText =
-      prompt.value.trim();
-
-    if (!promptText) {
-
-      showGeneratorError(
-        "Сначала напишите описание изображения."
-      );
-
-      prompt.focus();
-
-      return;
-    }
-
-    const copies =
-      Number(
-        document.getElementById("copies").value
-      );
-
-    const button =
-      document.getElementById("generateBtn");
-
-    button.disabled = true;
-
-    hideGeneratorError();
-
-    showLoading(
-      "Генерируем изображение",
-      "Flux Dev создаёт изображение..."
-    );
-
-    generatorResults = [];
-
-    try {
-
-      /*
-       * Генерируем последовательно.
-       *
-       * Это специально сделано так,
-       * чтобы не отправлять несколько
-       * запросов одновременно и меньше
-       * попадать под fair-use throttling.
-       */
-
-      for (
-        let i = 0;
-        i < copies;
-        i++
-      ) {
-
-        updateLoading(
-          `Генерируем ${i + 1} из ${copies}`,
-          "Flux Dev создаёт изображение..."
-        );
-
-        try {
-
-          const result =
-            await generateOne(
-              promptText,
-              generatorRatio
-            );
-
-          generatorResults.push(result);
-
-        } catch (error) {
-
-          console.error(
-            "Generation error:",
-            error
-          );
-
-          if (
-            generatorResults.length === 0
-          ) {
-            throw error;
-          }
-        }
-      }
-
-      if (!generatorResults.length) {
-
-        throw new Error(
-          "Не удалось получить изображение."
-        );
-      }
-
-      renderGeneratorResults();
-
-      lastGeneratorImage =
-        generatorResults[
-          generatorResults.length - 1
-        ].imageUrl;
-
-      saveHistory(
-        generatorResults
-      );
-
-    } catch (error) {
-
-      console.error(error);
-
-      showGeneratorError(
-        error.message ||
-        "Ошибка генерации."
-      );
-
-    } finally {
-
-      hideLoading();
-
-      button.disabled = false;
-    }
-  }
-
-
-  document
-    .getElementById("generateBtn")
-    .addEventListener(
-      "click",
-      generateImages
-    );
-
-
-  /* ============================================================
-     GENERATOR RESULTS
-  ============================================================ */
-
-  function renderGeneratorResults() {
-
-    const gallery =
-      document.getElementById(
-        "generatorGallery"
-      );
-
-    const empty =
-      document.getElementById(
-        "generatorEmpty"
-      );
-
-    const downloadAll =
-      document.getElementById(
-        "downloadAllBtn"
-      );
-
-    gallery.innerHTML = "";
-
-    empty.style.display = "none";
-
-    downloadAll.style.display =
-      generatorResults.length
-        ? "block"
-        : "none";
-
-    generatorResults.forEach(
-      (result, index) => {
-
-        const card =
-          document.createElement("div");
-
-        card.className =
-          "result-card";
-
-        const image =
-          document.createElement("img");
-
-        image.src =
-          result.imageUrl;
-
-        image.alt =
-          result.prompt || "Generated image";
-
-        const actions =
-          document.createElement("div");
-
-        actions.className =
-          "result-actions";
-
-        const download =
-          document.createElement("button");
-
-        download.className =
-          "small-btn";
-
-        download.textContent =
-          "↓ Скачать";
-
-        download.addEventListener(
-          "click",
-          () =>
-            downloadImage(
-              result.imageUrl,
-              `bastyon-ai-${index + 1}.jpg`
-            )
-        );
-
-        const edit =
-          document.createElement("button");
-
-        edit.className =
-          "small-btn";
-
-        edit.textContent =
-          "🪄 Редактировать";
-
-        edit.addEventListener(
-          "click",
-          () => {
-
-            loadImageIntoEditor(
-              result.imageUrl
-            );
-
-            showMode("editor");
-          }
-        );
-
-        actions.appendChild(download);
-        actions.appendChild(edit);
-
-        card.appendChild(image);
-        card.appendChild(actions);
-
-        gallery.appendChild(card);
-      }
-    );
-  }
-
-
-  document
-    .getElementById("downloadAllBtn")
-    .addEventListener(
-      "click",
-      async () => {
-
-        for (
-          let i = 0;
-          i < generatorResults.length;
-          i++
-        ) {
-
-          await downloadImage(
-            generatorResults[i].imageUrl,
-            `bastyon-ai-${i + 1}.jpg`
-          );
-
-          await new Promise(
-            resolve =>
-              setTimeout(resolve, 400)
-          );
-        }
-      }
-    );
-
-
-  /* ============================================================
-     EDITOR PROMPT
-  ============================================================ */
-
-  const editPrompt =
-    document.getElementById(
-      "editPrompt"
-    );
-
-  const editPromptCounter =
-    document.getElementById(
-      "editPromptCounter"
-    );
-
-  function updateEditCounter() {
-
-    editPromptCounter.textContent =
-      `${editPrompt.value.length} / 4000`;
-  }
-
-  editPrompt.addEventListener(
-    "input",
-    updateEditCounter
-  );
-
-
-  document
-    .getElementById("clearEditPromptBtn")
-    .addEventListener(
-      "click",
-      () => {
-
-        editPrompt.value = "";
-
-        updateEditCounter();
-
-        editPrompt.focus();
-      }
-    );
-
-
-  document
-    .getElementById("copyEditPromptBtn")
-    .addEventListener(
-      "click",
-      async () => {
-
-        if (!editPrompt.value) return;
-
-        try {
-
-          await navigator.clipboard.writeText(
-            editPrompt.value
-          );
-
-        } catch {}
-      }
-    );
-
-
-  /* ============================================================
-     QUICK EDIT ACTIONS
-  ============================================================ */
-
-  const quickEditPrompts = {
-
-    background:
-      "Replace the background with a beautiful cinematic environment. Keep the main subject, face, body, pose and identity unchanged. Make the new background realistic and naturally integrated with the subject.",
-
-    lighting:
-      "Improve the lighting dramatically. Add beautiful cinematic professional lighting, realistic shadows, natural highlights and subtle depth while preserving the subject and composition.",
-
-    style:
-      "Transform the visual style into premium cinematic photorealism. Preserve the identity, pose, proportions and important details of the subject.",
-
-    clothes:
-      "Change the subject's clothing to stylish modern premium clothing. Preserve the person's face, identity, body proportions, pose and environment.",
-
-    quality:
-      "Increase realism and fine detail. Improve skin, hair, fabric, materials, lighting and textures while keeping the original composition and identity unchanged.",
-
-    cinematic:
-      "Turn this image into a cinematic Hollywood-quality frame. Preserve the subject and composition while adding professional lighting, realistic depth, detailed textures and premium color grading."
-  };
-
-
-  document
-    .querySelectorAll(".quick-action")
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          const type =
-            button.dataset.edit;
-
-          const text =
-            quickEditPrompts[type];
-
-          if (!text) return;
-
-          if (editPrompt.value.trim()) {
-
-            editPrompt.value =
-              `${editPrompt.value.trim()}, ${text}`;
-
-          } else {
-
-            editPrompt.value = text;
-          }
-
-          updateEditCounter();
-
-          editPrompt.focus();
-        }
-      );
-    });
-
-
-  /* ============================================================
-     EDITOR RATIOS
-  ============================================================ */
-
-  document
-    .querySelectorAll("#editorRatios .ratio")
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          document
-            .querySelectorAll("#editorRatios .ratio")
-            .forEach(item =>
-              item.classList.remove("active")
-            );
-
-          button.classList.add("active");
-
-          editorRatio =
-            button.dataset.ratio;
-        }
-      );
-    });
-
-
-  /* ============================================================
-     FILE UPLOAD
-  ============================================================ */
-
-  const editorFile =
-    document.getElementById(
-      "editorFile"
-    );
-
-  const uploadZone =
-    document.getElementById(
-      "uploadZone"
-    );
-
-  const editorSource =
-    document.getElementById(
-      "editorSource"
-    );
-
-  const sourceImage =
-    document.getElementById(
-      "sourceImage"
-    );
-
-  const editButton =
-    document.getElementById(
-      "editBtn"
-    );
-
-
-  document
-    .getElementById("chooseImageBtn")
-    .addEventListener(
-      "click",
-      () => editorFile.click()
-    );
-
-
-  document
-    .getElementById("changeImageBtn")
-    .addEventListener(
-      "click",
-      () => editorFile.click()
-    );
-
-
-  editorFile.addEventListener(
-    "change",
-    event => {
-
-      const file =
-        event.target.files[0];
-
-      if (file) {
-        readEditorFile(file);
-      }
-    }
-  );
-
-
-  uploadZone.addEventListener(
-    "dragover",
-    event => {
-
-      event.preventDefault();
-
-      uploadZone.classList.add(
-        "dragover"
-      );
-    }
-  );
-
-
-  uploadZone.addEventListener(
-    "dragleave",
-    () => {
-
-      uploadZone.classList.remove(
-        "dragover"
-      );
-    }
-  );
-
-
-  uploadZone.addEventListener(
-    "drop",
-    event => {
-
-      event.preventDefault();
-
-      uploadZone.classList.remove(
-        "dragover"
-      );
-
-      const file =
-        event.dataTransfer.files[0];
-
-      if (!file) return;
-
-      if (
-        ![
-          "image/jpeg",
-          "image/png",
-          "image/webp"
-        ].includes(file.type)
-      ) {
-
-        showEditorError(
-          "Поддерживаются JPG, PNG и WebP."
-        );
-
-        return;
-      }
-
-      readEditorFile(file);
-    }
-  );
-
-
-  async function readEditorFile(file) {
-
-    hideEditorError();
-
-    if (file.size > 3.5 * 1024 * 1024) {
-
-      showEditorError(
-        "Размер изображения должен быть не больше 3.5 MB."
-      );
-
-      return;
-    }
-
-    const reader =
-      new FileReader();
-
-    reader.onload = () => {
-
-      const dataUrl =
-        reader.result;
-
-      editorImageDataUrl =
-        dataUrl;
-
-      editorImageBase64 =
-        dataUrl.split(",")[1];
-
-      sourceImage.src =
-        dataUrl;
-
-      document
-        .getElementById(
-          "compareOriginal"
-        )
-        .src = dataUrl;
-
-      uploadZone.style.display =
-        "none";
-
-      editorSource.classList.add(
-        "visible"
-      );
-
-      editButton.disabled =
-        false;
-
-      hideEditorResult();
-    };
-
-    reader.onerror = () => {
-
-      showEditorError(
-        "Не удалось прочитать изображение."
-      );
-    };
-
-    reader.readAsDataURL(file);
-  }
-
-
-  /* ============================================================
-     LOAD URL IMAGE INTO EDITOR
-  ============================================================ */
-
-  async function loadImageIntoEditor(url) {
-
-    try {
-
-      showLoading(
-        "Подготавливаем изображение",
-        "Загружаем результат в AI Editor..."
-      );
 
       const response =
         await fetch(url);
 
+      if (!response.ok) {
+        throw new Error("Download failed");
+      }
+
       const blob =
         await response.blob();
 
-      if (
-        blob.size >
-        3.5 * 1024 * 1024
-      ) {
+      const objectUrl =
+        URL.createObjectURL(blob);
 
-        throw new Error(
-          "Изображение слишком большое для редактора."
+      const link =
+        document.createElement("a");
+
+      link.href = objectUrl;
+
+      link.download = filename;
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      link.remove();
+
+      setTimeout(() => {
+
+        URL.revokeObjectURL(
+          objectUrl
         );
-      }
 
-      const reader =
-        new FileReader();
+      }, 1000);
 
-      await new Promise(
-        (resolve, reject) => {
+    } catch {
 
-          reader.onload =
-            resolve;
-
-          reader.onerror =
-            reject;
-
-          reader.readAsDataURL(blob);
-        }
+      window.open(
+        url,
+        "_blank",
+        "noopener,noreferrer"
       );
 
-      editorImageDataUrl =
-        reader.result;
-
-      editorImageBase64 =
-        reader.result.split(",")[1];
-
-      sourceImage.src =
-        reader.result;
-
-      document
-        .getElementById(
-          "compareOriginal"
-        )
-        .src = reader.result;
-
-      uploadZone.style.display =
-        "none";
-
-      editorSource.classList.add(
-        "visible"
-      );
-
-      editButton.disabled =
-        false;
-
-      hideEditorResult();
-
-    } catch (error) {
-
-      console.error(error);
-
-      showEditorError(
-        "Не удалось загрузить изображение для редактирования."
-      );
-
-    } finally {
-
-      hideLoading();
-    }
-  }
-
-
-  /* ============================================================
-     REMOVE IMAGE
-  ============================================================ */
-
-  document
-    .getElementById("removeImageBtn")
-    .addEventListener(
-      "click",
-      resetEditor
-    );
-
-
-  document
-    .getElementById("resetEditorBtn")
-    .addEventListener(
-      "click",
-      resetEditor
-    );
-
-
-  function resetEditor() {
-
-    editorImageBase64 = "";
-    editorImageDataUrl = "";
-
-    sourceImage.src = "";
-
-    editorFile.value = "";
-
-    uploadZone.style.display =
-      "flex";
-
-    editorSource.classList.remove(
-      "visible"
-    );
-
-    editButton.disabled =
-      true;
-
-    hideEditorResult();
-
-    editPrompt.value = "";
-
-    updateEditCounter();
-
-    hideEditorError();
-  }
-
-
-  /* ============================================================
-     USE GENERATOR IMAGE
-  ============================================================ */
-
-  document
-    .getElementById(
-      "useGeneratorImageBtn"
-    )
-    .addEventListener(
-      "click",
-      () => {
-
-        if (!lastGeneratorImage) {
-
-          showEditorError(
-            "Сначала создайте изображение в генераторе."
-          );
-
-          return;
-        }
-
-        loadImageIntoEditor(
-          lastGeneratorImage
-        );
-      }
-    );
-
-
-  /* ============================================================
-     EDIT IMAGE
-  ============================================================ */
-
-  editButton.addEventListener(
-    "click",
-    editImage
-  );
-
-
-  async function editImage() {
-
-    if (!editorImageBase64) {
-
-      showEditorError(
-        "Сначала загрузите изображение."
-      );
-
-      return;
     }
 
-    const instruction =
-      editPrompt.value.trim();
-
-    if (!instruction) {
-
-      showEditorError(
-        "Напишите, что нужно изменить."
-      );
-
-      editPrompt.focus();
-
-      return;
-    }
-
-    editButton.disabled =
-      true;
-
-    hideEditorError();
-
-    showLoading(
-      "Редактируем изображение",
-      "Flux Kontext Dev применяет изменения..."
-    );
-
-    try {
-
-      const response =
-        await fetch(
-          "/api/edit",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body: JSON.stringify({
-
-              prompt:
-                instruction,
-
-              imageBase64:
-                editorImageBase64,
-
-              ratio:
-                editorRatio,
-
-              model:
-                document.getElementById(
-                  "editorModel"
-                ).value
-            })
-          }
-        );
-
-      const text =
-        await response.text();
-
-      let data;
-
-      try {
-
-        data =
-          JSON.parse(text);
-
-      } catch {
-
-        throw new Error(
-          "Сервер редактора вернул некорректный ответ."
-        );
-      }
-
-      if (
-        !response.ok ||
-        !data.success
-      ) {
-
-        throw new Error(
-          data.error ||
-          "Ошибка редактирования."
-        );
-      }
-
-      if (!data.imageUrl) {
-
-        throw new Error(
-          "Редактор не вернул изображение."
-        );
-      }
-
-      showEditorResult(
-        data.imageUrl
-      );
-
-      saveHistory([
-        {
-          imageUrl:
-            data.imageUrl,
-
-          prompt:
-            instruction,
-
-          ratio:
-            editorRatio,
-
-          mode:
-            "editor",
-
-          createdAt:
-            Date.now()
-        }
-      ]);
-
-    } catch (error) {
-
-      console.error(
-        "Editor error:",
-        error
-      );
-
-      showEditorError(
-        error.message ||
-        "Ошибка редактирования."
-      );
-
-    } finally {
-
-      hideLoading();
-
-      editButton.disabled =
-        false;
-    }
   }
 
 
-  /* ============================================================
-     EDIT RESULT
-  ============================================================ */
+  /* =========================================================
+     GENERATOR GALLERY
+  ========================================================== */
 
-  function showEditorResult(url) {
+  function renderGallery(urls) {
 
-    const result =
-      document.getElementById(
-        "editorResult"
-      );
+    lastImages =
+      urls.filter(Boolean);
 
-    const resultImage =
-      document.getElementById(
-        "editorResultImage"
-      );
+    const empty =
+      $("generatorEmpty");
 
-    const compareResult =
-      document.getElementById(
-        "compareResult"
-      );
+    const gallery =
+      $("generatorGallery");
 
-    const placeholder =
-      document.getElementById(
-        "compareResultPlaceholder"
-      );
-
-    resultImage.src =
-      url;
-
-    compareResult.src =
-      url;
-
-    compareResult.style.display =
-      "block";
-
-    placeholder.style.display =
-      "none";
-
-    result.classList.add(
-      "visible"
+    empty.classList.toggle(
+      "hidden",
+      lastImages.length > 0
     );
 
-    document
-      .getElementById(
-        "editorCompare"
-      )
-      .classList.add(
-        "visible"
-      );
-  }
+    gallery.classList.toggle(
+      "hidden",
+      lastImages.length === 0
+    );
+
+    $("downloadAllBtn").classList.toggle(
+      "hidden",
+      lastImages.length === 0
+    );
+
+    $("openEditorFromGenerator").classList.toggle(
+      "hidden",
+      lastImages.length === 0
+    );
 
 
-  function hideEditorResult() {
-
-    document
-      .getElementById(
-        "editorResult"
-      )
-      .classList.remove(
-        "visible"
-      );
-
-    document
-      .getElementById(
-        "editorCompare"
-      )
-      .classList.remove(
-        "visible"
-      );
-
-    document
-      .getElementById(
-        "compareResult"
-      ).style.display =
-        "none";
-
-    document
-      .getElementById(
-        "compareResultPlaceholder"
-      ).style.display =
-        "grid";
-  }
+    gallery.innerHTML = "";
 
 
-  /* ============================================================
-     EDIT RESULT DOWNLOAD
-  ============================================================ */
+    lastImages.forEach(
+      (url, index) => {
 
-  document
-    .getElementById(
-      "downloadEditedBtn"
-    )
-    .addEventListener(
-      "click",
-      () => {
+        const item =
+          document.createElement("div");
 
-        const image =
-          document.getElementById(
-            "editorResultImage"
-          );
+        item.className =
+          "gallery-item";
 
-        if (!image.src) return;
 
-        downloadImage(
-          image.src,
-          "bastyon-ai-edited.jpg"
-        );
+        item.innerHTML = `
+
+          <img
+            src="${escapeHtml(url)}"
+            alt="Generated image"
+          >
+
+          <div class="image-toolbar">
+
+            <button
+              class="image-tool"
+              data-action="editor"
+              type="button"
+            >
+              🪄
+            </button>
+
+            <button
+              class="image-tool"
+              data-action="download"
+              type="button"
+            >
+              ↓
+            </button>
+
+          </div>
+
+        `;
+
+
+        item
+          .querySelector(
+            '[data-action="download"]'
+          )
+          .onclick = () => {
+
+            downloadImage(
+              url,
+              `mya-${index + 1}.png`
+            );
+
+          };
+
+
+        item
+          .querySelector(
+            '[data-action="editor"]'
+          )
+          .onclick = () => {
+
+            openEditorWithUrl(url);
+
+          };
+
+
+        gallery.appendChild(item);
+
       }
     );
 
-
-  /* ============================================================
-     SEND EDITED TO GENERATOR
-  ============================================================ */
-
-  document
-    .getElementById(
-      "sendEditedToGeneratorBtn"
-    )
-    .addEventListener(
-      "click",
-      () => {
-
-        const image =
-          document.getElementById(
-            "editorResultImage"
-          );
-
-        if (!image.src) return;
-
-        lastGeneratorImage =
-          image.src;
-
-        showMode("generator");
-
-        loadImageIntoEditor(
-          image.src
-        );
-      }
-    );
+  }
 
 
-  /* ============================================================
-     GENERATOR HISTORY
-  ============================================================ */
+  /* =========================================================
+     HISTORY
+  ========================================================== */
 
   function getHistory() {
 
@@ -3222,151 +2487,1223 @@
     } catch {
 
       return [];
+
     }
+
   }
 
 
-  function saveHistory(results) {
+  function saveHistory(
+    urls,
+    prompt
+  ) {
 
-    try {
+    let history =
+      getHistory();
 
-      const current =
-        getHistory();
 
-      const items =
-        results.map(item => ({
-          imageUrl:
-            item.imageUrl,
+    urls.forEach(
+      (url) => {
 
-          prompt:
-            item.prompt || "",
+        history.unshift({
 
-          ratio:
-            item.ratio || "1:1",
+          url,
 
-          mode:
-            item.mode || "generator",
+          prompt,
 
           createdAt:
-            item.createdAt ||
             Date.now()
-        }));
 
-      const merged =
-        [...items, ...current];
+        });
 
-      const unique = [];
+      }
+    );
 
-      const seen =
-        new Set();
 
-      for (const item of merged) {
+    const unique = [];
 
-        if (
-          !item.imageUrl ||
-          seen.has(item.imageUrl)
-        ) {
-          continue;
-        }
+    const seen = new Set();
 
-        seen.add(
-          item.imageUrl
-        );
 
-        unique.push(item);
+    for (
+      const item of history
+    ) {
+
+      if (
+        !item.url ||
+        seen.has(item.url)
+      ) {
+        continue;
       }
 
-      localStorage.setItem(
-        HISTORY_KEY,
-        JSON.stringify(
-          unique.slice(0, 30)
-        )
-      );
+      seen.add(item.url);
 
-      renderHistory();
+      unique.push(item);
 
-    } catch (error) {
-
-      console.warn(
-        "History error:",
-        error
-      );
     }
+
+
+    localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify(
+        unique.slice(0, 20)
+      )
+    );
+
+
+    renderHistory();
+
   }
 
 
   function renderHistory() {
 
-    const grid =
-      document.getElementById(
-        "historyGrid"
-      );
-
-    const empty =
-      document.getElementById(
-        "historyEmpty"
-      );
-
     const history =
       getHistory();
 
+
+    const grid =
+      $("historyGrid");
+
+
     grid.innerHTML = "";
 
-    if (!history.length) {
 
-      empty.style.display =
-        "block";
+    $("historyEmpty").classList.toggle(
+      "hidden",
+      history.length > 0
+    );
 
-      return;
-    }
 
-    empty.style.display =
-      "none";
+    history.forEach(
+      (item) => {
 
-    history.forEach(item => {
+        const element =
+          document.createElement("div");
 
-      const card =
-        document.createElement(
-          "div"
-        );
+        element.className =
+          "history-item";
 
-      card.className =
-        "history-item";
 
-      const image =
-        document.createElement(
-          "img"
-        );
+        element.innerHTML = `
 
-      image.src =
-        item.imageUrl;
+          <img
+            src="${escapeHtml(item.url)}"
+            alt="History image"
+          >
 
-      image.loading =
-        "lazy";
+          <div class="history-caption">
+            ${escapeHtml(
+              item.prompt || "Изображение"
+            )}
+          </div>
 
-      image.addEventListener(
-        "click",
-        () => {
+        `;
 
-          loadImageIntoEditor(
-            item.imageUrl
-          );
 
-          showMode("editor");
-        }
-      );
+        element.onclick = () => {
 
-      card.appendChild(image);
+          $("prompt").value =
+            item.prompt || "";
 
-      grid.appendChild(card);
-    });
+          updateCounters();
+
+          renderGallery([
+            item.url
+          ]);
+
+          window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+          });
+
+        };
+
+
+        grid.appendChild(element);
+
+      }
+    );
+
   }
 
 
-  document
-    .getElementById(
-      "clearHistoryBtn"
-    )
+  /* =========================================================
+     GENERATE
+  ========================================================== */
+
+  async function generateImages() {
+
+    const prompt =
+      $("prompt")
+        .value
+        .trim();
+
+
+    if (!prompt) {
+
+      showError(
+        $("generatorError"),
+        "Введите описание изображения."
+      );
+
+      $("prompt").focus();
+
+      return;
+
+    }
+
+
+    showError(
+      $("generatorError"),
+      ""
+    );
+
+
+    const count =
+      Number(
+        $("copies").value || 1
+      );
+
+
+    $("generateBtn").disabled =
+      true;
+
+
+    setLoading(
+      true,
+      "Создаём изображение",
+      "Подключаем Mya AI…"
+    );
+
+
+    try {
+
+      const results = [];
+
+
+      for (
+        let i = 0;
+        i < count;
+        i++
+      ) {
+
+        setLoading(
+          true,
+          "Создаём изображение",
+          count > 1
+            ? `Генерация ${i + 1} из ${count}…`
+            : "Генерация изображения…"
+        );
+
+
+        const response =
+          await fetch(
+            "/api/generate",
+            {
+
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+
+                  prompt,
+
+                  ratio:
+                    generatorRatio,
+
+                  model:
+                    $("model").value
+
+                })
+
+            }
+          );
+
+
+        const text =
+          await response.text();
+
+
+        let data;
+
+
+        try {
+
+          data =
+            JSON.parse(text);
+
+        } catch {
+
+          throw new Error(
+            `Сервер вернул не JSON (${response.status})`
+          );
+
+        }
+
+
+        if (
+          !response.ok ||
+          !data.imageUrl
+        ) {
+
+          throw new Error(
+            data.error ||
+            `Ошибка генерации (${response.status})`
+          );
+
+        }
+
+
+        results.push(
+          data.imageUrl
+        );
+
+      }
+
+
+      renderGallery(
+        results
+      );
+
+
+      saveHistory(
+        results,
+        prompt
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "Generation error:",
+        error
+      );
+
+
+      showError(
+        $("generatorError"),
+        error.message ||
+          "Ошибка генерации изображения."
+      );
+
+
+    } finally {
+
+      setLoading(false);
+
+      $("generateBtn").disabled =
+        false;
+
+    }
+
+  }
+
+
+  /* =========================================================
+     MODE SWITCH
+  ========================================================== */
+
+  function switchMode(
+    mode
+  ) {
+
+    const generator =
+      mode === "generator";
+
+
+    $("generatorMode")
+      .classList
+      .toggle(
+        "hidden",
+        !generator
+      );
+
+
+    $("editorMode")
+      .classList
+      .toggle(
+        "hidden",
+        generator
+      );
+
+
+    $("generatorModeBtn")
+      .classList
+      .toggle(
+        "active",
+        generator
+      );
+
+
+    $("editorModeBtn")
+      .classList
+      .toggle(
+        "active",
+        !generator
+      );
+
+  }
+
+
+  /* =========================================================
+     IMPROVE PROMPT
+  ========================================================== */
+
+  function improvePrompt() {
+
+    const textarea =
+      $("prompt");
+
+
+    const text =
+      textarea.value.trim();
+
+
+    if (!text) {
+
+      textarea.focus();
+
+      return;
+
+    }
+
+
+    const additions =
+      "photorealistic, cinematic composition, natural lighting, realistic textures, highly detailed, professional photography, shallow depth of field";
+
+
+    if (
+      !text
+        .toLowerCase()
+        .includes("photorealistic")
+    ) {
+
+      textarea.value =
+        `${text}, ${additions}`;
+
+    }
+
+
+    updateCounters();
+
+  }
+
+
+  /* =========================================================
+     SELECT RATIO
+  ========================================================== */
+
+  function selectRatio(
+    container,
+    button
+  ) {
+
+    qa(
+      ".ratio-button",
+      container
+    ).forEach(
+      (element) => {
+
+        element.classList.remove(
+          "active"
+        );
+
+      }
+    );
+
+
+    button.classList.add(
+      "active"
+    );
+
+  }
+
+
+  /* =========================================================
+     EDITOR RESET
+  ========================================================== */
+
+  function resetEditor() {
+
+    editorImageBase64 =
+      "";
+
+    editorImageUrl =
+      "";
+
+
+    $("editorSource").src =
+      "";
+
+    $("editorSource")
+      .classList
+      .add("hidden");
+
+
+    $("uploadPlaceholder")
+      .classList
+      .remove("hidden");
+
+
+    $("changeImageBtn")
+      .classList
+      .add("hidden");
+
+
+    $("removeImageBtn")
+      .classList
+      .add("hidden");
+
+
+    $("useGeneratorImageBtn")
+      .classList
+      .add("hidden");
+
+
+    $("compareOriginal")
+      .innerHTML =
+        "Изображение ещё не загружено";
+
+
+    $("editorResultImage")
+      .classList
+      .add("hidden");
+
+
+    $("compareResultPlaceholder")
+      .classList
+      .remove("hidden");
+
+
+    $("downloadEditedBtn")
+      .classList
+      .add("hidden");
+
+
+    $("sendEditedToGeneratorBtn")
+      .classList
+      .add("hidden");
+
+
+    $("editPrompt").value =
+      "";
+
+
+    updateCounters();
+
+
+    showError(
+      $("editorError"),
+      ""
+    );
+
+  }
+
+
+  /* =========================================================
+     DATA URL
+  ========================================================== */
+
+  function extractBase64(
+    dataUrl
+  ) {
+
+    if (
+      dataUrl.includes(",")
+    ) {
+
+      return dataUrl.split(
+        ","
+      )[1];
+
+    }
+
+    return dataUrl;
+
+  }
+
+
+  /* =========================================================
+     SET EDITOR IMAGE
+  ========================================================== */
+
+  function setEditorImage(
+    dataUrl,
+    url = ""
+  ) {
+
+    editorImageBase64 =
+      extractBase64(dataUrl);
+
+
+    editorImageUrl =
+      url;
+
+
+    $("editorSource").src =
+      dataUrl;
+
+
+    $("editorSource")
+      .classList
+      .remove("hidden");
+
+
+    $("uploadPlaceholder")
+      .classList
+      .add("hidden");
+
+
+    $("changeImageBtn")
+      .classList
+      .remove("hidden");
+
+
+    $("removeImageBtn")
+      .classList
+      .remove("hidden");
+
+
+    $("useGeneratorImageBtn")
+      .classList
+      .toggle(
+        "hidden",
+        lastImages.length === 0
+      );
+
+
+    $("compareOriginal")
+      .innerHTML = `
+
+        <div class="compare-label">
+          Оригинал
+        </div>
+
+        <img
+          src="${escapeHtml(dataUrl)}"
+          alt="Original"
+        >
+
+      `;
+
+  }
+
+
+  /* =========================================================
+     OPEN EDITOR
+  ========================================================== */
+
+  async function openEditorWithUrl(
+    url
+  ) {
+
+    switchMode(
+      "editor"
+    );
+
+
+    setLoading(
+      true,
+      "Открываем Mya Editor",
+      "Подготавливаем изображение…"
+    );
+
+
+    try {
+
+      const response =
+        await fetch(url);
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          "Не удалось загрузить изображение"
+        );
+
+      }
+
+
+      const blob =
+        await response.blob();
+
+
+      const dataUrl =
+        await new Promise(
+          (resolve, reject) => {
+
+            const reader =
+              new FileReader();
+
+
+            reader.onload =
+              () => resolve(
+                reader.result
+              );
+
+
+            reader.onerror =
+              reject;
+
+
+            reader.readAsDataURL(
+              blob
+            );
+
+          }
+        );
+
+
+      setEditorImage(
+        dataUrl,
+        url
+      );
+
+
+    } catch {
+
+      /*
+       * Если удалённый сервер
+       * запрещает CORS,
+       * всё равно показываем
+       * изображение.
+       */
+
+      editorImageUrl =
+        url;
+
+
+      $("editorSource").src =
+        url;
+
+
+      $("editorSource")
+        .classList
+        .remove("hidden");
+
+
+      $("uploadPlaceholder")
+        .classList
+        .add("hidden");
+
+
+      $("changeImageBtn")
+        .classList
+        .remove("hidden");
+
+
+      $("removeImageBtn")
+        .classList
+        .remove("hidden");
+
+
+      $("useGeneratorImageBtn")
+        .classList
+        .remove("hidden");
+
+
+      $("compareOriginal")
+        .innerHTML = `
+
+          <div class="compare-label">
+            Оригинал
+          </div>
+
+          <img
+            src="${escapeHtml(url)}"
+            alt="Original"
+          >
+
+        `;
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  }
+
+
+  /* =========================================================
+     FILE -> DATA URL
+  ========================================================== */
+
+  function fileToDataUrl(
+    file
+  ) {
+
+    return new Promise(
+      (resolve, reject) => {
+
+        const reader =
+          new FileReader();
+
+
+        reader.onload =
+          () => resolve(
+            reader.result
+          );
+
+
+        reader.onerror =
+          reject;
+
+
+        reader.readAsDataURL(
+          file
+        );
+
+      }
+    );
+
+  }
+
+
+  /* =========================================================
+     EDIT IMAGE
+  ========================================================== */
+
+  async function editImage() {
+
+    if (
+      !editorImageBase64
+    ) {
+
+      showError(
+        $("editorError"),
+        "Сначала загрузите изображение."
+      );
+
+      return;
+
+    }
+
+
+    const prompt =
+      $("editPrompt")
+        .value
+        .trim();
+
+
+    if (!prompt) {
+
+      showError(
+        $("editorError"),
+        "Опишите, что нужно изменить."
+      );
+
+      $("editPrompt").focus();
+
+      return;
+
+    }
+
+
+    showError(
+      $("editorError"),
+      ""
+    );
+
+
+    $("editBtn").disabled =
+      true;
+
+
+    setLoading(
+      true,
+      "Mya Editor работает",
+      "Изменяем изображение…"
+    );
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/edit",
+          {
+
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body:
+              JSON.stringify({
+
+                prompt,
+
+                imageBase64:
+                  editorImageBase64,
+
+                ratio:
+                  editorRatio,
+
+                model:
+                  $("editorModel").value
+
+              })
+
+          }
+        );
+
+
+      const text =
+        await response.text();
+
+
+      let data;
+
+
+      try {
+
+        data =
+          JSON.parse(text);
+
+      } catch {
+
+        throw new Error(
+          `Сервер вернул не JSON (${response.status})`
+        );
+
+      }
+
+
+      if (
+        !response.ok ||
+        !data.imageUrl
+      ) {
+
+        throw new Error(
+          data.error ||
+          `Ошибка редактирования (${response.status})`
+        );
+
+      }
+
+
+      const resultUrl =
+        data.imageUrl;
+
+
+      $("editorResultImage").src =
+        resultUrl;
+
+
+      $("editorResultImage")
+        .classList
+        .remove("hidden");
+
+
+      $("compareResultPlaceholder")
+        .classList
+        .add("hidden");
+
+
+      $("downloadEditedBtn")
+        .classList
+        .remove("hidden");
+
+
+      $("sendEditedToGeneratorBtn")
+        .classList
+        .remove("hidden");
+
+
+      $("downloadEditedBtn").onclick =
+        () => {
+
+          downloadImage(
+            resultUrl,
+            "mya-edited.png"
+          );
+
+        };
+
+
+      $("sendEditedToGeneratorBtn").onclick =
+        () => {
+
+          $("prompt").value =
+            prompt;
+
+          updateCounters();
+
+          renderGallery([
+            resultUrl
+          ]);
+
+          switchMode(
+            "generator"
+          );
+
+        };
+
+
+    } catch (error) {
+
+      console.error(
+        "Editor error:",
+        error
+      );
+
+
+      showError(
+        $("editorError"),
+        error.message ||
+          "Ошибка редактирования."
+      );
+
+
+    } finally {
+
+      setLoading(false);
+
+      $("editBtn").disabled =
+        false;
+
+    }
+
+  }
+
+
+  /* =========================================================
+     EVENTS
+  ========================================================== */
+
+  $("generatorModeBtn")
+    .addEventListener(
+      "click",
+      () => switchMode(
+        "generator"
+      )
+    );
+
+
+  $("editorModeBtn")
+    .addEventListener(
+      "click",
+      () => switchMode(
+        "editor"
+      )
+    );
+
+
+  $("generateBtn")
+    .addEventListener(
+      "click",
+      generateImages
+    );
+
+
+  $("improvePromptBtn")
+    .addEventListener(
+      "click",
+      improvePrompt
+    );
+
+
+  $("clearPromptBtn")
+    .addEventListener(
+      "click",
+      () => {
+
+        $("prompt").value =
+          "";
+
+        updateCounters();
+
+      }
+    );
+
+
+  $("prompt")
+    .addEventListener(
+      "input",
+      updateCounters
+    );
+
+
+  $("editPrompt")
+    .addEventListener(
+      "input",
+      updateCounters
+    );
+
+
+  /* =========================================================
+     TEMPLATES
+  ========================================================== */
+
+  qa("[data-template]")
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            $("prompt").value =
+              button.dataset.template;
+
+            updateCounters();
+
+            $("prompt").focus();
+
+          }
+        );
+
+      }
+    );
+
+
+  /* =========================================================
+     EDIT TEMPLATES
+  ========================================================== */
+
+  qa("[data-edit]")
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            $("editPrompt").value =
+              button.dataset.edit;
+
+            updateCounters();
+
+            $("editPrompt").focus();
+
+          }
+        );
+
+      }
+    );
+
+
+  /* =========================================================
+     GENERATOR RATIOS
+  ========================================================== */
+
+  qa(
+    "#generatorRatios .ratio-button"
+  )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            generatorRatio =
+              button.dataset.ratio;
+
+            selectRatio(
+              $("generatorRatios"),
+              button
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  /* =========================================================
+     EDITOR RATIOS
+  ========================================================== */
+
+  qa(
+    "#editorRatios .ratio-button"
+  )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            editorRatio =
+              button.dataset.ratio;
+
+            selectRatio(
+              $("editorRatios"),
+              button
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  /* =========================================================
+     DOWNLOAD ALL
+  ========================================================== */
+
+  $("downloadAllBtn")
+    .addEventListener(
+      "click",
+      async () => {
+
+        for (
+          let i = 0;
+          i < lastImages.length;
+          i++
+        ) {
+
+          await downloadImage(
+            lastImages[i],
+            `mya-${i + 1}.png`
+          );
+
+        }
+
+      }
+    );
+
+
+  /* =========================================================
+     OPEN EDITOR FROM GENERATOR
+  ========================================================== */
+
+  $("openEditorFromGenerator")
+    .addEventListener(
+      "click",
+      () => {
+
+        if (
+          lastImages[0]
+        ) {
+
+          openEditorWithUrl(
+            lastImages[0]
+          );
+
+        }
+
+      }
+    );
+
+
+  /* =========================================================
+     HISTORY CLEAR
+  ========================================================== */
+
+  $("clearHistoryBtn")
     .addEventListener(
       "click",
       () => {
@@ -3376,194 +3713,384 @@
         );
 
         renderHistory();
+
       }
     );
 
 
-  /* ============================================================
-     DOWNLOAD
-  ============================================================ */
+  /* =========================================================
+     EDITOR UPLOAD
+  ========================================================== */
 
-  async function downloadImage(
-    url,
-    filename
-  ) {
+  $("chooseImageBtn")
+    .addEventListener(
+      "click",
+      () => {
 
-    try {
+        $("editorFile").click();
 
-      const response =
-        await fetch(url);
+      }
+    );
 
-      const blob =
-        await response.blob();
 
-      const objectUrl =
-        URL.createObjectURL(blob);
+  $("changeImageBtn")
+    .addEventListener(
+      "click",
+      () => {
 
-      const link =
-        document.createElement("a");
+        $("editorFile").click();
 
-      link.href =
-        objectUrl;
+      }
+    );
 
-      link.download =
-        filename;
 
-      document.body.appendChild(
-        link
-      );
+  $("removeImageBtn")
+    .addEventListener(
+      "click",
+      resetEditor
+    );
 
-      link.click();
 
-      link.remove();
+  $("editorFile")
+    .addEventListener(
+      "change",
+      async (event) => {
 
-      setTimeout(
-        () =>
-          URL.revokeObjectURL(
-            objectUrl
-          ),
-        1000
-      );
+        const file =
+          event.target.files?.[0];
 
-    } catch {
 
-      window.open(
-        url,
-        "_blank"
-      );
+        if (!file) {
+          return;
+        }
+
+
+        if (
+          !file.type.startsWith(
+            "image/"
+          )
+        ) {
+
+          showError(
+            $("editorError"),
+            "Выберите изображение."
+          );
+
+          return;
+
+        }
+
+
+        try {
+
+          const dataUrl =
+            await fileToDataUrl(
+              file
+            );
+
+
+          setEditorImage(
+            dataUrl
+          );
+
+
+        } catch {
+
+          showError(
+            $("editorError"),
+            "Не удалось прочитать файл."
+          );
+
+        }
+
+      }
+    );
+
+
+  /* =========================================================
+     USE GENERATOR IMAGE
+  ========================================================== */
+
+  $("useGeneratorImageBtn")
+    .addEventListener(
+      "click",
+      () => {
+
+        if (
+          lastImages[0]
+        ) {
+
+          openEditorWithUrl(
+            lastImages[0]
+          );
+
+        }
+
+      }
+    );
+
+
+  /* =========================================================
+     EDITOR RESET
+  ========================================================== */
+
+  $("resetEditorBtn")
+    .addEventListener(
+      "click",
+      resetEditor
+    );
+
+
+  $("editBtn")
+    .addEventListener(
+      "click",
+      editImage
+    );
+
+
+  /* =========================================================
+     EDITOR PROMPT
+  ========================================================== */
+
+  $("clearEditPromptBtn")
+    .addEventListener(
+      "click",
+      () => {
+
+        $("editPrompt").value =
+          "";
+
+        updateCounters();
+
+      }
+    );
+
+
+  $("copyEditPromptBtn")
+    .addEventListener(
+      "click",
+      async () => {
+
+        try {
+
+          await navigator.clipboard.writeText(
+            $("editPrompt").value
+          );
+
+        } catch {}
+
+      }
+    );
+
+
+  /* =========================================================
+     DRAG & DROP
+  ========================================================== */
+
+  const uploadZone =
+    $("uploadZone");
+
+
+  [
+    "dragenter",
+    "dragover"
+  ]
+    .forEach(
+      (eventName) => {
+
+        uploadZone.addEventListener(
+          eventName,
+          (event) => {
+
+            event.preventDefault();
+
+            uploadZone.classList.add(
+              "dragover"
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  [
+    "dragleave",
+    "drop"
+  ]
+    .forEach(
+      (eventName) => {
+
+        uploadZone.addEventListener(
+          eventName,
+          (event) => {
+
+            event.preventDefault();
+
+            uploadZone.classList.remove(
+              "dragover"
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  uploadZone.addEventListener(
+    "drop",
+    async (event) => {
+
+      const file =
+        event
+          .dataTransfer
+          .files?.[0];
+
+
+      if (
+        !file ||
+        !file.type.startsWith(
+          "image/"
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      try {
+
+        const dataUrl =
+          await fileToDataUrl(
+            file
+          );
+
+
+        setEditorImage(
+          dataUrl
+        );
+
+
+      } catch {
+
+        showError(
+          $("editorError"),
+          "Не удалось прочитать изображение."
+        );
+
+      }
+
     }
-  }
+  );
 
 
-  /* ============================================================
-     ERRORS
-  ============================================================ */
+  /* =========================================================
+     VOICE INPUT
+  ========================================================== */
 
-  function showGeneratorError(
-    message
-  ) {
+  const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
 
-    const box =
-      document.getElementById(
-        "generatorError"
+
+  if (SpeechRecognition) {
+
+    const recognition =
+      new SpeechRecognition();
+
+
+    recognition.lang =
+      "ru-RU";
+
+
+    recognition.interimResults =
+      false;
+
+
+    recognition.maxAlternatives =
+      1;
+
+
+    $("voiceBtn")
+      .addEventListener(
+        "click",
+        () => {
+
+          try {
+
+            recognition.start();
+
+            $("voiceBtn").textContent =
+              "🔴";
+
+          } catch {}
+
+        }
       );
 
-    box.textContent =
-      message;
 
-    box.classList.add(
-      "visible"
-    );
-  }
+    recognition.onresult =
+      (event) => {
+
+        const text =
+          event
+            .results[0][0]
+            .transcript;
 
 
-  function hideGeneratorError() {
+        const current =
+          $("prompt")
+            .value
+            .trim();
 
-    document
-      .getElementById(
-        "generatorError"
-      )
-      .classList.remove(
-        "visible"
+
+        $("prompt").value =
+          current
+            ? `${current} ${text}`
+            : text;
+
+
+        updateCounters();
+
+      };
+
+
+    recognition.onend =
+      () => {
+
+        $("voiceBtn").textContent =
+          "🎙";
+
+      };
+
+  } else {
+
+    $("voiceBtn")
+      .addEventListener(
+        "click",
+        () => {
+
+          showError(
+            $("generatorError"),
+            "Голосовой ввод не поддерживается этим браузером."
+          );
+
+        }
       );
+
   }
 
 
-  function showEditorError(
-    message
-  ) {
-
-    const box =
-      document.getElementById(
-        "editorError"
-      );
-
-    box.textContent =
-      message;
-
-    box.classList.add(
-      "visible"
-    );
-  }
-
-
-  function hideEditorError() {
-
-    document
-      .getElementById(
-        "editorError"
-      )
-      .classList.remove(
-        "visible"
-      );
-  }
-
-
-  /* ============================================================
-     LOADING
-  ============================================================ */
-
-  const loading =
-    document.getElementById(
-      "loading"
-    );
-
-  const loadingTitle =
-    document.getElementById(
-      "loadingTitle"
-    );
-
-  const loadingText =
-    document.getElementById(
-      "loadingText"
-    );
-
-
-  function showLoading(
-    title,
-    text
-  ) {
-
-    loadingTitle.textContent =
-      title;
-
-    loadingText.textContent =
-      text;
-
-    loading.classList.add(
-      "visible"
-    );
-  }
-
-
-  function updateLoading(
-    title,
-    text
-  ) {
-
-    loadingTitle.textContent =
-      title;
-
-    loadingText.textContent =
-      text;
-  }
-
-
-  function hideLoading() {
-
-    loading.classList.remove(
-      "visible"
-    );
-  }
-
-
-  /* ============================================================
-     KEYBOARD SHORTCUT
-  ============================================================ */
+  /* =========================================================
+     KEYBOARD
+  ========================================================== */
 
   document.addEventListener(
     "keydown",
-    event => {
+    (event) => {
 
       if (
         (event.ctrlKey ||
@@ -3571,38 +4098,35 @@
         event.key === "Enter"
       ) {
 
-        event.preventDefault();
-
         if (
-          generatorMode.classList.contains(
-            "active"
-          )
+          !$("generatorMode")
+            .classList
+            .contains("hidden")
         ) {
 
           generateImages();
 
         } else {
 
-          if (
-            !editButton.disabled
-          ) {
-            editImage();
-          }
+          editImage();
+
         }
+
       }
+
     }
   );
 
 
-  /* ============================================================
+  /* =========================================================
      INIT
-  ============================================================ */
+  ========================================================== */
 
-  updatePromptCounter();
-
-  updateEditCounter();
+  updateCounters();
 
   renderHistory();
+
+})();
 
 </script>
 
