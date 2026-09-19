@@ -1,4 +1,4 @@
-export const maxDuration = 60; // Увеличиваем лимит времени выполнения до 60 секунд (для Vercel Pro)
+export const maxDuration = 60; // Увеличение лимита времени выполнения для Vercel
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
