@@ -1,6 +1,17 @@
-```javascript
+// api/generate.js
+// Gemini 3.1 Flash Image
+// Bastyon AI Image Generator
+
 export default async function handler(req, res) {
-  // Только POST
+  // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
@@ -9,233 +20,119 @@ export default async function handler(req, res) {
   }
 
   try {
-    const {
-      prompt,
-      model = "gemini-3.1-flash-image",
-      width = 1024,
-      height = 1024,
-      quality = "medium"
-    } = req.body || {};
-
-    // -----------------------------------------
-    // ПРОВЕРКА ПРОМТА
-    // -----------------------------------------
-
-    if (!prompt || typeof prompt !== "string") {
-      return res.status(400).json({
-        success: false,
-        error: "Промт пустой."
-      });
-    }
-
-    const cleanPrompt = prompt.trim();
-
-    if (!cleanPrompt) {
-      return res.status(400).json({
-        success: false,
-        error: "Промт пустой."
-      });
-    }
-
-    if (cleanPrompt.length > 32000) {
-      return res.status(400).json({
-        success: false,
-        error: "Промт слишком длинный. Максимум 32000 символов."
-      });
-    }
-
-    // -----------------------------------------
-    // GEMINI API KEY
-    // -----------------------------------------
-
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return res.status(500).json({
         success: false,
-        error:
-          "GEMINI_API_KEY не настроен в Vercel Environment Variables."
+        error: "GEMINI_API_KEY не настроен в Vercel"
       });
     }
 
-    // -----------------------------------------
-    // МОДЕЛИ
-    // -----------------------------------------
+    const body = req.body || {};
 
-    const models = {
-      "gpt-image-2": "gemini-3.1-flash-image",
-      flux: "gemini-3.1-flash-image",
-      zimage: "gemini-3.1-flash-image",
-      dream: "gemini-3.1-flash-image",
-      seedream: "gemini-3.1-flash-image",
-      qwen: "gemini-3.1-flash-image",
+    const prompt = String(body.prompt || "").trim();
 
-      "gemini": "gemini-3.1-flash-image",
-      "gemini-3.1": "gemini-3.1-flash-image",
-      "gemini-3.1-flash-image": "gemini-3.1-flash-image"
-    };
-
-    const selectedModel =
-      models[model] || "gemini-3.1-flash-image";
-
-    // -----------------------------------------
-    // РАЗМЕРЫ
-    // -----------------------------------------
-
-    let imageWidth = Number(width);
-    let imageHeight = Number(height);
-
-    if (!Number.isFinite(imageWidth)) {
-      imageWidth = 1024;
+    if (!prompt) {
+      return res.status(400).json({
+        success: false,
+        error: "Промпт пустой"
+      });
     }
 
-    if (!Number.isFinite(imageHeight)) {
-      imageHeight = 1024;
-    }
+    // ---------------------------------------------------------
+    // MODEL
+    // ---------------------------------------------------------
 
-    imageWidth = Math.max(
-      256,
-      Math.min(4096, Math.round(imageWidth))
-    );
+    // Любое имя модели от старого интерфейса
+    // сейчас направляем на Gemini 3.1 Flash Image.
+    const model = "gemini-3.1-flash-image";
 
-    imageHeight = Math.max(
-      256,
-      Math.min(4096, Math.round(imageHeight))
-    );
+    // ---------------------------------------------------------
+    // ASPECT RATIO
+    // ---------------------------------------------------------
 
-    // -----------------------------------------
-    // ОПРЕДЕЛЯЕМ ASPECT RATIO
-    // -----------------------------------------
+    const requestedWidth = Number(body.width) || 1024;
+    const requestedHeight = Number(body.height) || 1024;
 
-    const ratio = imageWidth / imageHeight;
+    function getAspectRatio(width, height) {
+      const ratio = width / height;
 
-    let aspectRatio = "1:1";
+      const ratios = [
+        { value: "1:1", ratio: 1 },
+        { value: "16:9", ratio: 16 / 9 },
+        { value: "9:16", ratio: 9 / 16 },
+        { value: "4:3", ratio: 4 / 3 },
+        { value: "3:4", ratio: 3 / 4 },
+        { value: "4:5", ratio: 4 / 5 },
+        { value: "5:4", ratio: 5 / 4 },
+        { value: "3:2", ratio: 3 / 2 },
+        { value: "2:3", ratio: 2 / 3 },
+        { value: "21:9", ratio: 21 / 9 }
+      ];
 
-    const ratios = [
-      { value: "1:1", ratio: 1 },
-      { value: "16:9", ratio: 16 / 9 },
-      { value: "9:16", ratio: 9 / 16 },
-      { value: "4:3", ratio: 4 / 3 },
-      { value: "3:4", ratio: 3 / 4 },
-      { value: "4:5", ratio: 4 / 5 },
-      { value: "5:4", ratio: 5 / 4 },
-      { value: "3:2", ratio: 3 / 2 },
-      { value: "2:3", ratio: 2 / 3 },
-      { value: "21:9", ratio: 21 / 9 }
-    ];
+      let closest = ratios[0];
+      let difference = Math.abs(ratio - closest.ratio);
 
-    let closestDifference = Infinity;
+      for (const item of ratios) {
+        const currentDifference = Math.abs(ratio - item.ratio);
 
-    for (const item of ratios) {
-      const difference =
-        Math.abs(ratio - item.ratio);
-
-      if (difference < closestDifference) {
-        closestDifference = difference;
-        aspectRatio = item.value;
+        if (currentDifference < difference) {
+          closest = item;
+          difference = currentDifference;
+        }
       }
+
+      return closest.value;
     }
 
-    // -----------------------------------------
-    // IMAGE SIZE
-    // -----------------------------------------
-    //
-    // Gemini использует:
-    //
-    // 512px
-    // 1K
-    // 2K
-    // 4K
-    //
-    // Здесь размер выбирается автоматически
-    // исходя из width / height.
-    //
+    const aspectRatio = getAspectRatio(
+      requestedWidth,
+      requestedHeight
+    );
 
-    const largestSide =
-      Math.max(imageWidth, imageHeight);
+    // ---------------------------------------------------------
+    // QUALITY
+    // ---------------------------------------------------------
+
+    const quality = String(body.quality || "medium").toLowerCase();
 
     let imageSize = "1K";
 
-    if (largestSide <= 768) {
-      imageSize = "0.5K";
-    } else if (largestSide <= 1536) {
-      imageSize = "1K";
-    } else if (largestSide <= 3072) {
+    if (quality === "low") {
+      imageSize = "512";
+    } else if (quality === "high") {
       imageSize = "2K";
     } else {
-      imageSize = "4K";
+      imageSize = "1K";
     }
 
-    // -----------------------------------------
-    // QUALITY
-    // -----------------------------------------
-    //
-    // Gemini 3.1 Flash Image не использует
-    // quality=low/medium/high так же,
-    // как Pollinations.
-    //
-    // Поэтому quality переводим в размер.
-    //
+    // ---------------------------------------------------------
+    // GEMINI REQUEST
+    // ---------------------------------------------------------
 
-    if (quality === "low") {
-      imageSize = "0.5K";
-    }
-
-    if (quality === "medium") {
-      if (largestSide <= 1536) {
-        imageSize = "1K";
-      } else {
-        imageSize = "2K";
-      }
-    }
-
-    if (quality === "high") {
-      if (largestSide <= 1536) {
-        imageSize = "2K";
-      } else {
-        imageSize = "4K";
-      }
-    }
-
-    // -----------------------------------------
-    // GEMINI API
-    // -----------------------------------------
-
-    const apiUrl =
-      `https://generativelanguage.googleapis.com/v1/models/${selectedModel}:generateContent`;
+    const url =
+      "https://generativelanguage.googleapis.com/v1beta/interactions";
 
     const requestBody = {
-      contents: [
-        {
-          parts: [
-            {
-              text: cleanPrompt
-            }
-          ]
-        }
-      ],
-
-      generationConfig: {
-        responseModalities: ["IMAGE"]
+      model,
+      input: prompt,
+      response_format: {
+        type: "image",
+        mime_type: "image/png",
+        aspect_ratio: aspectRatio,
+        image_size: imageSize
       }
     };
 
-    // -----------------------------------------
-    // ВАЖНО:
-    //
-    // Добавляем параметры изображения.
-    // -----------------------------------------
+    console.log("Gemini request:", {
+      model,
+      aspectRatio,
+      imageSize,
+      prompt
+    });
 
-    requestBody.generationConfig.imageConfig = {
-      aspectRatio: aspectRatio,
-      imageSize: imageSize
-    };
-
-    // -----------------------------------------
-    // ОТПРАВЛЯЕМ ЗАПРОС
-    // -----------------------------------------
-
-    const response = await fetch(apiUrl, {
+    const response = await fetch(url, {
       method: "POST",
 
       headers: {
@@ -246,141 +143,142 @@ export default async function handler(req, res) {
       body: JSON.stringify(requestBody)
     });
 
-    const responseText =
-      await response.text();
+    // ---------------------------------------------------------
+    // READ RESPONSE SAFELY
+    // ---------------------------------------------------------
+
+    const responseText = await response.text();
+
+    console.log(
+      "Gemini HTTP status:",
+      response.status
+    );
+
+    console.log(
+      "Gemini raw response:",
+      responseText.substring(0, 3000)
+    );
 
     let data;
 
     try {
       data = JSON.parse(responseText);
-    } catch {
-      console.error(
-        "Gemini returned non-JSON:",
-        responseText.slice(0, 2000)
-      );
-
+    } catch (parseError) {
       return res.status(502).json({
         success: false,
-        error:
-          "Gemini вернул некорректный ответ."
+        error: "Gemini вернул не JSON",
+        status: response.status,
+        response: responseText.substring(0, 2000)
       });
     }
 
-    // -----------------------------------------
-    // ОШИБКА GEMINI
-    // -----------------------------------------
+    // ---------------------------------------------------------
+    // GEMINI ERROR
+    // ---------------------------------------------------------
 
     if (!response.ok) {
-      console.error(
-        "Gemini API error:",
-        response.status,
-        data
-      );
-
-      let errorMessage =
-        "Ошибка генерации изображения Gemini.";
-
-      if (data?.error?.message) {
-        errorMessage =
-          data.error.message;
-      }
+      const message =
+        data?.error?.message ||
+        data?.message ||
+        "Ошибка Gemini API";
 
       return res.status(response.status).json({
         success: false,
-        error: errorMessage,
-        model: selectedModel
+        error: message,
+        details: data
       });
     }
 
-    // -----------------------------------------
-    // ИЩЕМ IMAGE PART
-    // -----------------------------------------
+    // ---------------------------------------------------------
+    // FIND IMAGE
+    // ---------------------------------------------------------
 
-    const candidates =
-      data?.candidates || [];
+    let imageData = null;
+    let mimeType = "image/png";
 
-    let imagePart = null;
+    // Новый Interactions API
+    if (
+      data &&
+      data.output_image &&
+      data.output_image.data
+    ) {
+      imageData = data.output_image.data;
 
-    for (const candidate of candidates) {
-      const parts =
-        candidate?.content?.parts || [];
+      mimeType =
+        data.output_image.mime_type ||
+        data.output_image.mimeType ||
+        "image/png";
+    }
 
-      for (const part of parts) {
-        if (
-          part?.inlineData?.data ||
-          part?.inline_data?.data
-        ) {
-          imagePart = part;
+    // Дополнительный вариант структуры
+    if (!imageData && Array.isArray(data.steps)) {
+      for (const step of data.steps) {
+        if (!Array.isArray(step.content)) {
+          continue;
+        }
+
+        for (const content of step.content) {
+          if (
+            content &&
+            content.type === "image" &&
+            content.data
+          ) {
+            imageData = content.data;
+
+            mimeType =
+              content.mime_type ||
+              content.mimeType ||
+              "image/png";
+
+            break;
+          }
+        }
+
+        if (imageData) {
           break;
         }
       }
-
-      if (imagePart) {
-        break;
-      }
     }
 
-    // -----------------------------------------
-    // НЕ НАШЛИ КАРТИНКУ
-    // -----------------------------------------
+    // ---------------------------------------------------------
+    // NO IMAGE
+    // ---------------------------------------------------------
 
-    if (!imagePart) {
-      console.error(
-        "Gemini response without image:",
-        JSON.stringify(data).slice(0, 5000)
-      );
-
+    if (!imageData) {
       return res.status(502).json({
         success: false,
-        error:
-          "Gemini не вернул изображение. Возможно, запрос был заблокирован или модель вернула только текст."
+        error: "Gemini не вернул изображение",
+        response: data
       });
     }
 
-    // -----------------------------------------
-    // BASE64
-    // -----------------------------------------
-
-    const inlineData =
-      imagePart.inlineData ||
-      imagePart.inline_data;
-
-    const base64 =
-      inlineData.data;
-
-    const mimeType =
-      inlineData.mimeType ||
-      inlineData.mime_type ||
-      "image/png";
-
-    // -----------------------------------------
-    // ГОТОВЫЙ ОТВЕТ
-    // -----------------------------------------
+    // ---------------------------------------------------------
+    // SUCCESS
+    // ---------------------------------------------------------
 
     return res.status(200).json({
       success: true,
 
-      model: selectedModel,
+      model,
 
-      width: imageWidth,
+      width: requestedWidth,
+      height: requestedHeight,
 
-      height: imageHeight,
+      aspectRatio,
 
-      aspectRatio: aspectRatio,
+      imageSize,
 
-      imageSize: imageSize,
-
-      quality: quality,
+      quality,
 
       image: {
         mime: mimeType,
-        data: base64
+        data: imageData
       }
     });
 
   } catch (error) {
     console.error(
-      "Generate handler error:",
+      "Gemini generation error:",
       error
     );
 
@@ -388,8 +286,7 @@ export default async function handler(req, res) {
       success: false,
       error:
         error?.message ||
-        "Внутренняя ошибка сервера."
+        "Внутренняя ошибка сервера"
     });
   }
 }
-```
