@@ -151,13 +151,19 @@ async function startGeneration() {
             throw new Error(data.error);
         }
 
-        // Предполагаем, что API возвращает ссылку на картинку в поле url или image
-        const imageUrl = data.url || data.image || data.output;
-        if (!imageUrl) {
-            throw new Error("API не вернуло ссылку на изображение.");
+        // Извлекаем изображение из структуры candidates, которую формирует бэкенд
+        const candidate = data?.candidates?.[0];
+        const inlineData = candidate?.content?.parts?.[0]?.inline_data;
+
+        if (!inlineData || !inlineData.data) {
+            throw new Error("Не удалось найти данные изображения в ответе сервера.");
         }
 
-        resultImage.src = imageUrl;
+        const mimeType = inlineData.mime_type || 'image/png';
+        const base64String = inlineData.data;
+
+        // Передаем base64 строку в тег img
+        resultImage.src = `data:${mimeType};base64,${base64String}`;
         resultContainer.style.display = "block";
         statusEl.textContent = "✅ Изображение успешно сгенерировано!";
 
