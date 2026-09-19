@@ -6,17 +6,9 @@ export default async function handler(req, res) {
         'Content-Type, Authorization'
     );
 
-    // ============================================
-    // CORS PREFLIGHT
-    // ============================================
-
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
-
-    // ============================================
-    // ONLY POST
-    // ============================================
 
     if (req.method !== 'POST') {
         return res.status(405).json({
@@ -25,22 +17,13 @@ export default async function handler(req, res) {
     }
 
     try {
-        // ============================================
-        // POLLINATIONS KEY
-        // ============================================
-
         const apiKey = process.env.POLLINATIONS_KEY;
 
         if (!apiKey) {
             return res.status(500).json({
-                error:
-                    'POLLINATIONS_KEY is missing in Vercel Environment Variables'
+                error: 'POLLINATIONS_KEY is missing in Vercel'
             });
         }
-
-        // ============================================
-        // READ REQUEST
-        // ============================================
 
         let body = req.body;
 
@@ -59,138 +42,77 @@ export default async function handler(req, res) {
             ''
         ).trim();
 
-        console.log('USER PROMPT:', userPrompt);
-
         if (!userPrompt) {
             return res.status(400).json({
                 error: 'Введите описание изображения'
             });
         }
 
-        // ============================================
-        // DIRECT PROMPT
-        //
-        // НЕ переводим запрос через другой AI.
-        // GPT Image 2 получает исходный запрос.
-        // ============================================
-
+        /*
+         * Не переводим русский текст.
+         * Передаем исходный запрос непосредственно
+         * модели изображения.
+         */
         const finalPrompt = `
 ${userPrompt}
 
 Create exactly the scene described by the user.
 
-The user's requested subject, action, objects,
-colors, clothing, location and relationships
-must be preserved exactly.
+IMPORTANT:
+- Follow the user's description exactly.
+- Keep the main subject clearly visible.
+- Do not replace the main subject.
+- Do not change the action.
+- Do not change the location.
+- Preserve requested colors and clothing.
+- Preserve requested objects.
+- Do not add people unless requested.
+- Do not add animals unless requested.
+- Do not add vehicles unless requested.
+- Do not add unnecessary landmarks.
+- Do not hide the main subject.
+- Do not put objects in front of the main subject.
+- Do not add text.
+- Do not add logos.
+- Do not add watermarks.
 
-COMPOSITION:
+The main subject should occupy a clear,
+natural part of the frame.
 
-The main subject must be clearly visible
-and must be the primary focus of the image.
-
-If the main subject is a person or animal,
-show the face and body clearly whenever
-the requested scene allows it.
-
-Important clothing and important objects
-must remain clearly visible.
-
-Secondary objects must NOT cover the main subject.
-
-Do not hide the main subject behind an object.
-
-Do not replace the main subject.
-
-Do not change the action.
-
-Do not change the location.
-
-Do not add additional people.
-
-Do not add additional animals.
-
-Do not add additional vehicles.
-
-Do not add unnecessary landmarks.
-
-Do not invent objects that were not requested.
-
-Do not add logos or brands unless requested.
-
-Do not add text or captions.
-
-Do not add watermarks.
-
-Use a natural medium shot when appropriate.
-
-Photorealistic photography.
+Photorealistic.
 Realistic anatomy.
 Realistic proportions.
-Realistic materials.
-Realistic textures.
 Natural lighting.
 Natural shadows.
-Natural colors.
-Detailed subject.
-Sharp focus on the main subject.
-Cinematic but realistic composition.
-High visual quality.
+Detailed textures.
+Sharp focus.
+High image quality.
 `.trim();
 
-        console.log(
-            'FINAL PROMPT:',
-            finalPrompt
+        console.log('USER PROMPT:', userPrompt);
+
+        const response = await fetch(
+            'https://gen.pollinations.ai/v1/images/generations',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+                    model: 'openai/gpt-image-1.5',
+                    prompt: finalPrompt,
+                    size: '1024x1024',
+                    quality: 'medium',
+                    n: 1,
+                    response_format: 'url'
+                })
+            }
         );
 
-        // ============================================
-        // OFFICIAL POLLINATIONS API
-        // ============================================
-
-        const apiUrl =
-            'https://gen.pollinations.ai/v1/images/generations';
-
-        // ============================================
-        // REQUEST BODY
-        // ============================================
-
-        const requestBody = {
-            model: 'openai/gpt-image-2',
-
-            prompt: finalPrompt,
-
-            size: '1024x1024',
-
-            quality: 'high',
-
-            n: 1,
-
-            response_format: 'b64_json'
-        };
-
-        // ============================================
-        // GENERATE IMAGE
-        // ============================================
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-
-            headers: {
-                'Authorization':
-                    `Bearer ${apiKey}`,
-
-                'Content-Type':
-                    'application/json'
-            },
-
-            body: JSON.stringify(requestBody)
-        });
-
-        // ============================================
-        // READ RESPONSE
-        // ============================================
-
-        const responseText =
-            await response.text();
+        const responseText = await response.text();
 
         let data;
 
@@ -200,12 +122,7 @@ High visual quality.
             data = null;
         }
 
-        // ============================================
-        // PROVIDER ERROR
-        // ============================================
-
         if (!response.ok) {
-
             console.error(
                 'POLLINATIONS ERROR:',
                 responseText
@@ -221,41 +138,26 @@ High visual quality.
             });
         }
 
-        // ============================================
-        // GET IMAGE
-        // ============================================
-
-        const image =
-            data?.data?.[0];
+        const image = data?.data?.[0];
 
         if (!image) {
-
-            console.error(
-                'NO IMAGE DATA:',
-                data
-            );
+            console.error('NO IMAGE DATA:', data);
 
             return res.status(502).json({
-                error:
-                    'Image provider returned no image'
+                error: 'Image provider returned no image'
             });
         }
 
-        // ============================================
-        // BASE64
-        // ============================================
-
-        let base64Data =
-            image.b64_json;
-
-        // ============================================
-        // FALLBACK IF PROVIDER RETURNS URL
-        // ============================================
+        /*
+         * Pollinations может вернуть URL.
+         * Скачиваем изображение на сервере Vercel
+         * и возвращаем фронтенду тот же формат,
+         * который уже использует наш index.html.
+         */
+        let base64Data = image.b64_json;
 
         if (!base64Data && image.url) {
-
-            const imageResponse =
-                await fetch(image.url);
+            const imageResponse = await fetch(image.url);
 
             if (!imageResponse.ok) {
                 return res.status(502).json({
@@ -268,27 +170,18 @@ High visual quality.
                 await imageResponse.arrayBuffer();
 
             base64Data =
-                Buffer.from(arrayBuffer)
-                    .toString('base64');
+                Buffer.from(arrayBuffer).toString('base64');
         }
 
         if (!base64Data) {
             return res.status(502).json({
-                error:
-                    'Generated image data is empty'
+                error: 'Generated image data is empty'
             });
         }
 
-        // ============================================
-        // RETURN TO INDEX.HTML
-        // ============================================
-
         return res.status(200).json({
-
             prompt: userPrompt,
-
-            model:
-                'openai/gpt-image-2',
+            model: 'openai/gpt-image-1.5',
 
             candidates: [
                 {
@@ -296,11 +189,8 @@ High visual quality.
                         parts: [
                             {
                                 inline_data: {
-                                    mime_type:
-                                        'image/png',
-
-                                    data:
-                                        base64Data
+                                    mime_type: 'image/png',
+                                    data: base64Data
                                 }
                             }
                         ]
@@ -310,7 +200,6 @@ High visual quality.
         });
 
     } catch (error) {
-
         console.error(
             'GENERATION ERROR:',
             error
