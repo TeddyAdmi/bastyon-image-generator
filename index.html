@@ -10,6 +10,9 @@
 
   <title>Bastyon AI Image Generator</title>
 
+  <!-- PUTER.JS -->
+  <script src="https://js.puter.com/v2/"></script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -20,8 +23,8 @@
       margin: 0;
       padding: 0;
       min-height: 100%;
-      background: #0b0d12;
-      color: #ffffff;
+      background: #090b10;
+      color: #fff;
       font-family:
         Inter,
         -apple-system,
@@ -37,7 +40,8 @@
 
     button,
     textarea,
-    select {
+    select,
+    input {
       font: inherit;
     }
 
@@ -47,16 +51,18 @@
 
     .app {
       width: 100%;
-      max-width: 1100px;
+      max-width: 1180px;
       margin: 0 auto;
       padding: 18px;
     }
+
+    /* HEADER */
 
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 14px;
       margin-bottom: 18px;
     }
 
@@ -67,61 +73,80 @@
     }
 
     .brand-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 13px;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(
-        135deg,
-        #6d5dfc,
-        #a855f7
-      );
-      font-size: 21px;
-      font-weight: 800;
+
+      background:
+        linear-gradient(
+          135deg,
+          #735cff,
+          #b24cff
+        );
+
+      font-size: 15px;
+      font-weight: 900;
+
       box-shadow:
-        0 8px 30px rgba(124, 92, 255, 0.25);
+        0 10px 35px
+        rgba(120, 80, 255, 0.28);
     }
 
     .brand-title {
       font-size: 18px;
-      font-weight: 750;
-      letter-spacing: -0.3px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
     }
 
     .brand-subtitle {
-      margin-top: 2px;
-      color: #858b9b;
-      font-size: 12px;
+      margin-top: 3px;
+      color: #777f90;
+      font-size: 11px;
     }
 
     .status {
       display: flex;
       align-items: center;
       gap: 7px;
-      padding: 8px 11px;
+
+      padding: 8px 12px;
+
       border-radius: 999px;
-      background: #151821;
-      color: #aeb4c4;
-      font-size: 12px;
+
+      background: #141720;
+      border: 1px solid #222733;
+
+      color: #aeb5c5;
+      font-size: 11px;
       white-space: nowrap;
     }
 
     .status-dot {
       width: 7px;
       height: 7px;
+
       border-radius: 50%;
-      background: #35d07f;
+
+      background: #39d98a;
+
       box-shadow:
-        0 0 10px rgba(53, 208, 127, 0.7);
+        0 0 10px
+        rgba(57, 217, 138, 0.75);
     }
+
+    /* LAYOUT */
 
     .main {
       display: grid;
+
       grid-template-columns:
-        minmax(0, 1.3fr)
-        minmax(300px, 0.7fr);
+        minmax(0, 1.35fr)
+        minmax(330px, 0.65fr);
+
       gap: 18px;
     }
 
@@ -132,27 +157,37 @@
       overflow: hidden;
     }
 
+    /* PREVIEW */
+
     .preview {
-      min-height: 560px;
+      min-height: 650px;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       padding: 18px;
     }
 
     .preview-inner {
       position: relative;
+
       width: 100%;
-      min-height: 520px;
-      border-radius: 16px;
+      min-height: 610px;
+
+      border-radius: 17px;
+
       overflow: hidden;
+
       background:
         radial-gradient(
           circle at 50% 40%,
-          #1a1e29 0%,
-          #0c0f15 70%
+          #1b1f2a 0%,
+          #0b0e14 70%
         );
-      border: 1px solid #202530;
+
+      border: 1px solid #242935;
+
       display: flex;
       align-items: center;
       justify-content: center;
@@ -161,65 +196,96 @@
     .preview-placeholder {
       padding: 30px;
       text-align: center;
-      color: #747b8b;
+      color: #747c8d;
     }
 
-    .preview-placeholder-icon {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 14px;
-      border-radius: 18px;
+    .preview-icon {
+      width: 70px;
+      height: 70px;
+
+      margin: 0 auto 15px;
+
+      border-radius: 20px;
+
       background: #181c25;
-      border: 1px solid #272c37;
+      border: 1px solid #282e3a;
+
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
+
+      font-size: 30px;
     }
 
-    .preview-placeholder-title {
-      color: #c9ced9;
-      font-size: 16px;
-      font-weight: 650;
-      margin-bottom: 6px;
+    .preview-title {
+      color: #d0d5df;
+      font-size: 17px;
+      font-weight: 750;
+      margin-bottom: 7px;
     }
 
-    .preview-placeholder-text {
-      max-width: 360px;
+    .preview-text {
+      max-width: 390px;
+
       margin: 0 auto;
-      line-height: 1.5;
+
+      color: #747c8d;
+
+      line-height: 1.55;
+
       font-size: 13px;
     }
 
     #resultImage {
       display: none;
-      width: 100%;
-      height: 100%;
-      max-height: 520px;
+
+      max-width: 100%;
+      max-height: 610px;
+
+      width: auto;
+      height: auto;
+
       object-fit: contain;
-      border-radius: 14px;
+
+      border-radius: 13px;
     }
+
+    /* LOADING */
 
     .preview-loading {
       display: none;
+
       position: absolute;
+
       inset: 0;
-      z-index: 3;
-      background: rgba(7, 9, 13, 0.82);
-      backdrop-filter: blur(7px);
+
+      z-index: 5;
+
+      background:
+        rgba(6, 8, 12, 0.84);
+
+      backdrop-filter: blur(8px);
+
       align-items: center;
       justify-content: center;
+
       flex-direction: column;
+
       gap: 14px;
     }
 
     .spinner {
-      width: 38px;
-      height: 38px;
+      width: 42px;
+      height: 42px;
+
       border-radius: 50%;
-      border: 3px solid #292e3a;
-      border-top-color: #8b6cff;
-      animation: spin 0.8s linear infinite;
+
+      border: 3px solid #292e39;
+
+      border-top-color: #8c6cff;
+
+      animation:
+        spin 0.8s linear infinite;
     }
 
     @keyframes spin {
@@ -230,15 +296,21 @@
 
     .loading-title {
       font-size: 15px;
-      font-weight: 650;
+      font-weight: 700;
     }
 
     .loading-info {
-      color: #8e95a5;
-      font-size: 12px;
+      max-width: 340px;
+
       text-align: center;
-      max-width: 300px;
+
+      color: #858d9d;
+
+      font-size: 11px;
+      line-height: 1.5;
     }
+
+    /* CONTROLS */
 
     .controls {
       padding: 18px;
@@ -254,12 +326,18 @@
 
     .section-title {
       margin-bottom: 9px;
-      color: #9ca3b3;
-      font-size: 12px;
-      font-weight: 650;
+
+      color: #969eaf;
+
+      font-size: 11px;
+      font-weight: 700;
+
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+
+      letter-spacing: 0.7px;
     }
+
+    /* PROMPT */
 
     .prompt-wrap {
       position: relative;
@@ -267,77 +345,106 @@
 
     textarea {
       width: 100%;
-      min-height: 120px;
+
+      min-height: 125px;
+
       resize: vertical;
-      border: 1px solid #292e3a;
-      border-radius: 14px;
-      background: #0d1016;
-      color: #ffffff;
-      outline: none;
+
       padding: 14px 52px 14px 14px;
-      line-height: 1.5;
+
+      border-radius: 14px;
+
+      border: 1px solid #292e3a;
+
+      outline: none;
+
+      background: #0d1016;
+
+      color: #fff;
+
       font-size: 14px;
+
+      line-height: 1.5;
+
       transition: 0.2s;
     }
 
     textarea:focus {
-      border-color: #6754e8;
+      border-color: #705df3;
+
       box-shadow:
-        0 0 0 3px rgba(103, 84, 232, 0.12);
+        0 0 0 3px
+        rgba(112, 93, 243, 0.12);
     }
 
     textarea::placeholder {
-      color: #5f6675;
+      color: #5d6574;
     }
 
     .mic-button {
       position: absolute;
+
       right: 10px;
       top: 10px;
-      width: 34px;
-      height: 34px;
-      border: 1px solid #292e3a;
+
+      width: 35px;
+      height: 35px;
+
       border-radius: 10px;
+
+      border: 1px solid #292e3a;
+
       background: #171b24;
-      color: #b7bdca;
+
+      color: #b9c0cc;
+
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: 0.2s;
-    }
-
-    .mic-button:hover {
-      background: #202531;
-      color: #ffffff;
     }
 
     .mic-button.recording {
-      background: #47212a;
-      border-color: #8b394a;
-      color: #ff7d91;
+      background: #46202a;
+      border-color: #873847;
+      color: #ff8195;
     }
 
     .mic-status {
-      min-height: 17px;
+      min-height: 16px;
+
       margin-top: 6px;
+
       color: #737b8b;
-      font-size: 11px;
+
+      font-size: 10px;
     }
+
+    /* MODELS */
 
     .models {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
       gap: 8px;
     }
 
     .model-card {
-      min-height: 48px;
-      padding: 9px 10px;
-      border: 1px solid #292e3a;
-      border-radius: 12px;
-      background: #0d1016;
-      color: #aeb4c1;
+      min-height: 60px;
+
+      padding: 10px;
+
       text-align: left;
+
+      border-radius: 12px;
+
+      border: 1px solid #292e3a;
+
+      background: #0d1016;
+
+      color: #aeb5c2;
+
       transition: 0.2s;
     }
 
@@ -347,41 +454,59 @@
 
     .model-card.active {
       border-color: #705df3;
-      background: rgba(112, 93, 243, 0.12);
-      color: #ffffff;
+
+      background:
+        rgba(112, 93, 243, 0.12);
+
+      color: #fff;
+
       box-shadow:
         inset 0 0 0 1px
-        rgba(112, 93, 243, 0.18);
+        rgba(112, 93, 243, 0.15);
     }
 
     .model-name {
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 750;
     }
 
     .model-description {
-      margin-top: 3px;
-      color: #727a8b;
+      margin-top: 4px;
+
+      color: #717989;
+
       font-size: 10px;
     }
 
-    .model-card.active .model-description {
-      color: #9e96d9;
+    .model-card.active
+    .model-description {
+      color: #a69ddb;
     }
+
+    /* OPTIONS */
 
     .options-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
+
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+      gap: 7px;
     }
 
     .option-button {
-      min-height: 42px;
-      padding: 8px;
-      border-radius: 11px;
+      min-height: 40px;
+
+      padding: 7px;
+
+      border-radius: 10px;
+
       border: 1px solid #292e3a;
+
       background: #0d1016;
-      color: #aeb4c1;
+
+      color: #aeb5c2;
+
       transition: 0.2s;
     }
 
@@ -391,34 +516,55 @@
 
     .option-button.active {
       border-color: #705df3;
-      background: rgba(112, 93, 243, 0.12);
-      color: #ffffff;
+
+      background:
+        rgba(112, 93, 243, 0.12);
+
+      color: #fff;
     }
+
+    .option-button.disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* GENERATE */
 
     .generate-button {
       width: 100%;
-      min-height: 52px;
+
+      min-height: 53px;
+
       border: 0;
+
       border-radius: 14px;
-      background: linear-gradient(
-        135deg,
-        #705df3,
-        #9b5de5
-      );
-      color: #ffffff;
+
+      background:
+        linear-gradient(
+          135deg,
+          #705df3,
+          #a450e8
+        );
+
+      color: #fff;
+
       font-size: 15px;
-      font-weight: 750;
+
+      font-weight: 800;
+
       box-shadow:
-        0 12px 30px
-        rgba(112, 93, 243, 0.22);
+        0 12px 32px
+        rgba(112, 93, 243, 0.25);
+
       transition: 0.2s;
     }
 
     .generate-button:hover {
       transform: translateY(-1px);
+
       box-shadow:
-        0 15px 34px
-        rgba(112, 93, 243, 0.3);
+        0 16px 38px
+        rgba(112, 93, 243, 0.32);
     }
 
     .generate-button:disabled {
@@ -427,66 +573,108 @@
       transform: none;
     }
 
+    /* BOTTOM */
+
     .bottom-row {
       display: grid;
-      grid-template-columns: 1fr auto;
+
+      grid-template-columns:
+        1fr
+        auto;
+
       gap: 8px;
+
       margin-top: 8px;
     }
 
     .language-select {
-      width: 100%;
       min-height: 40px;
+
       padding: 0 10px;
+
       border-radius: 10px;
+
       border: 1px solid #292e3a;
+
       background: #0d1016;
-      color: #aeb4c1;
+
+      color: #aeb5c2;
+
       outline: none;
     }
 
     .download-button {
       display: none;
+
       min-height: 40px;
-      padding: 0 14px;
-      border: 1px solid #292e3a;
-      border-radius: 10px;
-      background: #171b24;
-      color: #ffffff;
-      text-decoration: none;
+
+      padding: 0 15px;
+
       align-items: center;
       justify-content: center;
-      font-size: 12px;
-      font-weight: 650;
+
+      border-radius: 10px;
+
+      border: 1px solid #292e3a;
+
+      background: #171b24;
+
+      color: #fff;
+
+      text-decoration: none;
+
+      font-size: 11px;
+
+      font-weight: 700;
     }
 
     .download-button:hover {
       background: #202531;
     }
 
+    /* NOTICE */
+
     .notice {
       margin-top: 10px;
+
       padding: 10px 12px;
+
       border-radius: 11px;
+
       background: #151820;
+
       border: 1px solid #222733;
+
       color: #737b8b;
-      line-height: 1.45;
+
+      line-height: 1.5;
+
       font-size: 10px;
     }
 
     .error {
       display: none;
+
       margin-top: 10px;
+
       padding: 10px 12px;
+
       border-radius: 11px;
-      background: #28151a;
-      border: 1px solid #54262f;
+
+      background: #29151b;
+
+      border: 1px solid #542832;
+
       color: #ff9aaa;
-      line-height: 1.45;
+
+      line-height: 1.5;
+
       font-size: 11px;
+
       word-break: break-word;
     }
+
+    /* MOBILE */
 
     @media (max-width: 850px) {
 
@@ -499,18 +687,18 @@
       }
 
       .preview-inner {
-        min-height: 430px;
+        min-height: 470px;
       }
 
       #resultImage {
-        max-height: 430px;
+        max-height: 450px;
       }
     }
 
     @media (max-width: 520px) {
 
       .app {
-        padding: 11px;
+        padding: 10px;
       }
 
       .header {
@@ -518,21 +706,21 @@
       }
 
       .brand-title {
-        font-size: 16px;
+        font-size: 15px;
       }
 
       .brand-subtitle {
-        font-size: 10px;
+        font-size: 9px;
       }
 
       .status {
-        font-size: 10px;
         padding: 7px 9px;
+        font-size: 9px;
       }
 
-      .status-dot {
-        width: 6px;
-        height: 6px;
+      .brand-icon {
+        width: 40px;
+        height: 40px;
       }
 
       .panel {
@@ -540,11 +728,11 @@
       }
 
       .preview {
-        padding: 10px;
+        padding: 9px;
       }
 
       .preview-inner {
-        min-height: 340px;
+        min-height: 350px;
       }
 
       #resultImage {
@@ -559,8 +747,9 @@
         grid-template-columns: 1fr 1fr;
       }
 
-      .model-card {
-        min-height: 46px;
+      .options-grid {
+        grid-template-columns:
+          repeat(3, 1fr);
       }
     }
   </style>
@@ -569,6 +758,8 @@
 <body>
 
   <div class="app">
+
+    <!-- HEADER -->
 
     <header class="header">
 
@@ -585,7 +776,7 @@
           </div>
 
           <div class="brand-subtitle">
-            Free community image generation
+            AI image generation & editing
           </div>
 
         </div>
@@ -605,7 +796,11 @@
     </header>
 
 
+    <!-- MAIN -->
+
     <main class="main">
+
+      <!-- PREVIEW -->
 
       <section class="panel preview">
 
@@ -616,17 +811,18 @@
             id="previewPlaceholder"
           >
 
-            <div class="preview-placeholder-icon">
+            <div class="preview-icon">
               ✨
             </div>
 
-            <div class="preview-placeholder-title">
+            <div class="preview-title">
               Создай изображение
             </div>
 
-            <div class="preview-placeholder-text">
-              Опиши сцену, персонажа или идею —
-              AI создаст изображение по твоему описанию.
+            <div class="preview-text">
+              Опиши изображение, персонажа,
+              сцену или идею — выбранная
+              AI-модель создаст результат.
             </div>
 
           </div>
@@ -649,14 +845,14 @@
               class="loading-title"
               id="loadingTitle"
             >
-              Генерация изображения...
+              Генерация...
             </div>
 
             <div
               class="loading-info"
               id="loadingInfo"
             >
-              Подключаемся к AI Horde.
+              Отправляем запрос в Puter AI.
             </div>
 
           </div>
@@ -666,7 +862,11 @@
       </section>
 
 
+      <!-- CONTROLS -->
+
       <section class="panel controls">
+
+        <!-- PROMPT -->
 
         <div class="section">
 
@@ -700,6 +900,8 @@
         </div>
 
 
+        <!-- MODELS -->
+
         <div class="section">
 
           <div class="section-title">
@@ -710,16 +912,16 @@
 
             <button
               class="model-card active"
-              data-model="flux"
+              data-model="openai/gpt-image-2"
               type="button"
             >
 
               <div class="model-name">
-                FLUX
+                GPT Image 2
               </div>
 
               <div class="model-description">
-                Универсальная
+                Качество + детали
               </div>
 
             </button>
@@ -727,16 +929,16 @@
 
             <button
               class="model-card"
-              data-model="gpt-image-2"
+              data-model="bytedance-seed/seedream-4.0"
               type="button"
             >
 
               <div class="model-name">
-                GPT Image
+                Seedream 4.0
               </div>
 
               <div class="model-description">
-                Детальная
+                ByteDance
               </div>
 
             </button>
@@ -744,16 +946,16 @@
 
             <button
               class="model-card"
-              data-model="zimage"
+              data-model="x-ai/grok-imagine-image"
               type="button"
             >
 
               <div class="model-name">
-                Z-Image
+                Grok Imagine
               </div>
 
               <div class="model-description">
-                Реализм
+                Быстрая генерация
               </div>
 
             </button>
@@ -761,16 +963,16 @@
 
             <button
               class="model-card"
-              data-model="dream"
+              data-model="google/gemini-3-pro-image-preview"
               type="button"
             >
 
               <div class="model-name">
-                Dream
+                Nano Banana Pro
               </div>
 
               <div class="model-description">
-                Арт
+                Референсы + детали
               </div>
 
             </button>
@@ -778,16 +980,16 @@
 
             <button
               class="model-card"
-              data-model="seedream"
+              data-model="black-forest-labs/flux-2-klein-4b"
               type="button"
             >
 
               <div class="model-name">
-                Seedream
+                FLUX.2 Klein
               </div>
 
               <div class="model-description">
-                Креатив
+                Быстрая
               </div>
 
             </button>
@@ -795,16 +997,16 @@
 
             <button
               class="model-card"
-              data-model="qwen"
+              data-model="qwen/qwen-image-2.0"
               type="button"
             >
 
               <div class="model-name">
-                Qwen Image
+                Qwen Image 2.0
               </div>
 
               <div class="model-description">
-                Текст и детали
+                Текст + детали
               </div>
 
             </button>
@@ -813,6 +1015,8 @@
 
         </div>
 
+
+        <!-- RATIO -->
 
         <div class="section">
 
@@ -873,18 +1077,12 @@
               4:5
             </button>
 
-            <button
-              class="option-button"
-              data-ratio="5:4"
-              type="button"
-            >
-              5:4
-            </button>
-
           </div>
 
         </div>
 
+
+        <!-- SIZE -->
 
         <div class="section">
 
@@ -915,14 +1113,6 @@
 
             <button
               class="option-button"
-              data-size="1280"
-              type="button"
-            >
-              1280
-            </button>
-
-            <button
-              class="option-button"
               data-size="1536"
               type="button"
             >
@@ -933,6 +1123,8 @@
 
         </div>
 
+
+        <!-- QUALITY -->
 
         <div class="section">
 
@@ -974,6 +1166,8 @@
         </div>
 
 
+        <!-- GENERATE -->
+
         <div class="section">
 
           <button
@@ -1006,7 +1200,6 @@
             <a
               class="download-button"
               id="downloadButton"
-              href="#"
               download="bastyon-ai-image.png"
             >
               Скачать
@@ -1016,9 +1209,9 @@
 
 
           <div class="notice">
-            Генерация выполняется через бесплатную
-            общественную сеть AI Horde. При высокой
-            нагрузке ожидание может занять несколько минут.
+            Генерация выполняется через Puter AI.
+            API-ключ и собственный сервер для
+            генерации не требуются.
           </div>
 
 
@@ -1038,14 +1231,50 @@
 
   <script>
 
+    /* =========================================================
+       STATE
+    ========================================================= */
+
+    let selectedModel =
+      "openai/gpt-image-2";
+
+    let selectedRatio =
+      "1:1";
+
+    let selectedSize =
+      1024;
+
+    let selectedQuality =
+      "medium";
+
+    let isGenerating =
+      false;
+
+    let recognition =
+      null;
+
+    let isRecording =
+      false;
+
+
+    /* =========================================================
+       ELEMENTS
+    ========================================================= */
+
     const promptInput =
-      document.getElementById("prompt");
+      document.getElementById(
+        "prompt"
+      );
 
     const generateButton =
-      document.getElementById("generateButton");
+      document.getElementById(
+        "generateButton"
+      );
 
     const resultImage =
-      document.getElementById("resultImage");
+      document.getElementById(
+        "resultImage"
+      );
 
     const previewPlaceholder =
       document.getElementById(
@@ -1093,26 +1322,77 @@
       );
 
 
-    let selectedModel =
-      "flux";
+    /* =========================================================
+       HELPERS
+    ========================================================= */
 
-    let selectedRatio =
-      "1:1";
+    function setStatus(
+      text
+    ) {
 
-    let selectedSize =
-      1024;
+      statusText.textContent =
+        text;
 
-    let selectedQuality =
-      "medium";
+    }
 
-    let recognition =
-      null;
 
-    let isRecording =
-      false;
+    function showError(
+      message
+    ) {
 
-    let isGenerating =
-      false;
+      errorBox.textContent =
+        message;
+
+      errorBox.style.display =
+        "block";
+
+    }
+
+
+    function hideError() {
+
+      errorBox.textContent =
+        "";
+
+      errorBox.style.display =
+        "none";
+
+    }
+
+
+    function showLoading(
+      title,
+      info
+    ) {
+
+      previewLoading.style.display =
+        "flex";
+
+      loadingTitle.textContent =
+        title;
+
+      loadingInfo.textContent =
+        info;
+
+      generateButton.disabled =
+        true;
+
+      setStatus(
+        "Генерация"
+      );
+
+    }
+
+
+    function hideLoading() {
+
+      previewLoading.style.display =
+        "none";
+
+      generateButton.disabled =
+        false;
+
+    }
 
 
     function getDimensions(
@@ -1138,6 +1418,7 @@
           width: size,
           height: size
         };
+
       }
 
       let width;
@@ -1164,96 +1445,77 @@
           Math.round(
             size * rw / rh
           );
+
       }
-
-      width =
-        Math.max(
-          512,
-          Math.round(
-            width / 64
-          ) * 64
-        );
-
-      height =
-        Math.max(
-          512,
-          Math.round(
-            height / 64
-          ) * 64
-        );
 
       return {
         width,
         height
       };
+
     }
 
 
-    function setStatus(
-      text
+    /*
+      Puter returns an image element.
+
+      This function converts it to
+      something we can display/download.
+    */
+
+    async function imageElementToUrl(
+      image
     ) {
 
-      statusText.textContent =
-        text;
-    }
+      if (
+        typeof image ===
+        "string"
+      ) {
 
+        return image;
 
-    function showError(
-      message
-    ) {
+      }
 
-      errorBox.textContent =
-        message;
+      if (
+        image &&
+        image.src
+      ) {
 
-      errorBox.style.display =
-        "block";
-    }
+        return image.src;
 
+      }
 
-    function hideError() {
+      if (
+        image &&
+        image.url
+      ) {
 
-      errorBox.textContent =
-        "";
+        return image.url;
 
-      errorBox.style.display =
-        "none";
-    }
+      }
 
+      if (
+        image &&
+        image.data
+      ) {
 
-    function showLoading(
-      title,
-      info
-    ) {
+        return (
+          "data:image/png;base64," +
+          image.data
+        );
 
-      previewLoading.style.display =
-        "flex";
+      }
 
-      loadingTitle.textContent =
-        title ||
-        "Генерация изображения...";
-
-      loadingInfo.textContent =
-        info ||
-        "";
-
-      generateButton.disabled =
-        true;
-
-      setStatus(
-        "Генерация"
+      throw new Error(
+        "Puter вернул изображение в неизвестном формате."
       );
+
     }
 
 
-    function hideLoading() {
-
-      previewLoading.style.display =
-        "none";
-
-      generateButton.disabled =
-        false;
-    }
-
+    /* =========================================================
+       MODEL BUTTONS
+    ========================================================= */
 
     document
       .querySelectorAll(
@@ -1271,10 +1533,13 @@
                   ".model-card"
                 )
                 .forEach(
-                  item =>
+                  item => {
+
                     item.classList.remove(
                       "active"
-                    )
+                    );
+
+                  }
                 );
 
               button.classList.add(
@@ -1283,12 +1548,25 @@
 
               selectedModel =
                 button.dataset.model;
+
+              setStatus(
+                button
+                  .querySelector(
+                    ".model-name"
+                  )
+                  .textContent
+              );
+
             }
           );
 
         }
       );
 
+
+    /* =========================================================
+       RATIO BUTTONS
+    ========================================================= */
 
     document
       .querySelectorAll(
@@ -1306,10 +1584,13 @@
                   "#ratioOptions .option-button"
                 )
                 .forEach(
-                  item =>
+                  item => {
+
                     item.classList.remove(
                       "active"
-                    )
+                    );
+
+                  }
                 );
 
               button.classList.add(
@@ -1318,12 +1599,17 @@
 
               selectedRatio =
                 button.dataset.ratio;
+
             }
           );
 
         }
       );
 
+
+    /* =========================================================
+       SIZE BUTTONS
+    ========================================================= */
 
     document
       .querySelectorAll(
@@ -1341,10 +1627,13 @@
                   "#sizeOptions .option-button"
                 )
                 .forEach(
-                  item =>
+                  item => {
+
                     item.classList.remove(
                       "active"
-                    )
+                    );
+
+                  }
                 );
 
               button.classList.add(
@@ -1355,12 +1644,17 @@
                 Number(
                   button.dataset.size
                 );
+
             }
           );
 
         }
       );
 
+
+    /* =========================================================
+       QUALITY BUTTONS
+    ========================================================= */
 
     document
       .querySelectorAll(
@@ -1378,10 +1672,13 @@
                   "#qualityOptions .option-button"
                 )
                 .forEach(
-                  item =>
+                  item => {
+
                     item.classList.remove(
                       "active"
-                    )
+                    );
+
+                  }
                 );
 
               button.classList.add(
@@ -1390,6 +1687,7 @@
 
               selectedQuality =
                 button.dataset.quality;
+
             }
           );
 
@@ -1397,359 +1695,9 @@
       );
 
 
-    async function readJson(
-      response
-    ) {
-
-      const text =
-        await response.text();
-
-      let data;
-
-      try {
-
-        data =
-          JSON.parse(text);
-
-      } catch {
-
-        throw new Error(
-          "Сервер вернул не JSON: " +
-          text.slice(0, 300)
-        );
-      }
-
-
-      if (
-        !response.ok
-      ) {
-
-        const error =
-          new Error(
-            data.error ||
-            data.message ||
-            `HTTP ${response.status}`
-          );
-
-        error.status =
-          response.status;
-
-        error.retryAfter =
-          data.retryAfter ||
-          null;
-
-        throw error;
-      }
-
-
-      return data;
-    }
-
-
-    function normalizeImage(
-      image
-    ) {
-
-      if (
-        !image
-      ) {
-
-        return null;
-      }
-
-
-      if (
-        typeof image ===
-        "string"
-      ) {
-
-        if (
-          image.startsWith(
-            "http://"
-          ) ||
-          image.startsWith(
-            "https://"
-          ) ||
-          image.startsWith(
-            "data:"
-          )
-        ) {
-
-          return image;
-        }
-
-
-        return (
-          "data:image/png;base64," +
-          image
-        );
-      }
-
-
-      return null;
-    }
-
-
-    function sleep(
-      ms
-    ) {
-
-      return new Promise(
-        resolve =>
-          setTimeout(
-            resolve,
-            ms
-          )
-      );
-    }
-
-
-    /*
-      AI HORDE RATE LIMIT
-
-      Не делаем запросы каждые 3 секунды.
-
-      Первая проверка:
-      5 секунд.
-
-      Далее:
-      8 секунд.
-
-      Если Horde отвечает 429:
-      ждём 12 секунд и пробуем снова.
-    */
-
-    async function waitForResult(
-      taskId
-    ) {
-
-      const started =
-        Date.now();
-
-      const timeout =
-        5 * 60 * 1000;
-
-      let firstCheck =
-        true;
-
-      while (
-        Date.now() -
-        started <
-        timeout
-      ) {
-
-        if (
-          firstCheck
-        ) {
-
-          firstCheck =
-            false;
-
-          await sleep(
-            5000
-          );
-
-        } else {
-
-          await sleep(
-            8000
-          );
-        }
-
-
-        let response;
-
-        try {
-
-          response =
-            await fetch(
-              "/api/status?id=" +
-              encodeURIComponent(
-                taskId
-              ),
-              {
-                method: "GET",
-                cache: "no-store"
-              }
-            );
-
-        } catch (
-          error
-        ) {
-
-          console.error(
-            "Status request error:",
-            error
-          );
-
-          loadingTitle.textContent =
-            "Ошибка соединения...";
-
-          loadingInfo.textContent =
-            "Повторяем попытку.";
-
-          await sleep(
-            10000
-          );
-
-          continue;
-        }
-
-
-        /*
-          ВАЖНО:
-
-          429 больше не считается
-          окончательной ошибкой.
-        */
-
-        if (
-          response.status === 429
-        ) {
-
-          console.warn(
-            "AI Horde rate limit. Waiting..."
-          );
-
-          loadingTitle.textContent =
-            "Слишком много запросов...";
-
-          loadingInfo.textContent =
-            "Ждём ограничения AI Horde и продолжаем.";
-
-          await sleep(
-            12000
-          );
-
-          continue;
-        }
-
-
-        let data;
-
-        try {
-
-          data =
-            await readJson(
-              response
-            );
-
-        } catch (
-          error
-        ) {
-
-          console.error(
-            "Status error:",
-            error
-          );
-
-          throw error;
-        }
-
-
-        console.log(
-          "AI Horde status:",
-          data
-        );
-
-
-        if (
-          data.done === true
-        ) {
-
-          const image =
-            normalizeImage(
-              data.image
-            );
-
-
-          if (
-            !image
-          ) {
-
-            throw new Error(
-              "AI Horde завершил задачу, " +
-              "но не вернул изображение."
-            );
-          }
-
-
-          return {
-            image,
-            seed:
-              data.seed ||
-              null
-          };
-        }
-
-
-        const queue =
-          Number(
-            data.queue_position
-          ) || 0;
-
-        const processing =
-          Number(
-            data.processing
-          ) || 0;
-
-        const finished =
-          Number(
-            data.finished
-          ) || 0;
-
-
-        if (
-          queue > 0
-        ) {
-
-          loadingTitle.textContent =
-            "Ожидание генерации...";
-
-          loadingInfo.textContent =
-            "Позиция в очереди: " +
-            queue;
-
-        } else if (
-          processing > 0
-        ) {
-
-          loadingTitle.textContent =
-            "Изображение создаётся...";
-
-          loadingInfo.textContent =
-            "Активных задач: " +
-            processing;
-
-        } else if (
-          finished > 0
-        ) {
-
-          loadingTitle.textContent =
-            "Почти готово...";
-
-          loadingInfo.textContent =
-            "Получаем результат.";
-
-        } else {
-
-          loadingTitle.textContent =
-            "Ожидаем свободный сервер...";
-
-          loadingInfo.textContent =
-            "AI Horde ищет доступного генератора.";
-        }
-
-      }
-
-
-      throw new Error(
-        "Время ожидания истекло. " +
-        "AI Horde сейчас перегружен. " +
-        "Попробуйте ещё раз."
-      );
-    }
-
+    /* =========================================================
+       GENERATE
+    ========================================================= */
 
     async function generateImage() {
 
@@ -1758,6 +1706,7 @@
       ) {
 
         return;
+
       }
 
 
@@ -1776,12 +1725,26 @@
         promptInput.focus();
 
         return;
+
+      }
+
+
+      if (
+        typeof puter ===
+        "undefined"
+      ) {
+
+        showError(
+          "Puter.js ещё не загрузился. Обновите страницу."
+        );
+
+        return;
+
       }
 
 
       isGenerating =
         true;
-
 
       hideError();
 
@@ -1803,101 +1766,95 @@
         );
 
 
+      console.log(
+        "Puter generation:",
+        {
+          prompt,
+          model:
+            selectedModel,
+          ratio:
+            selectedRatio,
+          width:
+            dimensions.width,
+          height:
+            dimensions.height,
+          quality:
+            selectedQuality
+        }
+      );
+
+
       showLoading(
-        "Отправляем задачу...",
-        "Подключаемся к бесплатной сети AI Horde."
+        "Создаём изображение...",
+        "Модель: " +
+          selectedModel
       );
 
 
       try {
 
         /*
-          STEP 1
+          IMPORTANT
+
+          Puter accepts model and quality
+          directly through txt2img().
         */
 
-        const response =
-          await fetch(
-            "/api/generate",
-            {
-              method: "POST",
+        const options = {
 
-              headers: {
-                "Content-Type":
-                  "application/json"
-              },
+          model:
+            selectedModel,
 
-              body:
-                JSON.stringify({
+          quality:
+            selectedQuality
 
-                  prompt:
-                    prompt,
-
-                  model:
-                    selectedModel,
-
-                  width:
-                    dimensions.width,
-
-                  height:
-                    dimensions.height,
-
-                  quality:
-                    selectedQuality,
-
-                  ratio:
-                    selectedRatio
-
-                })
-            }
-          );
+        };
 
 
-        const data =
-          await readJson(
-            response
+        /*
+          Ask Puter to generate.
+        */
+
+        const image =
+          await puter.ai.txt2img(
+            prompt,
+            options
           );
 
 
         console.log(
-          "AI Horde generate response:",
-          data
+          "Полный ответ Puter:",
+          image
         );
+
+
+        loadingTitle.textContent =
+          "Получаем изображение...";
+
+
+        loadingInfo.textContent =
+          "Почти готово.";
+
+
+        const imageUrl =
+          await imageElementToUrl(
+            image
+          );
 
 
         if (
-          !data.success ||
-          !data.id
+          !imageUrl
         ) {
 
           throw new Error(
-            data.error ||
-            "API не вернул ID задачи."
+            "Puter не вернул URL изображения."
           );
+
         }
 
 
-        const taskId =
-          data.id;
-
-
-        console.log(
-          "AI Horde task:",
-          taskId
-        );
-
-
         /*
-          STEP 2
-        */
-
-        const result =
-          await waitForResult(
-            taskId
-          );
-
-
-        /*
-          STEP 3
+          Show result.
         */
 
         resultImage.onload =
@@ -1914,6 +1871,7 @@
             setStatus(
               "Готово"
             );
+
           };
 
 
@@ -1927,18 +1885,27 @@
             );
 
             showError(
-              "Изображение получено, " +
-              "но браузер не смог его открыть."
+              "Изображение получено, но браузер не смог его открыть."
             );
+
           };
 
 
         resultImage.src =
-          result.image;
+          imageUrl;
 
+
+        /*
+          Download
+        */
 
         downloadButton.href =
-          result.image;
+          imageUrl;
+
+        downloadButton.download =
+          "bastyon-ai-" +
+          Date.now() +
+          ".png";
 
         downloadButton.style.display =
           "flex";
@@ -1949,7 +1916,7 @@
       ) {
 
         console.error(
-          "Generation error:",
+          "Puter generation error:",
           error
         );
 
@@ -1961,16 +1928,32 @@
         );
 
 
+        let message =
+          "Ошибка генерации.";
+
+
+        if (
+          error &&
+          error.message
+        ) {
+
+          message =
+            error.message;
+
+        }
+
+
         showError(
-          error.message ||
-          "Ошибка генерации изображения."
+          message
         );
 
       } finally {
 
         isGenerating =
           false;
+
       }
+
     }
 
 
@@ -1980,12 +1963,17 @@
     );
 
 
+    /* =========================================================
+       CTRL + ENTER
+    ========================================================= */
+
     promptInput.addEventListener(
       "keydown",
       event => {
 
         if (
-          event.key === "Enter" &&
+          event.key ===
+            "Enter" &&
           (
             event.ctrlKey ||
             event.metaKey
@@ -1995,10 +1983,16 @@
           event.preventDefault();
 
           generateImage();
+
         }
+
       }
     );
 
+
+    /* =========================================================
+       SPEECH RECOGNITION
+    ========================================================= */
 
     function setupSpeechRecognition() {
 
@@ -2015,6 +2009,7 @@
           "Голосовой ввод лучше работает в Chrome или Edge.";
 
         return;
+
       }
 
 
@@ -2044,6 +2039,7 @@
 
           micStatus.textContent =
             "Слушаю...";
+
         };
 
 
@@ -2064,7 +2060,10 @@
           ) {
 
             transcript +=
-              event.results[i][0].transcript;
+              event
+                .results[i][0]
+                .transcript;
+
           }
 
 
@@ -2074,7 +2073,9 @@
 
             promptInput.value =
               transcript;
+
           }
+
         };
 
 
@@ -2082,12 +2083,13 @@
         event => {
 
           console.error(
-            "Speech recognition error:",
+            "Speech recognition:",
             event.error
           );
 
           micStatus.textContent =
             "Не удалось распознать речь.";
+
         };
 
 
@@ -2108,65 +2110,34 @@
 
             micStatus.textContent =
               "";
+
           }
+
         };
+
     }
 
 
     setupSpeechRecognition();
 
 
+    /* =========================================================
+       MICROPHONE
+    ========================================================= */
+
     micButton.addEventListener(
       "click",
-      async () => {
-
-        try {
-
-          if (
-            navigator.mediaDevices &&
-            navigator.mediaDevices.getUserMedia
-          ) {
-
-            const stream =
-              await navigator.mediaDevices.getUserMedia(
-                {
-                  audio: true
-                }
-              );
-
-
-            stream
-              .getTracks()
-              .forEach(
-                track =>
-                  track.stop()
-              );
-          }
-
-        } catch (
-          error
-        ) {
-
-          console.error(
-            "Microphone permission:",
-            error
-          );
-
-          micStatus.textContent =
-            "Разрешите доступ к микрофону.";
-
-          return;
-        }
-
+      () => {
 
         if (
           !recognition
         ) {
 
           micStatus.textContent =
-            "Используйте Chrome или Edge для голосового ввода.";
+            "Используйте Chrome или Edge.";
 
           return;
+
         }
 
 
@@ -2177,6 +2148,7 @@
           recognition.stop();
 
           return;
+
         }
 
 
@@ -2203,13 +2175,19 @@
           console.error(
             error
           );
+
         }
+
       }
     );
 
 
+    /* =========================================================
+       START
+    ========================================================= */
+
     setStatus(
-      "Готов"
+      "Puter готов"
     );
 
   </script>
