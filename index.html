@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0b0b0f">
-  <meta name="apple-mobile-web-app-capable" content="yes">
 
   <title>AI Image Generator</title>
 
@@ -21,14 +20,7 @@
       min-height: 100%;
       background: #0b0b0f;
       color: #f5f5f7;
-      font-family:
-        Inter,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Roboto,
-        Arial,
-        sans-serif;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     }
 
     body {
@@ -47,10 +39,10 @@
 
     .app {
       width: 100%;
-      min-height: 100vh;
       max-width: 1500px;
+      min-height: 100vh;
       margin: 0 auto;
-      padding: 18px;
+      padding: 16px;
     }
 
     /* HEADER */
@@ -59,8 +51,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 15px;
-      margin-bottom: 18px;
+      gap: 12px;
+      margin-bottom: 16px;
     }
 
     .brand {
@@ -76,23 +68,21 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #ffffff, #777);
-      color: #09090c;
-      font-size: 21px;
+      background: linear-gradient(135deg, #fff, #777);
+      color: #08080b;
+      font-size: 19px;
       font-weight: 800;
-      box-shadow: 0 8px 30px rgba(255,255,255,.08);
     }
 
     .brand-title {
       font-size: 17px;
       font-weight: 750;
-      letter-spacing: -0.3px;
     }
 
     .brand-subtitle {
       margin-top: 2px;
       color: #85858e;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .status {
@@ -101,44 +91,44 @@
       gap: 7px;
       padding: 8px 11px;
       border: 1px solid #25252d;
-      background: #111116;
       border-radius: 999px;
+      background: #111116;
       color: #aaaab3;
       font-size: 11px;
-      white-space: nowrap;
     }
 
     .status-dot {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #62d991;
-      box-shadow: 0 0 10px rgba(98,217,145,.5);
+      background: #61d394;
+    }
+
+    .status.recording .status-dot {
+      background: #ff6573;
+      box-shadow: 0 0 10px rgba(255,101,115,.6);
     }
 
     .status.generating .status-dot {
       background: #ffd166;
-      box-shadow: 0 0 10px rgba(255,209,102,.5);
     }
 
     .status.error .status-dot {
-      background: #ff6464;
-      box-shadow: 0 0 10px rgba(255,100,100,.5);
+      background: #ff6262;
     }
 
-    /* MAIN */
+    /* LAYOUT */
 
     .workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1.25fr) minmax(340px, .75fr);
-      gap: 18px;
-      align-items: start;
+      grid-template-columns: minmax(0, 1.25fr) minmax(350px, .75fr);
+      gap: 16px;
     }
 
     .panel {
       border: 1px solid #24242c;
-      background: #111116;
       border-radius: 20px;
+      background: #111116;
       overflow: hidden;
     }
 
@@ -151,17 +141,16 @@
     }
 
     .preview-header {
-      padding: 15px 17px;
-      border-bottom: 1px solid #24242c;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
+      padding: 14px 17px;
+      border-bottom: 1px solid #24242c;
     }
 
     .section-title {
       font-size: 13px;
       font-weight: 700;
-      color: #dcdce2;
     }
 
     .preview-info {
@@ -171,13 +160,13 @@
 
     .preview {
       flex: 1;
-      min-height: 560px;
-      padding: 22px;
+      min-height: 580px;
+      padding: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
       background:
-        radial-gradient(circle at center, rgba(255,255,255,.025), transparent 55%),
+        radial-gradient(circle at center, rgba(255,255,255,.025), transparent 60%),
         #0d0d12;
     }
 
@@ -185,68 +174,62 @@
       width: min(100%, 620px);
       aspect-ratio: 1 / 1;
       max-height: 560px;
-      border-radius: 18px;
       border: 1px dashed #303039;
+      border-radius: 18px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
-      gap: 10px;
-      color: #65656f;
-      text-align: center;
+      gap: 9px;
       padding: 30px;
+      text-align: center;
+      color: #686871;
     }
 
-    .preview-empty-icon {
-      width: 56px;
-      height: 56px;
+    .preview-icon {
+      width: 58px;
+      height: 58px;
       border-radius: 17px;
-      background: #17171d;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 25px;
       margin-bottom: 5px;
+      background: #17171d;
+      font-size: 25px;
     }
 
     .preview-empty strong {
-      color: #a2a2ab;
+      color: #a6a6ae;
       font-size: 14px;
     }
 
     .preview-empty span {
+      max-width: 320px;
       font-size: 12px;
       line-height: 1.5;
-      max-width: 300px;
     }
 
     .result-image {
       display: none;
       max-width: 100%;
-      max-height: 560px;
-      width: auto;
-      height: auto;
-      object-fit: contain;
+      max-height: 570px;
       border-radius: 16px;
-      box-shadow: 0 20px 70px rgba(0,0,0,.4);
+      object-fit: contain;
+      box-shadow: 0 25px 80px rgba(0,0,0,.45);
     }
 
-    .preview.generating .preview-empty {
-      display: flex;
-    }
-
-    .loading-spinner {
+    .spinner {
       display: none;
-      width: 30px;
-      height: 30px;
-      border: 3px solid #303038;
+      width: 32px;
+      height: 32px;
+      margin-bottom: 10px;
+      border: 3px solid #33333b;
       border-top-color: #fff;
       border-radius: 50%;
       animation: spin .8s linear infinite;
-      margin-bottom: 8px;
     }
 
-    .preview.generating .loading-spinner {
+    .loading .spinner {
       display: block;
     }
 
@@ -262,21 +245,21 @@
       padding: 18px;
     }
 
-    .control-section {
+    .section {
       margin-bottom: 20px;
     }
 
-    .control-label {
+    .label {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 9px;
-      color: #cfcfd6;
+      color: #d0d0d6;
       font-size: 12px;
       font-weight: 650;
     }
 
-    .control-label small {
+    .label small {
       color: #686871;
       font-weight: 400;
     }
@@ -287,28 +270,26 @@
       position: relative;
     }
 
-    .prompt {
+    textarea {
       width: 100%;
-      min-height: 132px;
+      min-height: 135px;
       resize: vertical;
-      padding: 15px 54px 43px 15px;
-      border: 1px solid #2a2a33;
+      padding: 15px 58px 44px 15px;
+      border: 1px solid #2b2b34;
       border-radius: 15px;
       outline: none;
       background: #0d0d12;
       color: #f4f4f6;
       font-size: 14px;
       line-height: 1.5;
-      transition: border-color .2s, box-shadow .2s;
     }
 
-    .prompt::placeholder {
-      color: #5f5f68;
+    textarea::placeholder {
+      color: #5e5e67;
     }
 
-    .prompt:focus {
+    textarea:focus {
       border-color: #55555f;
-      box-shadow: 0 0 0 3px rgba(255,255,255,.025);
     }
 
     /* MICROPHONE */
@@ -318,55 +299,42 @@
       right: 10px;
       bottom: 10px;
 
-      width: 38px;
-      height: 38px;
-
-      border: 1px solid #303039;
-      border-radius: 11px;
-
-      background: #17171d;
-      color: #c9c9d0;
+      width: 40px;
+      height: 40px;
 
       display: flex;
       align-items: center;
       justify-content: center;
 
-      transition:
-        background .2s,
-        border-color .2s,
-        color .2s,
-        transform .15s;
+      border: 1px solid #34343d;
+      border-radius: 12px;
+
+      background: #19191f;
+      color: #d3d3d9;
+
+      transition: .2s;
     }
 
     .mic-button:hover {
-      background: #202027;
-      border-color: #45454f;
+      background: #24242b;
       color: #fff;
     }
 
-    .mic-button:active {
-      transform: scale(.94);
+    .mic-button.recording {
+      background: #39181e;
+      border-color: #9a414d;
+      color: #ff7180;
+      animation: pulse 1.2s infinite;
     }
 
     .mic-button svg {
-      width: 18px;
-      height: 18px;
+      width: 19px;
+      height: 19px;
     }
 
-    .mic-button.recording {
-      background: #35191d;
-      border-color: #8b3c45;
-      color: #ff7b86;
-      animation: micPulse 1.3s infinite;
-    }
-
-    @keyframes micPulse {
-      0%, 100% {
-        box-shadow: 0 0 0 0 rgba(255,90,105,.15);
-      }
-
+    @keyframes pulse {
       50% {
-        box-shadow: 0 0 0 7px rgba(255,90,105,0);
+        box-shadow: 0 0 0 7px rgba(255,90,105,.08);
       }
     }
 
@@ -374,13 +342,17 @@
       position: absolute;
       left: 14px;
       bottom: 14px;
-      color: #777780;
+      max-width: calc(100% - 70px);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: #66666f;
       font-size: 10px;
       pointer-events: none;
     }
 
     .voice-status.active {
-      color: #ff7b86;
+      color: #ff7180;
     }
 
     /* BUTTONS */
@@ -388,75 +360,57 @@
     .action-row {
       display: flex;
       gap: 9px;
-      margin-top: 10px;
+      margin-top: 9px;
     }
 
-    .clear-button {
+    .clear {
       width: 46px;
       flex: 0 0 46px;
       border: 1px solid #292930;
       border-radius: 13px;
       background: #15151b;
-      color: #8c8c95;
-      font-size: 17px;
+      color: #9999a1;
+      font-size: 19px;
     }
 
-    .clear-button:hover {
-      background: #1b1b22;
-      color: #fff;
-    }
-
-    .generate-button {
+    .generate {
       flex: 1;
       min-height: 48px;
-      border: none;
+      border: 0;
       border-radius: 13px;
-      background: #f1f1f3;
+      background: #f2f2f4;
       color: #09090c;
       font-size: 14px;
       font-weight: 750;
-      transition: transform .15s, opacity .2s;
     }
 
-    .generate-button:hover {
-      opacity: .92;
-    }
-
-    .generate-button:active {
-      transform: scale(.985);
-    }
-
-    .generate-button:disabled {
+    .generate:disabled {
       opacity: .45;
       cursor: not-allowed;
     }
 
-    /* MODEL CARDS */
+    /* MODELS */
 
     .models {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 7px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
     }
 
-    .model-card {
-      min-width: 0;
-      padding: 11px 9px;
+    .model {
+      padding: 12px;
       border: 1px solid #292930;
       border-radius: 12px;
       background: #0e0e13;
       color: #9999a2;
       text-align: left;
-      cursor: pointer;
-      transition: all .18s;
     }
 
-    .model-card:hover {
-      border-color: #44444e;
-      color: #ddd;
+    .model:hover {
+      border-color: #45454f;
     }
 
-    .model-card.active {
+    .model.active {
       border-color: #777780;
       background: #19191f;
       color: #fff;
@@ -466,21 +420,18 @@
       display: block;
       font-size: 11px;
       font-weight: 700;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
-    .model-type {
+    .model-description {
       display: block;
       margin-top: 4px;
+      color: #66666f;
       font-size: 9px;
-      color: #65656e;
     }
 
-    /* SELECTS */
+    /* OPTIONS */
 
-    .options-grid {
+    .options {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 9px;
@@ -493,50 +444,40 @@
     select {
       width: 100%;
       height: 45px;
-      padding: 0 34px 0 12px;
+      padding: 0 30px 0 12px;
       border: 1px solid #292930;
       border-radius: 12px;
-      background: #0d0d12;
-      color: #d8d8de;
       outline: none;
       appearance: none;
+      background: #0d0d12;
+      color: #d8d8de;
       font-size: 12px;
     }
 
-    select:focus {
-      border-color: #4d4d57;
-    }
-
-    .select-arrow {
+    .arrow {
       position: absolute;
-      right: 13px;
+      right: 12px;
       top: 50%;
       transform: translateY(-50%);
       color: #777780;
       pointer-events: none;
-      font-size: 10px;
     }
 
-    /* NOTICE */
-
     .notice {
-      margin-top: 2px;
       padding: 11px 12px;
       border: 1px solid #22222a;
       border-radius: 11px;
       background: #0e0e13;
-      color: #696971;
+      color: #707079;
       font-size: 10px;
       line-height: 1.45;
     }
 
-    /* ERROR */
-
-    .error-message {
+    .error {
       display: none;
-      margin-top: 10px;
+      margin-top: 9px;
       padding: 10px 12px;
-      border: 1px solid #52272d;
+      border: 1px solid #572a30;
       border-radius: 10px;
       background: #1d1013;
       color: #ff858f;
@@ -544,17 +485,11 @@
       line-height: 1.4;
     }
 
-    .error-message.show {
+    .error.show {
       display: block;
     }
 
-    /* MOBILE */
-
     @media (max-width: 900px) {
-      .app {
-        padding: 12px;
-      }
-
       .workspace {
         grid-template-columns: 1fr;
       }
@@ -565,7 +500,7 @@
 
       .preview {
         min-height: 0;
-        padding: 14px;
+        padding: 12px;
       }
 
       .preview-empty {
@@ -575,10 +510,6 @@
       .result-image {
         max-height: 70vh;
       }
-
-      .controls {
-        padding: 15px;
-      }
     }
 
     @media (max-width: 560px) {
@@ -586,63 +517,20 @@
         padding: 9px;
       }
 
-      .header {
-        margin-bottom: 10px;
-      }
-
-      .brand-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 11px;
-      }
-
-      .brand-title {
-        font-size: 15px;
-      }
-
-      .brand-subtitle {
-        font-size: 10px;
-      }
-
-      .status {
-        padding: 7px 9px;
-        font-size: 10px;
-      }
-
       .panel {
         border-radius: 16px;
       }
 
-      .preview-header {
-        padding: 12px 13px;
-      }
-
-      .preview {
-        padding: 10px;
-      }
-
-      .preview-empty {
-        border-radius: 14px;
+      .models {
+        grid-template-columns: 1fr 1fr;
       }
 
       .controls {
         padding: 13px;
       }
 
-      .models {
-        grid-template-columns: 1fr;
-      }
-
-      .model-card {
-        padding: 12px;
-      }
-
-      .options-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .prompt {
-        min-height: 125px;
+      .preview-header {
+        padding: 12px 13px;
       }
     }
 
@@ -651,7 +539,8 @@
         display: none;
       }
 
-      .options-grid {
+      .models,
+      .options {
         grid-template-columns: 1fr;
       }
     }
@@ -660,758 +549,1253 @@
 
 <body>
 
-  <div class="app">
+<div class="app">
 
-    <!-- HEADER -->
-    <header class="header">
-      <div class="brand">
-        <div class="brand-icon">AI</div>
+  <header class="header">
 
-        <div>
-          <div class="brand-title">AI Image Generator</div>
-          <div class="brand-subtitle">Create images from text</div>
+    <div class="brand">
+
+      <div class="brand-icon">
+        AI
+      </div>
+
+      <div>
+        <div class="brand-title">
+          AI Image Generator
+        </div>
+
+        <div class="brand-subtitle">
+          Create images from text
         </div>
       </div>
 
-      <div class="status" id="status">
-        <span class="status-dot"></span>
-        <span id="statusText">Готов</span>
-      </div>
-    </header>
+    </div>
+
+    <div class="status" id="status">
+      <span class="status-dot"></span>
+      <span id="statusText">Готов</span>
+    </div>
+
+  </header>
 
 
-    <!-- WORKSPACE -->
-    <main class="workspace">
+  <main class="workspace">
 
-      <!-- PREVIEW -->
-      <section class="panel preview-panel">
+    <!-- PREVIEW -->
 
-        <div class="preview-header">
-          <div class="section-title">Предпросмотр</div>
-          <div class="preview-info" id="previewInfo">1:1 · 1024×1024</div>
+    <section class="panel preview-panel">
+
+      <div class="preview-header">
+
+        <div class="section-title">
+          Предпросмотр
         </div>
 
-        <div class="preview" id="preview">
+        <div
+          class="preview-info"
+          id="previewInfo"
+        >
+          1:1 · 1024×1024
+        </div>
 
-          <div class="preview-empty" id="previewEmpty">
+      </div>
 
-            <div class="loading-spinner"></div>
 
-            <div class="preview-empty-icon" id="emptyIcon">
-              ✦
-            </div>
+      <div
+        class="preview"
+        id="preview"
+      >
 
-            <strong id="emptyTitle">
-              Создай изображение
-            </strong>
+        <div
+          class="preview-empty"
+          id="previewEmpty"
+        >
 
-            <span id="emptyText">
-              Опиши, что ты хочешь увидеть, и нажми «Создать».
+          <div
+            class="spinner"
+            id="spinner"
+          ></div>
+
+          <div
+            class="preview-icon"
+            id="previewIcon"
+          >
+            ✦
+          </div>
+
+          <strong id="previewTitle">
+            Создай изображение
+          </strong>
+
+          <span id="previewText">
+            Напиши промт или продиктуй его голосом.
+          </span>
+
+        </div>
+
+
+        <img
+          id="resultImage"
+          class="result-image"
+          alt="Generated image"
+        >
+
+      </div>
+
+    </section>
+
+
+    <!-- CONTROLS -->
+
+    <section class="panel">
+
+      <div class="controls">
+
+
+        <!-- PROMPT -->
+
+        <div class="section">
+
+          <div class="label">
+
+            <span>
+              Промт
             </span>
 
+            <small>
+              Ctrl + Enter
+            </small>
+
           </div>
 
-          <img
-            id="resultImage"
-            class="result-image"
-            alt="Generated image"
-          >
 
-        </div>
+          <div class="prompt-wrap">
 
-      </section>
+            <textarea
+              id="prompt"
+              placeholder="Например: маленький рыжий кот сидит на улице Нью-Йорка ночью, кинематографичный свет, реалистичная фотография..."
+              spellcheck="true"
+            ></textarea>
 
-
-      <!-- CONTROLS -->
-      <section class="panel">
-
-        <div class="controls">
-
-          <!-- PROMPT -->
-          <div class="control-section">
-
-            <div class="control-label">
-              <span>Промт</span>
-              <small>Ctrl + Enter — создать</small>
-            </div>
-
-            <div class="prompt-wrap">
-
-              <textarea
-                id="prompt"
-                class="prompt"
-                placeholder="Например: маленький рыжий кот сидит на улице Нью-Йорка, кинематографичный свет, реалистичная фотография..."
-                autocomplete="off"
-                spellcheck="true"
-              ></textarea>
-
-              <!-- VOICE STATUS -->
-              <div class="voice-status" id="voiceStatus">
-                Нажми на микрофон
-              </div>
-
-              <!-- MICROPHONE -->
-              <button
-                type="button"
-                class="mic-button"
-                id="micButton"
-                title="Ввод голосом"
-                aria-label="Ввод голосом"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <rect x="9" y="2" width="6" height="12" rx="3"></rect>
-                  <path d="M5 10a7 7 0 0 0 14 0"></path>
-                  <path d="M12 19v3"></path>
-                  <path d="M8 22h8"></path>
-                </svg>
-              </button>
-
-            </div>
-
-
-            <div class="action-row">
-
-              <button
-                type="button"
-                class="clear-button"
-                id="clearButton"
-                title="Очистить"
-              >
-                ×
-              </button>
-
-              <button
-                type="button"
-                class="generate-button"
-                id="generateButton"
-              >
-                Создать изображение
-              </button>
-
-            </div>
 
             <div
-              class="error-message"
-              id="errorMessage"
-            ></div>
+              class="voice-status"
+              id="voiceStatus"
+            >
+              Нажми 🎤 и говори
+            </div>
+
+
+            <button
+              type="button"
+              class="mic-button"
+              id="micButton"
+              aria-label="Голосовой ввод"
+              title="Голосовой ввод"
+            >
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+
+                <rect
+                  x="9"
+                  y="2"
+                  width="6"
+                  height="12"
+                  rx="3"
+                ></rect>
+
+                <path
+                  d="M5 10a7 7 0 0 0 14 0"
+                ></path>
+
+                <path
+                  d="M12 19v3"
+                ></path>
+
+                <path
+                  d="M8 22h8"
+                ></path>
+
+              </svg>
+
+            </button>
 
           </div>
 
 
-          <!-- MODEL -->
-          <div class="control-section">
+          <div class="action-row">
 
-            <div class="control-label">
-              <span>Модель</span>
-              <small>Free / accessible</small>
-            </div>
+            <button
+              class="clear"
+              id="clearButton"
+              type="button"
+              title="Очистить"
+            >
+              ×
+            </button>
 
-            <div class="models">
-
-              <button
-                type="button"
-                class="model-card active"
-                data-model="flux"
-              >
-                <span class="model-name">FLUX Schnell</span>
-                <span class="model-type">Fast</span>
-              </button>
-
-              <button
-                type="button"
-                class="model-card"
-                data-model="zimage"
-              >
-                <span class="model-name">Z-Image Turbo</span>
-                <span class="model-type">Turbo</span>
-              </button>
-
-              <button
-                type="button"
-                class="model-card"
-                data-model="dream"
-              >
-                <span class="model-name">DreamShaper</span>
-                <span class="model-type">Art</span>
-              </button>
-
-            </div>
+            <button
+              class="generate"
+              id="generateButton"
+              type="button"
+            >
+              Создать изображение
+            </button>
 
           </div>
 
 
-          <!-- OPTIONS -->
-          <div class="control-section">
+          <div
+            class="error"
+            id="errorMessage"
+          ></div>
 
-            <div class="control-label">
-              <span>Настройки</span>
-            </div>
-
-            <div class="options-grid">
-
-              <!-- RATIO -->
-              <div class="select-wrap">
-
-                <select id="ratio">
-                  <option value="1:1">1:1 — Квадрат</option>
-                  <option value="16:9">16:9 — Landscape</option>
-                  <option value="9:16">9:16 — Portrait</option>
-                  <option value="4:3">4:3 — Landscape</option>
-                  <option value="3:4">3:4 — Portrait</option>
-                  <option value="4:5">4:5 — Portrait</option>
-                  <option value="5:4">5:4 — Landscape</option>
-                </select>
-
-                <span class="select-arrow">⌄</span>
-
-              </div>
+        </div>
 
 
-              <!-- SIZE -->
-              <div class="select-wrap">
+        <!-- MODELS -->
 
-                <select id="size">
-                  <option value="small">768 px</option>
-                  <option value="medium" selected>1024 px</option>
-                  <option value="large">1280 px</option>
-                  <option value="xlarge">1536 px</option>
-                </select>
+        <div class="section">
 
-                <span class="select-arrow">⌄</span>
+          <div class="label">
 
-              </div>
+            <span>
+              Модель
+            </span>
 
-
-              <!-- QUALITY -->
-              <div class="select-wrap">
-
-                <select id="quality">
-                  <option value="low">Быстро</option>
-                  <option value="medium" selected>Стандарт</option>
-                  <option value="high">Высокое</option>
-                </select>
-
-                <span class="select-arrow">⌄</span>
-
-              </div>
-
-
-              <!-- STYLE -->
-              <div class="select-wrap">
-
-                <select id="style">
-                  <option value="none" selected>Без стиля</option>
-                  <option value="photorealistic">Фотореализм</option>
-                  <option value="cinematic">Кинематографичный</option>
-                  <option value="anime">Anime</option>
-                  <option value="illustration">Illustration</option>
-                </select>
-
-                <span class="select-arrow">⌄</span>
-
-              </div>
-
-            </div>
+            <small>
+              Выбери модель
+            </small>
 
           </div>
 
 
-          <!-- INFO -->
-          <div class="notice">
-            💡 Чем подробнее описание, тем точнее результат. Можно написать промт вручную или нажать 🎤 и продиктовать его голосом.
+          <div class="models">
+
+            <button
+              class="model active"
+              type="button"
+              data-model="flux"
+            >
+
+              <span class="model-name">
+                FLUX.1 Schnell
+              </span>
+
+              <span class="model-description">
+                Быстрая генерация
+              </span>
+
+            </button>
+
+
+            <button
+              class="model"
+              type="button"
+              data-model="gpt-image-2"
+            >
+
+              <span class="model-name">
+                GPT Image 2
+              </span>
+
+              <span class="model-description">
+                Следование промту
+              </span>
+
+            </button>
+
+
+            <button
+              class="model"
+              type="button"
+              data-model="zimage"
+            >
+
+              <span class="model-name">
+                Z-Image Turbo
+              </span>
+
+              <span class="model-description">
+                Быстрая модель
+              </span>
+
+            </button>
+
+
+            <button
+              class="model"
+              type="button"
+              data-model="dream"
+            >
+
+              <span class="model-name">
+                DreamShaper
+              </span>
+
+              <span class="model-description">
+                Арт и изображения
+              </span>
+
+            </button>
+
+
+            <button
+              class="model"
+              type="button"
+              data-model="seedream"
+            >
+
+              <span class="model-name">
+                Seedream
+              </span>
+
+              <span class="model-description">
+                Детальные изображения
+              </span>
+
+            </button>
+
+
+            <button
+              class="model"
+              type="button"
+              data-model="qwen"
+            >
+
+              <span class="model-name">
+                Qwen Image
+              </span>
+
+              <span class="model-description">
+                Хорошее следование тексту
+              </span>
+
+            </button>
+
           </div>
 
         </div>
 
-      </section>
 
-    </main>
+        <!-- SETTINGS -->
 
-  </div>
+        <div class="section">
 
-
-  <script>
-
-    /* =========================
-       ELEMENTS
-    ========================= */
-
-    const promptInput = document.getElementById("prompt");
-    const micButton = document.getElementById("micButton");
-    const voiceStatus = document.getElementById("voiceStatus");
-
-    const generateButton = document.getElementById("generateButton");
-    const clearButton = document.getElementById("clearButton");
-
-    const resultImage = document.getElementById("resultImage");
-    const preview = document.getElementById("preview");
-    const previewEmpty = document.getElementById("previewEmpty");
-
-    const emptyIcon = document.getElementById("emptyIcon");
-    const emptyTitle = document.getElementById("emptyTitle");
-    const emptyText = document.getElementById("emptyText");
-
-    const status = document.getElementById("status");
-    const statusText = document.getElementById("statusText");
-
-    const errorMessage = document.getElementById("errorMessage");
-
-    const ratioSelect = document.getElementById("ratio");
-    const sizeSelect = document.getElementById("size");
-    const qualitySelect = document.getElementById("quality");
-    const styleSelect = document.getElementById("style");
-
-    const modelCards = document.querySelectorAll(".model-card");
+          <div class="label">
+            <span>
+              Настройки
+            </span>
+          </div>
 
 
-    /* =========================
-       MODEL
-    ========================= */
+          <div class="options">
 
-    let selectedModel = "flux";
+            <div class="select-wrap">
+
+              <select id="ratio">
+
+                <option value="1:1">
+                  1:1 — Квадрат
+                </option>
+
+                <option value="16:9">
+                  16:9 — Landscape
+                </option>
+
+                <option value="9:16">
+                  9:16 — Portrait
+                </option>
+
+                <option value="4:3">
+                  4:3 — Landscape
+                </option>
+
+                <option value="3:4">
+                  3:4 — Portrait
+                </option>
+
+                <option value="4:5">
+                  4:5 — Portrait
+                </option>
+
+                <option value="5:4">
+                  5:4 — Landscape
+                </option>
+
+              </select>
+
+              <span class="arrow">⌄</span>
+
+            </div>
 
 
-    modelCards.forEach(card => {
+            <div class="select-wrap">
 
-      card.addEventListener("click", () => {
+              <select id="size">
 
-        modelCards.forEach(item => {
+                <option value="768">
+                  768 px
+                </option>
+
+                <option
+                  value="1024"
+                  selected
+                >
+                  1024 px
+                </option>
+
+                <option value="1280">
+                  1280 px
+                </option>
+
+                <option value="1536">
+                  1536 px
+                </option>
+
+              </select>
+
+              <span class="arrow">⌄</span>
+
+            </div>
+
+
+            <div class="select-wrap">
+
+              <select id="quality">
+
+                <option value="low">
+                  Быстро
+                </option>
+
+                <option
+                  value="medium"
+                  selected
+                >
+                  Стандарт
+                </option>
+
+                <option value="high">
+                  Высокое
+                </option>
+
+              </select>
+
+              <span class="arrow">⌄</span>
+
+            </div>
+
+
+            <div class="select-wrap">
+
+              <select id="language">
+
+                <option value="ru-RU" selected>
+                  🎤 Русский
+                </option>
+
+                <option value="en-US">
+                  🎤 English
+                </option>
+
+              </select>
+
+              <span class="arrow">⌄</span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="notice">
+
+          💡 Микрофон переводит твою речь непосредственно в текст промта.
+          Выбери модель, формат и качество, затем нажми «Создать изображение».
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<script>
+
+  /* =========================
+     ELEMENTS
+  ========================= */
+
+  const promptInput =
+    document.getElementById("prompt");
+
+  const micButton =
+    document.getElementById("micButton");
+
+  const voiceStatus =
+    document.getElementById("voiceStatus");
+
+  const languageSelect =
+    document.getElementById("language");
+
+  const generateButton =
+    document.getElementById("generateButton");
+
+  const clearButton =
+    document.getElementById("clearButton");
+
+  const resultImage =
+    document.getElementById("resultImage");
+
+  const preview =
+    document.getElementById("preview");
+
+  const previewEmpty =
+    document.getElementById("previewEmpty");
+
+  const previewIcon =
+    document.getElementById("previewIcon");
+
+  const previewTitle =
+    document.getElementById("previewTitle");
+
+  const previewText =
+    document.getElementById("previewText");
+
+  const status =
+    document.getElementById("status");
+
+  const statusText =
+    document.getElementById("statusText");
+
+  const errorMessage =
+    document.getElementById("errorMessage");
+
+  const ratio =
+    document.getElementById("ratio");
+
+  const size =
+    document.getElementById("size");
+
+  const quality =
+    document.getElementById("quality");
+
+  const modelButtons =
+    document.querySelectorAll(".model");
+
+
+  /* =========================
+     MODEL
+  ========================= */
+
+  let selectedModel = "flux";
+
+
+  modelButtons.forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        modelButtons.forEach(item => {
           item.classList.remove("active");
         });
 
-        card.classList.add("active");
+        button.classList.add("active");
 
-        selectedModel = card.dataset.model;
+        selectedModel =
+          button.dataset.model;
 
-      });
+      }
+    );
 
-    });
-
-
-    /* =========================
-       VOICE INPUT
-    ========================= */
-
-    let recognition = null;
-    let isRecording = false;
-
-    const SpeechRecognition =
-      window.SpeechRecognition ||
-      window.webkitSpeechRecognition;
+  });
 
 
-    if (SpeechRecognition) {
+  /* =========================
+     VOICE
+  ========================= */
 
-      recognition = new SpeechRecognition();
+  let recognition = null;
 
-      recognition.lang = "ru-RU";
+  let recording = false;
 
-      recognition.continuous = true;
-
-      recognition.interimResults = true;
-
-
-      recognition.onstart = () => {
-
-        isRecording = true;
-
-        micButton.classList.add("recording");
-
-        voiceStatus.classList.add("active");
-
-        voiceStatus.textContent = "Слушаю...";
-
-      };
+  const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
 
 
-      recognition.onresult = event => {
+  if (SpeechRecognition) {
 
-        let finalText = "";
-        let interimText = "";
+    recognition =
+      new SpeechRecognition();
 
-        for (
-          let i = event.resultIndex;
-          i < event.results.length;
-          i++
+
+    recognition.continuous = true;
+
+    recognition.interimResults = true;
+
+
+    recognition.onstart = () => {
+
+      recording = true;
+
+      micButton.classList.add(
+        "recording"
+      );
+
+      status.classList.add(
+        "recording"
+      );
+
+      statusText.textContent =
+        "Слушаю";
+
+      voiceStatus.classList.add(
+        "active"
+      );
+
+      voiceStatus.textContent =
+        "🔴 Говори...";
+
+    };
+
+
+    recognition.onresult = event => {
+
+      let finalText = "";
+
+      let interimText = "";
+
+
+      for (
+        let i = event.resultIndex;
+        i < event.results.length;
+        i++
+      ) {
+
+        const text =
+          event.results[i][0].transcript;
+
+
+        if (
+          event.results[i].isFinal
         ) {
 
-          const transcript =
-            event.results[i][0].transcript;
-
-          if (event.results[i].isFinal) {
-
-            finalText += transcript + " ";
-
-          } else {
-
-            interimText += transcript;
-
-          }
-
-        }
-
-
-        if (finalText) {
-
-          const currentText =
-            promptInput.value.trim();
-
-          if (currentText) {
-
-            promptInput.value =
-              currentText +
-              " " +
-              finalText.trim();
-
-          } else {
-
-            promptInput.value =
-              finalText.trim();
-
-          }
-
-        }
-
-
-        if (interimText) {
-
-          voiceStatus.textContent =
-            "Распознано: " +
-            interimText;
-
-        }
-
-      };
-
-
-      recognition.onerror = event => {
-
-        console.error(
-          "Speech recognition error:",
-          event.error
-        );
-
-        isRecording = false;
-
-        micButton.classList.remove("recording");
-
-        voiceStatus.classList.remove("active");
-
-
-        if (event.error === "not-allowed") {
-
-          voiceStatus.textContent =
-            "Разреши доступ к микрофону";
-
-        } else if (event.error === "no-speech") {
-
-          voiceStatus.textContent =
-            "Речь не распознана";
+          finalText +=
+            text + " ";
 
         } else {
 
-          voiceStatus.textContent =
-            "Ошибка микрофона";
+          interimText += text;
 
         }
 
-      };
+      }
 
 
-      recognition.onend = () => {
+      if (finalText.trim()) {
 
-        isRecording = false;
+        const current =
+          promptInput.value.trim();
 
-        micButton.classList.remove("recording");
 
-        voiceStatus.classList.remove("active");
+        if (current) {
 
-        if (
-          voiceStatus.textContent === "Слушаю..."
-        ) {
+          promptInput.value =
+            current +
+            " " +
+            finalText.trim();
 
-          voiceStatus.textContent =
-            "Нажми на микрофон";
+        } else {
+
+          promptInput.value =
+            finalText.trim();
 
         }
 
-      };
+      }
 
 
-      micButton.addEventListener("click", () => {
+      if (interimText) {
 
-        if (!recognition) {
-          return;
-        }
+        voiceStatus.textContent =
+          "🎤 " + interimText;
+
+      }
+
+    };
 
 
-        if (isRecording) {
+    recognition.onerror = event => {
+
+      console.error(
+        "Speech recognition:",
+        event.error
+      );
+
+
+      recording = false;
+
+      micButton.classList.remove(
+        "recording"
+      );
+
+      status.classList.remove(
+        "recording"
+      );
+
+
+      if (
+        event.error === "not-allowed"
+      ) {
+
+        voiceStatus.textContent =
+          "⚠ Разреши доступ к микрофону";
+
+        alert(
+          "Браузер заблокировал микрофон.\n\nНажми на значок 🔒 слева от адреса сайта и разреши доступ к микрофону."
+        );
+
+      }
+
+      else if (
+        event.error === "network"
+      ) {
+
+        voiceStatus.textContent =
+          "Ошибка соединения распознавания";
+
+      }
+
+      else if (
+        event.error === "no-speech"
+      ) {
+
+        voiceStatus.textContent =
+          "Речь не распознана";
+
+      }
+
+      else {
+
+        voiceStatus.textContent =
+          "Ошибка микрофона";
+
+      }
+
+    };
+
+
+    recognition.onend = () => {
+
+      recording = false;
+
+      micButton.classList.remove(
+        "recording"
+      );
+
+      status.classList.remove(
+        "recording"
+      );
+
+      statusText.textContent =
+        "Готов";
+
+
+      if (
+        voiceStatus.textContent.indexOf("⚠") !== 0
+      ) {
+
+        voiceStatus.textContent =
+          "Нажми 🎤 и говори";
+
+      }
+
+    };
+
+
+    micButton.addEventListener(
+      "click",
+      async () => {
+
+        if (recording) {
 
           recognition.stop();
 
-        } else {
-
-          try {
-
-            recognition.start();
-
-          } catch (error) {
-
-            console.error(error);
-
-          }
+          return;
 
         }
 
-      });
 
-    } else {
+        try {
 
-      /*
-        Browser does not support SpeechRecognition.
-      */
+          /*
+            Ask browser for microphone
+            permission first.
+          */
 
-      micButton.style.opacity = "0.4";
+          await navigator.mediaDevices.getUserMedia({
+            audio: true
+          });
 
-      micButton.title =
-        "Голосовой ввод не поддерживается этим браузером";
 
-      voiceStatus.textContent =
-        "Голосовой ввод недоступен";
+          recognition.lang =
+            languageSelect.value;
 
-      micButton.addEventListener("click", () => {
+
+          recognition.start();
+
+        }
+
+        catch (error) {
+
+          console.error(
+            "Microphone permission:",
+            error
+          );
+
+
+          voiceStatus.textContent =
+            "⚠ Доступ к микрофону запрещён";
+
+
+          alert(
+            "Не удалось получить доступ к микрофону.\n\nПроверь разрешение микрофона для этого сайта в настройках браузера."
+          );
+
+        }
+
+      }
+    );
+
+
+  } else {
+
+    voiceStatus.textContent =
+      "Голосовой ввод не поддерживается";
+
+
+    micButton.addEventListener(
+      "click",
+      () => {
 
         alert(
-          "Голосовой ввод не поддерживается этим браузером. Попробуй Chrome или Edge."
+          "Этот браузер не поддерживает голосовой ввод.\n\nПопробуй Google Chrome или Microsoft Edge."
         );
 
-      });
+      }
+    );
 
-    }
+  }
 
 
-    /* =========================
-       CLEAR
-    ========================= */
+  /* =========================
+     CLEAR
+  ========================= */
 
-    clearButton.addEventListener("click", () => {
+  clearButton.addEventListener(
+    "click",
+    () => {
 
       promptInput.value = "";
 
       promptInput.focus();
 
-      errorMessage.classList.remove("show");
+      hideError();
 
-    });
-
-
-    /* =========================
-       RATIO
-    ========================= */
-
-    function getDimensions() {
-
-      const ratio = ratioSelect.value;
-
-      const size = sizeSelect.value;
+    }
+  );
 
 
-      let base;
+  /* =========================
+     DIMENSIONS
+  ========================= */
 
-      switch (size) {
+  function getDimensions() {
 
-        case "small":
-          base = 768;
-          break;
+    const maxSize =
+      Number(size.value);
 
-        case "large":
-          base = 1280;
-          break;
-
-        case "xlarge":
-          base = 1536;
-          break;
-
-        default:
-          base = 1024;
-
-      }
+    const selectedRatio =
+      ratio.value;
 
 
-      let width = base;
-      let height = base;
+    let width = maxSize;
+
+    let height = maxSize;
 
 
-      if (ratio === "16:9") {
+    if (
+      selectedRatio === "16:9"
+    ) {
 
-        width = base;
-        height = Math.round(base * 9 / 16);
+      height =
+        Math.round(maxSize * 9 / 16);
 
-      }
+    }
 
-      else if (ratio === "9:16") {
+    else if (
+      selectedRatio === "9:16"
+    ) {
 
-        width = Math.round(base * 9 / 16);
-        height = base;
+      width =
+        Math.round(maxSize * 9 / 16);
 
-      }
+    }
 
-      else if (ratio === "4:3") {
+    else if (
+      selectedRatio === "4:3"
+    ) {
 
-        width = base;
-        height = Math.round(base * 3 / 4);
+      height =
+        Math.round(maxSize * 3 / 4);
 
-      }
+    }
 
-      else if (ratio === "3:4") {
+    else if (
+      selectedRatio === "3:4"
+    ) {
 
-        width = Math.round(base * 3 / 4);
-        height = base;
+      width =
+        Math.round(maxSize * 3 / 4);
 
-      }
+    }
 
-      else if (ratio === "4:5") {
+    else if (
+      selectedRatio === "4:5"
+    ) {
 
-        width = Math.round(base * 4 / 5);
-        height = base;
+      width =
+        Math.round(maxSize * 4 / 5);
 
-      }
+    }
 
-      else if (ratio === "5:4") {
+    else if (
+      selectedRatio === "5:4"
+    ) {
 
-        width = base;
-        height = Math.round(base * 4 / 5);
-
-      }
-
-
-      /*
-        Keep dimensions divisible by 16.
-      */
-
-      width = Math.round(width / 16) * 16;
-      height = Math.round(height / 16) * 16;
-
-
-      return {
-        width,
-        height
-      };
+      height =
+        Math.round(maxSize * 4 / 5);
 
     }
 
 
-    function updatePreviewInfo() {
+    /*
+      Most image APIs prefer dimensions
+      divisible by 16.
+    */
 
-      const dimensions =
-        getDimensions();
+    width =
+      Math.round(width / 16) * 16;
 
-      document.getElementById("previewInfo").textContent =
-        `${ratioSelect.value} · ${dimensions.width}×${dimensions.height}`;
-
-    }
+    height =
+      Math.round(height / 16) * 16;
 
 
-    ratioSelect.addEventListener(
-      "change",
-      updatePreviewInfo
+    return {
+      width,
+      height
+    };
+
+  }
+
+
+  function updateDimensions() {
+
+    const dimensions =
+      getDimensions();
+
+
+    document.getElementById(
+      "previewInfo"
+    ).textContent =
+      `${ratio.value} · ${dimensions.width}×${dimensions.height}`;
+
+  }
+
+
+  ratio.addEventListener(
+    "change",
+    updateDimensions
+  );
+
+  size.addEventListener(
+    "change",
+    updateDimensions
+  );
+
+
+  updateDimensions();
+
+
+  /* =========================
+     STATUS
+  ========================= */
+
+  function setStatus(
+    type,
+    text
+  ) {
+
+    status.classList.remove(
+      "recording",
+      "generating",
+      "error"
     );
 
-    sizeSelect.addEventListener(
-      "change",
-      updatePreviewInfo
-    );
 
-    updatePreviewInfo();
+    if (type) {
 
-
-    /* =========================
-       STYLE
-    ========================= */
-
-    function buildPrompt(originalPrompt) {
-
-      const style =
-        styleSelect.value;
-
-      if (style === "photorealistic") {
-
-        return originalPrompt +
-          ", photorealistic, highly detailed, realistic textures, natural lighting";
-
-      }
-
-      if (style === "cinematic") {
-
-        return originalPrompt +
-          ", cinematic photography, dramatic lighting, film still, realistic details, shallow depth of field";
-
-      }
-
-      if (style === "anime") {
-
-        return originalPrompt +
-          ", high quality anime artwork, detailed anime style, beautiful composition";
-
-      }
-
-      if (style === "illustration") {
-
-        return originalPrompt +
-          ", detailed digital illustration, professional artwork, beautiful composition";
-
-      }
-
-      return originalPrompt;
+      status.classList.add(type);
 
     }
 
 
-    /* =========================
-       STATUS
-    ========================= */
+    statusText.textContent =
+      text;
 
-    function setStatus(type, text) {
+  }
 
-      status.classList.remove(
-        "generating",
-        "error"
+
+  /* =========================
+     ERROR
+  ========================= */
+
+  function showError(message) {
+
+    errorMessage.textContent =
+      message;
+
+    errorMessage.classList.add(
+      "show"
+    );
+
+  }
+
+
+  function hideError() {
+
+    errorMessage.classList.remove(
+      "show"
+    );
+
+  }
+
+
+  /* =========================
+     GENERATE
+  ========================= */
+
+  async function generateImage() {
+
+    const prompt =
+      promptInput.value.trim();
+
+
+    if (!prompt) {
+
+      showError(
+        "Сначала напиши или продиктуй промт."
       );
 
-      if (type === "generating") {
+      promptInput.focus();
 
-        status.classList.add("generating");
-
-      }
-
-      if (type === "error") {
-
-        status.classList.add("error");
-
-      }
-
-      statusText.textContent = text;
+      return;
 
     }
 
 
-    /* =========================
-       ERROR
-    ========================= */
+    hideError();
 
-    function showError(message) {
 
-      errorMessage.textContent =
-        message;
+    const dimensions =
+      getDimensions();
 
-      errorMessage.classList.add("show");
+
+    generateButton.disabled =
+      true;
+
+    generateButton.textContent =
+      "Создаю...";
+
+
+    setStatus(
+      "generating",
+      "Генерация..."
+    );
+
+
+    preview.classList.add(
+      "loading"
+    );
+
+
+    resultImage.style.display =
+      "none";
+
+
+    previewEmpty.style.display =
+      "flex";
+
+
+    previewIcon.textContent =
+      "✦";
+
+    previewIcon.style.display =
+      "flex";
+
+
+    previewTitle.textContent =
+      "Создаю изображение...";
+
+
+    previewText.textContent =
+      "Модель обрабатывает твой промт.";
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/generate",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+
+              prompt: prompt,
+
+              model: selectedModel,
+
+              width:
+                dimensions.width,
+
+              height:
+                dimensions.height,
+
+              quality:
+                quality.value
+
+            })
+
+          }
+        );
+
+
+      let data;
+
+
+      try {
+
+        data =
+          await response.json();
+
+      }
+
+      catch {
+
+        throw new Error(
+          "API вернул не JSON. Проверь api/generate.js."
+        );
+
+      }
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.error ||
+          `Ошибка API: ${response.status}`
+        );
+
+      }
+
+
+      if (
+        !data.success ||
+        !data.image ||
+        !data.image.data
+      ) {
+
+        throw new Error(
+          "API не вернул изображение."
+        );
+
+      }
+
+
+      const mime =
+        data.image.mime ||
+        "image/png";
+
+
+      resultImage.src =
+        `data:${mime};base64,${data.image.data}`;
+
+
+      resultImage.onload = () => {
+
+        previewEmpty.style.display =
+          "none";
+
+        resultImage.style.display =
+          "block";
+
+      };
+
+
+      setStatus(
+        "",
+        "Готово"
+      );
+
+
+    }
+
+    catch (error) {
+
+      console.error(
+        "Generation error:",
+        error
+      );
+
+
+      showError(
+        error.message ||
+        "Ошибка генерации."
+      );
+
+
+      previewIcon.textContent =
+        "!";
+
+
+      previewTitle.textContent =
+        "Ошибка генерации";
+
+
+      previewText.textContent =
+        error.message ||
+        "Проверь API и попробуй снова.";
+
 
       setStatus(
         "error",
@@ -1420,294 +1804,66 @@
 
     }
 
+    finally {
 
-    function hideError() {
-
-      errorMessage.classList.remove(
-        "show"
-      );
-
-    }
-
-
-    /* =========================
-       GENERATE
-    ========================= */
-
-    async function generateImage() {
-
-      const rawPrompt =
-        promptInput.value.trim();
-
-
-      if (!rawPrompt) {
-
-        showError(
-          "Сначала напиши или продиктуй описание изображения."
-        );
-
-        promptInput.focus();
-
-        return;
-
-      }
-
-
-      hideError();
-
-
-      const dimensions =
-        getDimensions();
-
-
-      const quality =
-        qualitySelect.value;
-
-
-      const finalPrompt =
-        buildPrompt(rawPrompt);
-
-
-      generateButton.disabled = true;
+      generateButton.disabled =
+        false;
 
       generateButton.textContent =
-        "Создаю изображение...";
+        "Создать изображение";
 
-
-      setStatus(
-        "generating",
-        "Генерация..."
+      preview.classList.remove(
+        "loading"
       );
 
+    }
 
-      preview.classList.add(
-        "generating"
-      );
+  }
 
 
-      resultImage.style.display =
-        "none";
+  /* =========================
+     GENERATE BUTTON
+  ========================= */
 
+  generateButton.addEventListener(
+    "click",
+    generateImage
+  );
 
-      previewEmpty.style.display =
-        "flex";
 
+  /* =========================
+     CTRL + ENTER
+  ========================= */
 
-      emptyIcon.style.display =
-        "none";
+  promptInput.addEventListener(
+    "keydown",
+    event => {
 
+      if (
+        event.ctrlKey &&
+        event.key === "Enter"
+      ) {
 
-      emptyTitle.textContent =
-        "Создаю изображение...";
+        event.preventDefault();
 
-
-      emptyText.textContent =
-        "Это может занять некоторое время.";
-
-
-      try {
-
-        const response =
-          await fetch(
-            "/api/generate",
-            {
-              method: "POST",
-
-              headers: {
-                "Content-Type":
-                  "application/json"
-              },
-
-              body: JSON.stringify({
-
-                prompt: finalPrompt,
-
-                model: selectedModel,
-
-                width: dimensions.width,
-
-                height: dimensions.height,
-
-                quality: quality
-
-              })
-
-            }
-          );
-
-
-        let data;
-
-        try {
-
-          data =
-            await response.json();
-
-        } catch (jsonError) {
-
-          throw new Error(
-            "Сервер вернул некорректный ответ."
-          );
-
-        }
-
-
-        if (!response.ok) {
-
-          throw new Error(
-            data.error ||
-            "Ошибка генерации изображения."
-          );
-
-        }
-
-
-        if (
-          !data.success ||
-          !data.image ||
-          !data.image.data
-        ) {
-
-          throw new Error(
-            "Изображение не было получено от сервера."
-          );
-
-        }
-
-
-        /*
-          Build image from base64.
-        */
-
-        const mime =
-          data.image.mime ||
-          "image/png";
-
-
-        resultImage.src =
-          `data:${mime};base64,${data.image.data}`;
-
-
-        resultImage.onload = () => {
-
-          previewEmpty.style.display =
-            "none";
-
-          resultImage.style.display =
-            "block";
-
-        };
-
-
-        setStatus(
-          "ready",
-          "Готово"
-        );
-
-
-      } catch (error) {
-
-        console.error(
-          "Generation error:",
-          error
-        );
-
-
-        showError(
-          error.message ||
-          "Не удалось создать изображение."
-        );
-
-
-        emptyIcon.style.display =
-          "flex";
-
-
-        emptyIcon.textContent =
-          "!" ;
-
-
-        emptyTitle.textContent =
-          "Не удалось создать изображение";
-
-
-        emptyText.textContent =
-          error.message ||
-          "Проверь настройки и попробуй ещё раз.";
-
-      } finally {
-
-        generateButton.disabled =
-          false;
-
-        generateButton.textContent =
-          "Создать изображение";
-
-        preview.classList.remove(
-          "generating"
-        );
+        generateImage();
 
       }
 
     }
+  );
 
 
-    /* =========================
-       GENERATE BUTTON
-    ========================= */
+  /* =========================
+     PROMPT CHANGE
+  ========================= */
 
-    generateButton.addEventListener(
-      "click",
-      generateImage
-    );
+  promptInput.addEventListener(
+    "input",
+    hideError
+  );
 
-
-    /* =========================
-       CTRL + ENTER
-    ========================= */
-
-    promptInput.addEventListener(
-      "keydown",
-      event => {
-
-        if (
-          event.ctrlKey &&
-          event.key === "Enter"
-        ) {
-
-          event.preventDefault();
-
-          generateImage();
-
-        }
-
-      }
-    );
-
-
-    /* =========================
-       FOCUS
-    ========================= */
-
-    promptInput.addEventListener(
-      "input",
-      () => {
-
-        if (
-          errorMessage.classList.contains(
-            "show"
-          )
-        ) {
-
-          hideError();
-
-        }
-
-      }
-    );
-
-
-  </script>
+</script>
 
 </body>
 </html>
