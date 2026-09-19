@@ -1,6 +1,13 @@
 export default async function handler(req, res) {
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "no-store");
+  res.setHeader(
+    "Content-Type",
+    "application/json; charset=utf-8"
+  );
+
+  res.setHeader(
+    "Cache-Control",
+    "no-store"
+  );
 
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -12,7 +19,8 @@ export default async function handler(req, res) {
   try {
     const body = req.body || {};
 
-    const prompt = String(body.prompt || "").trim();
+    const prompt =
+      String(body.prompt || "").trim();
 
     if (!prompt) {
       return res.status(400).json({
@@ -21,8 +29,11 @@ export default async function handler(req, res) {
       });
     }
 
-    const width = Number(body.width) || 1024;
-    const height = Number(body.height) || 1024;
+    const width =
+      Number(body.width) || 1024;
+
+    const height =
+      Number(body.height) || 1024;
 
     let steps = 20;
 
@@ -42,7 +53,8 @@ export default async function handler(req, res) {
         headers: {
           "Content-Type": "application/json",
           "apikey": "0000000000",
-          "Client-Agent": "bastyon-image-generator:1.0"
+          "Client-Agent":
+            "bastyon-image-generator:1.0"
         },
 
         body: JSON.stringify({
@@ -68,27 +80,37 @@ export default async function handler(req, res) {
       }
     );
 
-    const text = await response.text();
+    const text =
+      await response.text();
 
     let data;
 
     try {
-      data = JSON.parse(text);
-    } catch {
+      data =
+        JSON.parse(text);
+    }
+
+    catch {
       return res.status(502).json({
         success: false,
-        error: "AI Horde вернул не JSON",
-        details: text.slice(0, 500)
+        error:
+          "AI Horde вернул не JSON",
+        details:
+          text.slice(0, 500)
       });
     }
 
     if (!response.ok) {
-      return res.status(response.status).json({
+      return res.status(
+        response.status
+      ).json({
         success: false,
+
         error:
           data.message ||
           data.error ||
           "Ошибка AI Horde",
+
         details: data
       });
     }
@@ -96,7 +118,10 @@ export default async function handler(req, res) {
     if (!data.id) {
       return res.status(502).json({
         success: false,
-        error: "AI Horde не вернул ID задачи",
+
+        error:
+          "AI Horde не вернул ID задачи",
+
         details: data
       });
     }
@@ -107,13 +132,21 @@ export default async function handler(req, res) {
       id: data.id
     });
 
-  } catch (error) {
+  }
 
-    console.error("AI HORDE ERROR:", error);
+  catch (error) {
+
+    console.error(
+      "AI HORDE ERROR:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      error: error.message || "Ошибка сервера"
+
+      error:
+        error.message ||
+        "Ошибка сервера"
     });
   }
 }
