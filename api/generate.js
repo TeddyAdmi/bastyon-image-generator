@@ -42,20 +42,24 @@ export default async function handler(req, res) {
             });
         }
 
-        // Параметры для бесплатного генератора
+        // Усиливаем промпт, чтобы нейросеть следовала именно ему, а не придумывала своё
+        const strictPrompt = `
+Strictly follow this user description: "${userPrompt}". 
+Do not add random elements. Make the main subject precise, highly detailed, realistic, clear focus, high quality.
+`.trim();
+
         const width = 1024;
         const height = 1024;
-        const seed = Math.floor(Math.random() * 1000000);
+        const seed = Math.floor(Math.random() * 10000000);
         
-        // Кодируем промпт для URL
-        const encodedPrompt = encodeURIComponent(userPrompt);
+        // Кодируем усиленный промпт для URL
+        const encodedPrompt = encodeURIComponent(strictPrompt);
         
-        // Формируем ссылку на бесплатный публичный генератор Pollinations
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+        // Запрос к публичному API Pollinations с жестким контролем
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=false`;
 
-        console.log(`FREE GENERATION URL: ${imageUrl}`);
+        console.log(`STRICT FREE GENERATION URL: ${imageUrl}`);
 
-        // Скачиваем сгенерированное изображение, чтобы конвертировать в base64 для фронтенда
         const imageResponse = await fetch(imageUrl);
 
         if (!imageResponse.ok) {
@@ -93,7 +97,7 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error('FREE GENERATION ERROR:', error);
+        console.error('STRICT GENERATION ERROR:', error);
         return res.status(500).json({
             error: error?.message || 'Internal Server Error'
         });
