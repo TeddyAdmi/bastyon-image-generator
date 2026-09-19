@@ -1,1458 +1,1713 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1, viewport-fit=cover"
-    >
-
-    <meta name="theme-color" content="#09090b">
-
-    <title>AI Image Generator</title>
-
-    <style>
-        :root {
-            --bg: #09090b;
-            --panel: #121216;
-            --panel-2: #18181d;
-            --panel-3: #202026;
-            --border: #292930;
-
-            --text: #f5f5f7;
-            --muted: #9696a2;
-
-            --accent: #ff7a18;
-            --accent-hover: #ff8d36;
-
-            --success: #48d597;
-            --danger: #ff5f5f;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html {
-            background: var(--bg);
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-
-            background:
-                radial-gradient(
-                    circle at top,
-                    #17171d 0,
-                    #09090b 42%,
-                    #09090b 100%
-                );
-
-            color: var(--text);
-
-            font-family:
-                Inter,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Roboto,
-                Arial,
-                sans-serif;
-        }
-
-        button,
-        textarea,
-        select {
-            font: inherit;
-        }
-
-        button {
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .app {
-            width: 100%;
-            max-width: 1180px;
-
-            margin: 0 auto;
-
-            min-height: 100vh;
-
-            padding:
-                max(12px, env(safe-area-inset-top))
-                14px
-                max(24px, env(safe-area-inset-bottom))
-                14px;
-        }
-
-        /* =========================
-           HEADER
-        ========================= */
-
-        .header {
-            height: 52px;
-
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
-            margin-bottom: 12px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-
-            font-size: 18px;
-            font-weight: 800;
-            letter-spacing: -0.3px;
-        }
-
-        .brand-icon {
-            width: 30px;
-            height: 30px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            border-radius: 9px;
-
-            background: linear-gradient(
-                135deg,
-                #ff7a18,
-                #ff9e55
-            );
-
-            color: #111;
-
-            font-size: 17px;
-            font-weight: 900;
-        }
-
-        .status {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-
-            padding: 7px 10px;
-
-            border: 1px solid var(--border);
-            border-radius: 999px;
-
-            background: rgba(20, 20, 24, 0.9);
-
-            color: var(--muted);
-
-            font-size: 11px;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-
-            border-radius: 50%;
-
-            background: var(--success);
-        }
-
-        /* =========================
-           MAIN
-        ========================= */
-
-        .workspace {
-            display: grid;
-
-            grid-template-columns:
-                minmax(0, 1fr)
-                350px;
-
-            gap: 14px;
-        }
-
-        .card {
-            background: rgba(18, 18, 22, 0.96);
-
-            border: 1px solid var(--border);
-
-            border-radius: 20px;
-
-            overflow: hidden;
-
-            box-shadow:
-                0 20px 60px rgba(0, 0, 0, 0.22);
-        }
-
-        /* =========================
-           PREVIEW
-        ========================= */
-
-        .generator {
-            display: flex;
-            flex-direction: column;
-
-            min-height: 700px;
-        }
-
-        .preview {
-            position: relative;
-
-            flex: 1;
-
-            min-height: 470px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            padding: 18px;
-
-            background:
-                radial-gradient(
-                    circle at 50% 35%,
-                    #23232b 0,
-                    #141419 38%,
-                    #0d0d10 75%,
-                    #0a0a0c 100%
-                );
-        }
-
-        .preview.empty::before {
-            content: "Ваше изображение появится здесь";
-
-            color: #656570;
-
-            font-size: 14px;
-        }
-
-        .preview img {
-            display: block;
-
-            max-width: 100%;
-            max-height: 650px;
-
-            width: auto;
-            height: auto;
-
-            object-fit: contain;
-
-            border-radius: 14px;
-
-            box-shadow:
-                0 25px 80px rgba(0, 0, 0, 0.55);
-        }
-
-        .preview-info {
-            position: absolute;
-
-            left: 14px;
-            bottom: 14px;
-
-            display: none;
-
-            padding: 6px 9px;
-
-            background: rgba(0, 0, 0, 0.65);
-
-            border: 1px solid rgba(255,255,255,0.08);
-
-            border-radius: 8px;
-
-            color: #c8c8cf;
-
-            font-size: 10px;
-
-            backdrop-filter: blur(8px);
-        }
-
-        /* =========================
-           PROMPT
-        ========================= */
-
-        .prompt-area {
-            padding: 14px;
-
-            border-top: 1px solid var(--border);
-        }
-
-        .prompt-wrapper {
-            position: relative;
-        }
-
-        textarea {
-            display: block;
-
-            width: 100%;
-
-            min-height: 100px;
-
-            resize: vertical;
-
-            padding: 14px 14px 42px;
-
-            border:
-                1px solid
-                var(--border);
-
-            border-radius: 14px;
-
-            outline: none;
-
-            background: var(--panel-2);
-
-            color: var(--text);
-
-            font-size: 14px;
-
-            line-height: 1.5;
-        }
-
-        textarea::placeholder {
-            color: #6f6f79;
-        }
-
-        textarea:focus {
-            border-color: #474750;
-        }
-
-        .prompt-hint {
-            position: absolute;
-
-            right: 10px;
-            bottom: 9px;
-
-            color: #666670;
-
-            font-size: 10px;
-        }
-
-        .actions {
-            display: flex;
-
-            gap: 8px;
-
-            margin-top: 9px;
-        }
-
-        .generate {
-            flex: 1;
-
-            min-height: 46px;
-
-            border: 0;
-
-            border-radius: 12px;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    var(--accent),
-                    #ff984d
-                );
-
-            color: #111;
-
-            font-size: 14px;
-            font-weight: 800;
-
-            cursor: pointer;
-
-            transition:
-                transform .15s,
-                filter .15s;
-        }
-
-        .generate:hover {
-            filter: brightness(1.05);
-        }
-
-        .generate:active {
-            transform: scale(.985);
-        }
-
-        .generate:disabled {
-            opacity: .55;
-            cursor: wait;
-        }
-
-        .clear {
-            min-width: 90px;
-
-            border: 1px solid var(--border);
-
-            border-radius: 12px;
-
-            background: var(--panel-2);
-
-            color: var(--text);
-
-            cursor: pointer;
-        }
-
-        .loading {
-            display: none;
-
-            margin-top: 8px;
-
-            color: var(--accent-hover);
-
-            font-size: 12px;
-        }
-
-        .loading.show {
-            display: block;
-        }
-
-        /* =========================
-           SETTINGS
-        ========================= */
-
-        .settings {
-            padding: 16px;
-        }
-
-        .section {
-            margin-bottom: 19px;
-        }
-
-        .section:last-child {
-            margin-bottom: 0;
-        }
-
-        .section-title {
-            margin-bottom: 8px;
-
-            color: var(--muted);
-
-            font-size: 11px;
-
-            font-weight: 800;
-
-            text-transform: uppercase;
-
-            letter-spacing: .5px;
-        }
-
-        /* =========================
-           MODELS
-        ========================= */
-
-        .models {
-            display: grid;
-
-            gap: 8px;
-        }
-
-        .model {
-            width: 100%;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: space-between;
-
-            padding: 11px 12px;
-
-            border: 1px solid var(--border);
-
-            border-radius: 13px;
-
-            background: var(--panel-2);
-
-            color: var(--text);
-
-            text-align: left;
-
-            cursor: pointer;
-
-            transition:
-                border-color .15s,
-                background .15s;
-        }
-
-        .model:hover {
-            background: var(--panel-3);
-        }
-
-        .model.active {
-            border-color: var(--accent);
-
-            box-shadow:
-                inset 0 0 0 1px rgba(255,122,24,.16);
-        }
-
-        .model-name {
-            font-size: 13px;
-            font-weight: 750;
-        }
-
-        .model-description {
-            margin-top: 3px;
-
-            color: var(--muted);
-
-            font-size: 10px;
-        }
-
-        .free-badge {
-            padding: 3px 6px;
-
-            border-radius: 6px;
-
-            background: #25252b;
-
-            color: #c7c7cf;
-
-            font-size: 9px;
-            font-weight: 700;
-        }
-
-        /* =========================
-           SELECTS
-        ========================= */
-
-        .settings-grid {
-            display: grid;
-
-            grid-template-columns: 1fr 1fr;
-
-            gap: 8px;
-        }
-
-        .field label {
-            display: block;
-
-            margin-bottom: 6px;
-
-            color: #777782;
-
-            font-size: 10px;
-        }
-
-        select {
-            width: 100%;
-
-            min-height: 43px;
-
-            padding: 9px 10px;
-
-            border:
-                1px solid
-                var(--border);
-
-            border-radius: 11px;
-
-            outline: none;
-
-            background: var(--panel-2);
-
-            color: var(--text);
-
-            font-size: 12px;
-        }
-
-        select:focus {
-            border-color: #4b4b54;
-        }
-
-        /* =========================
-           INFO
-        ========================= */
-
-        .info {
-            padding: 11px 12px;
-
-            border:
-                1px solid
-                var(--border);
-
-            border-radius: 12px;
-
-            background: #101014;
-
-            color: #777782;
-
-            font-size: 10px;
-
-            line-height: 1.5;
-        }
-
-        /* =========================
-           MOBILE
-        ========================= */
-
-        @media (max-width: 760px) {
-
-            .app {
-                padding-left: 9px;
-                padding-right: 9px;
-            }
-
-            .workspace {
-                display: flex;
-
-                flex-direction: column;
-            }
-
-            .generator {
-                min-height: 0;
-            }
-
-            .preview {
-                height: 52vh;
-
-                min-height: 290px;
-                max-height: 560px;
-            }
-
-            .settings {
-                padding: 13px;
-            }
-
-            .header {
-                height: 46px;
-            }
-
-            .brand {
-                font-size: 16px;
-            }
-
-            .status {
-                font-size: 10px;
-            }
-        }
-
-        @media (max-width: 420px) {
-
-            .preview {
-                height: 48vh;
-            }
-
-            textarea {
-                min-height: 92px;
-            }
-
-            .clear {
-                min-width: 76px;
-            }
-
-            .generate {
-                font-size: 13px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0b0b0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <title>AI Image Generator</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: #0b0b0f;
+      color: #f5f5f7;
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+    }
+
+    button,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: 100%;
+      min-height: 100vh;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    /* HEADER */
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #ffffff, #777);
+      color: #09090c;
+      font-size: 21px;
+      font-weight: 800;
+      box-shadow: 0 8px 30px rgba(255,255,255,.08);
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 750;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-subtitle {
+      margin-top: 2px;
+      color: #85858e;
+      font-size: 12px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 11px;
+      border: 1px solid #25252d;
+      background: #111116;
+      border-radius: 999px;
+      color: #aaaab3;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #62d991;
+      box-shadow: 0 0 10px rgba(98,217,145,.5);
+    }
+
+    .status.generating .status-dot {
+      background: #ffd166;
+      box-shadow: 0 0 10px rgba(255,209,102,.5);
+    }
+
+    .status.error .status-dot {
+      background: #ff6464;
+      box-shadow: 0 0 10px rgba(255,100,100,.5);
+    }
+
+    /* MAIN */
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(340px, .75fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid #24242c;
+      background: #111116;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    /* PREVIEW */
+
+    .preview-panel {
+      min-height: 650px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-header {
+      padding: 15px 17px;
+      border-bottom: 1px solid #24242c;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #dcdce2;
+    }
+
+    .preview-info {
+      color: #777780;
+      font-size: 11px;
+    }
+
+    .preview {
+      flex: 1;
+      min-height: 560px;
+      padding: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at center, rgba(255,255,255,.025), transparent 55%),
+        #0d0d12;
+    }
+
+    .preview-empty {
+      width: min(100%, 620px);
+      aspect-ratio: 1 / 1;
+      max-height: 560px;
+      border-radius: 18px;
+      border: 1px dashed #303039;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+      color: #65656f;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .preview-empty-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 17px;
+      background: #17171d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 25px;
+      margin-bottom: 5px;
+    }
+
+    .preview-empty strong {
+      color: #a2a2ab;
+      font-size: 14px;
+    }
+
+    .preview-empty span {
+      font-size: 12px;
+      line-height: 1.5;
+      max-width: 300px;
+    }
+
+    .result-image {
+      display: none;
+      max-width: 100%;
+      max-height: 560px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 16px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.4);
+    }
+
+    .preview.generating .preview-empty {
+      display: flex;
+    }
+
+    .loading-spinner {
+      display: none;
+      width: 30px;
+      height: 30px;
+      border: 3px solid #303038;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin-bottom: 8px;
+    }
+
+    .preview.generating .loading-spinner {
+      display: block;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* CONTROLS */
+
+    .controls {
+      padding: 18px;
+    }
+
+    .control-section {
+      margin-bottom: 20px;
+    }
+
+    .control-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 9px;
+      color: #cfcfd6;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .control-label small {
+      color: #686871;
+      font-weight: 400;
+    }
+
+    /* PROMPT */
+
+    .prompt-wrap {
+      position: relative;
+    }
+
+    .prompt {
+      width: 100%;
+      min-height: 132px;
+      resize: vertical;
+      padding: 15px 54px 43px 15px;
+      border: 1px solid #2a2a33;
+      border-radius: 15px;
+      outline: none;
+      background: #0d0d12;
+      color: #f4f4f6;
+      font-size: 14px;
+      line-height: 1.5;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .prompt::placeholder {
+      color: #5f5f68;
+    }
+
+    .prompt:focus {
+      border-color: #55555f;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.025);
+    }
+
+    /* MICROPHONE */
+
+    .mic-button {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+
+      width: 38px;
+      height: 38px;
+
+      border: 1px solid #303039;
+      border-radius: 11px;
+
+      background: #17171d;
+      color: #c9c9d0;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      transition:
+        background .2s,
+        border-color .2s,
+        color .2s,
+        transform .15s;
+    }
+
+    .mic-button:hover {
+      background: #202027;
+      border-color: #45454f;
+      color: #fff;
+    }
+
+    .mic-button:active {
+      transform: scale(.94);
+    }
+
+    .mic-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .mic-button.recording {
+      background: #35191d;
+      border-color: #8b3c45;
+      color: #ff7b86;
+      animation: micPulse 1.3s infinite;
+    }
+
+    @keyframes micPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255,90,105,.15);
+      }
+
+      50% {
+        box-shadow: 0 0 0 7px rgba(255,90,105,0);
+      }
+    }
+
+    .voice-status {
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      color: #777780;
+      font-size: 10px;
+      pointer-events: none;
+    }
+
+    .voice-status.active {
+      color: #ff7b86;
+    }
+
+    /* BUTTONS */
+
+    .action-row {
+      display: flex;
+      gap: 9px;
+      margin-top: 10px;
+    }
+
+    .clear-button {
+      width: 46px;
+      flex: 0 0 46px;
+      border: 1px solid #292930;
+      border-radius: 13px;
+      background: #15151b;
+      color: #8c8c95;
+      font-size: 17px;
+    }
+
+    .clear-button:hover {
+      background: #1b1b22;
+      color: #fff;
+    }
+
+    .generate-button {
+      flex: 1;
+      min-height: 48px;
+      border: none;
+      border-radius: 13px;
+      background: #f1f1f3;
+      color: #09090c;
+      font-size: 14px;
+      font-weight: 750;
+      transition: transform .15s, opacity .2s;
+    }
+
+    .generate-button:hover {
+      opacity: .92;
+    }
+
+    .generate-button:active {
+      transform: scale(.985);
+    }
+
+    .generate-button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    /* MODEL CARDS */
+
+    .models {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .model-card {
+      min-width: 0;
+      padding: 11px 9px;
+      border: 1px solid #292930;
+      border-radius: 12px;
+      background: #0e0e13;
+      color: #9999a2;
+      text-align: left;
+      cursor: pointer;
+      transition: all .18s;
+    }
+
+    .model-card:hover {
+      border-color: #44444e;
+      color: #ddd;
+    }
+
+    .model-card.active {
+      border-color: #777780;
+      background: #19191f;
+      color: #fff;
+    }
+
+    .model-name {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .model-type {
+      display: block;
+      margin-top: 4px;
+      font-size: 9px;
+      color: #65656e;
+    }
+
+    /* SELECTS */
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .select-wrap {
+      position: relative;
+    }
+
+    select {
+      width: 100%;
+      height: 45px;
+      padding: 0 34px 0 12px;
+      border: 1px solid #292930;
+      border-radius: 12px;
+      background: #0d0d12;
+      color: #d8d8de;
+      outline: none;
+      appearance: none;
+      font-size: 12px;
+    }
+
+    select:focus {
+      border-color: #4d4d57;
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #777780;
+      pointer-events: none;
+      font-size: 10px;
+    }
+
+    /* NOTICE */
+
+    .notice {
+      margin-top: 2px;
+      padding: 11px 12px;
+      border: 1px solid #22222a;
+      border-radius: 11px;
+      background: #0e0e13;
+      color: #696971;
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    /* ERROR */
+
+    .error-message {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid #52272d;
+      border-radius: 10px;
+      background: #1d1013;
+      color: #ff858f;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    /* MOBILE */
+
+    @media (max-width: 900px) {
+      .app {
+        padding: 12px;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-panel {
+        min-height: auto;
+      }
+
+      .preview {
+        min-height: 0;
+        padding: 14px;
+      }
+
+      .preview-empty {
+        max-height: none;
+      }
+
+      .result-image {
+        max-height: 70vh;
+      }
+
+      .controls {
+        padding: 15px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        padding: 9px;
+      }
+
+      .header {
+        margin-bottom: 10px;
+      }
+
+      .brand-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+      }
+
+      .brand-title {
+        font-size: 15px;
+      }
+
+      .brand-subtitle {
+        font-size: 10px;
+      }
+
+      .status {
+        padding: 7px 9px;
+        font-size: 10px;
+      }
+
+      .panel {
+        border-radius: 16px;
+      }
+
+      .preview-header {
+        padding: 12px 13px;
+      }
+
+      .preview {
+        padding: 10px;
+      }
+
+      .preview-empty {
+        border-radius: 14px;
+      }
+
+      .controls {
+        padding: 13px;
+      }
+
+      .models {
+        grid-template-columns: 1fr;
+      }
+
+      .model-card {
+        padding: 12px;
+      }
+
+      .options-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .prompt {
+        min-height: 125px;
+      }
+    }
+
+    @media (max-width: 370px) {
+      .status {
+        display: none;
+      }
+
+      .options-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="app">
+  <div class="app">
 
+    <!-- HEADER -->
     <header class="header">
+      <div class="brand">
+        <div class="brand-icon">AI</div>
 
-        <div class="brand">
-
-            <div class="brand-icon">
-                ✦
-            </div>
-
-            <span>
-                AI Image Generator
-            </span>
-
+        <div>
+          <div class="brand-title">AI Image Generator</div>
+          <div class="brand-subtitle">Create images from text</div>
         </div>
+      </div>
 
-        <div class="status">
-
-            <span
-                id="statusDot"
-                class="status-dot"
-            ></span>
-
-            <span id="status">
-                Ready
-            </span>
-
-        </div>
-
+      <div class="status" id="status">
+        <span class="status-dot"></span>
+        <span id="statusText">Готов</span>
+      </div>
     </header>
 
 
+    <!-- WORKSPACE -->
     <main class="workspace">
 
-        <!-- =========================
-             GENERATOR
-        ========================== -->
+      <!-- PREVIEW -->
+      <section class="panel preview-panel">
 
-        <section class="card generator">
+        <div class="preview-header">
+          <div class="section-title">Предпросмотр</div>
+          <div class="preview-info" id="previewInfo">1:1 · 1024×1024</div>
+        </div>
+
+        <div class="preview" id="preview">
+
+          <div class="preview-empty" id="previewEmpty">
+
+            <div class="loading-spinner"></div>
+
+            <div class="preview-empty-icon" id="emptyIcon">
+              ✦
+            </div>
+
+            <strong id="emptyTitle">
+              Создай изображение
+            </strong>
+
+            <span id="emptyText">
+              Опиши, что ты хочешь увидеть, и нажми «Создать».
+            </span>
+
+          </div>
+
+          <img
+            id="resultImage"
+            class="result-image"
+            alt="Generated image"
+          >
+
+        </div>
+
+      </section>
+
+
+      <!-- CONTROLS -->
+      <section class="panel">
+
+        <div class="controls">
+
+          <!-- PROMPT -->
+          <div class="control-section">
+
+            <div class="control-label">
+              <span>Промт</span>
+              <small>Ctrl + Enter — создать</small>
+            </div>
+
+            <div class="prompt-wrap">
+
+              <textarea
+                id="prompt"
+                class="prompt"
+                placeholder="Например: маленький рыжий кот сидит на улице Нью-Йорка, кинематографичный свет, реалистичная фотография..."
+                autocomplete="off"
+                spellcheck="true"
+              ></textarea>
+
+              <!-- VOICE STATUS -->
+              <div class="voice-status" id="voiceStatus">
+                Нажми на микрофон
+              </div>
+
+              <!-- MICROPHONE -->
+              <button
+                type="button"
+                class="mic-button"
+                id="micButton"
+                title="Ввод голосом"
+                aria-label="Ввод голосом"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+                  <path d="M5 10a7 7 0 0 0 14 0"></path>
+                  <path d="M12 19v3"></path>
+                  <path d="M8 22h8"></path>
+                </svg>
+              </button>
+
+            </div>
+
+
+            <div class="action-row">
+
+              <button
+                type="button"
+                class="clear-button"
+                id="clearButton"
+                title="Очистить"
+              >
+                ×
+              </button>
+
+              <button
+                type="button"
+                class="generate-button"
+                id="generateButton"
+              >
+                Создать изображение
+              </button>
+
+            </div>
 
             <div
-                id="preview"
-                class="preview empty"
-            >
-                <div
-                    id="previewInfo"
-                    class="preview-info"
-                ></div>
+              class="error-message"
+              id="errorMessage"
+            ></div>
+
+          </div>
+
+
+          <!-- MODEL -->
+          <div class="control-section">
+
+            <div class="control-label">
+              <span>Модель</span>
+              <small>Free / accessible</small>
             </div>
 
+            <div class="models">
 
-            <div class="prompt-area">
+              <button
+                type="button"
+                class="model-card active"
+                data-model="flux"
+              >
+                <span class="model-name">FLUX Schnell</span>
+                <span class="model-type">Fast</span>
+              </button>
 
-                <div class="prompt-wrapper">
+              <button
+                type="button"
+                class="model-card"
+                data-model="zimage"
+              >
+                <span class="model-name">Z-Image Turbo</span>
+                <span class="model-type">Turbo</span>
+              </button>
 
-                    <textarea
-                        id="prompt"
-                        placeholder="Опишите изображение...
-
-Например: очень пушистый рыжий кот сидит на крыше Нью-Йорка на закате, кинематографичный свет, реалистичная фотография"
-                    ></textarea>
-
-                    <div class="prompt-hint">
-                        Ctrl + Enter
-                    </div>
-
-                </div>
-
-
-                <div class="actions">
-
-                    <button
-                        id="clear"
-                        class="clear"
-                        type="button"
-                    >
-                        Очистить
-                    </button>
-
-                    <button
-                        id="generate"
-                        class="generate"
-                        type="button"
-                    >
-                        Создать изображение
-                    </button>
-
-                </div>
-
-
-                <div
-                    id="loading"
-                    class="loading"
-                >
-                    Генерируем изображение…
-                </div>
+              <button
+                type="button"
+                class="model-card"
+                data-model="dream"
+              >
+                <span class="model-name">DreamShaper</span>
+                <span class="model-type">Art</span>
+              </button>
 
             </div>
 
-        </section>
+          </div>
 
 
-        <!-- =========================
-             SETTINGS
-        ========================== -->
+          <!-- OPTIONS -->
+          <div class="control-section">
 
-        <aside class="card settings">
-
-            <div class="section">
-
-                <div class="section-title">
-                    Модель
-                </div>
-
-
-                <div class="models">
-
-
-                    <button
-                        class="model active"
-                        data-model="flux"
-                        type="button"
-                    >
-
-                        <div>
-
-                            <div class="model-name">
-                                FLUX.1 Schnell
-                            </div>
-
-                            <div class="model-description">
-                                Быстрая универсальная модель
-                            </div>
-
-                        </div>
-
-                        <span class="free-badge">
-                            FREE
-                        </span>
-
-                    </button>
-
-
-                    <button
-                        class="model"
-                        data-model="zimage"
-                        type="button"
-                    >
-
-                        <div>
-
-                            <div class="model-name">
-                                Z-Image Turbo
-                            </div>
-
-                            <div class="model-description">
-                                Быстрое создание и детали
-                            </div>
-
-                        </div>
-
-                        <span class="free-badge">
-                            FREE
-                        </span>
-
-                    </button>
-
-
-                    <button
-                        class="model"
-                        data-model="dreamshaper"
-                        type="button"
-                    >
-
-                        <div>
-
-                            <div class="model-name">
-                                DreamShaper
-                            </div>
-
-                            <div class="model-description">
-                                Арт, персонажи и стили
-                            </div>
-
-                        </div>
-
-                        <span class="free-badge">
-                            FREE
-                        </span>
-
-                    </button>
-
-
-                </div>
-
+            <div class="control-label">
+              <span>Настройки</span>
             </div>
 
+            <div class="options-grid">
 
-            <div class="section">
+              <!-- RATIO -->
+              <div class="select-wrap">
 
-                <div class="section-title">
-                    Формат изображения
-                </div>
-
-
-                <div class="settings-grid">
-
-                    <div class="field">
-
-                        <label>
-                            Соотношение
-                        </label>
-
-                        <select id="ratio">
-
-                            <option value="1:1">
-                                1:1 — квадрат
-                            </option>
-
-                            <option value="16:9">
-                                16:9 — горизонтальный
-                            </option>
-
-                            <option value="9:16">
-                                9:16 — вертикальный
-                            </option>
-
-                            <option value="4:3">
-                                4:3
-                            </option>
-
-                            <option value="3:4">
-                                3:4
-                            </option>
-
-                            <option value="4:5">
-                                4:5
-                            </option>
-
-                            <option value="5:4">
-                                5:4
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                    <div class="field">
-
-                        <label>
-                            Размер
-                        </label>
-
-                        <select id="size">
-
-                            <option value="768">
-                                768 px
-                            </option>
-
-                            <option
-                                value="1024"
-                                selected
-                            >
-                                1024 px
-                            </option>
-
-                            <option value="1280">
-                                1280 px
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="section">
-
-                <div class="section-title">
-                    Качество
-                </div>
-
-
-                <select id="quality">
-
-                    <option value="low">
-                        Быстрое
-                    </option>
-
-                    <option
-                        value="medium"
-                        selected
-                    >
-                        Стандартное
-                    </option>
-
-                    <option value="high">
-                        Высокое
-                    </option>
-
+                <select id="ratio">
+                  <option value="1:1">1:1 — Квадрат</option>
+                  <option value="16:9">16:9 — Landscape</option>
+                  <option value="9:16">9:16 — Portrait</option>
+                  <option value="4:3">4:3 — Landscape</option>
+                  <option value="3:4">3:4 — Portrait</option>
+                  <option value="4:5">4:5 — Portrait</option>
+                  <option value="5:4">5:4 — Landscape</option>
                 </select>
 
+                <span class="select-arrow">⌄</span>
+
+              </div>
+
+
+              <!-- SIZE -->
+              <div class="select-wrap">
+
+                <select id="size">
+                  <option value="small">768 px</option>
+                  <option value="medium" selected>1024 px</option>
+                  <option value="large">1280 px</option>
+                  <option value="xlarge">1536 px</option>
+                </select>
+
+                <span class="select-arrow">⌄</span>
+
+              </div>
+
+
+              <!-- QUALITY -->
+              <div class="select-wrap">
+
+                <select id="quality">
+                  <option value="low">Быстро</option>
+                  <option value="medium" selected>Стандарт</option>
+                  <option value="high">Высокое</option>
+                </select>
+
+                <span class="select-arrow">⌄</span>
+
+              </div>
+
+
+              <!-- STYLE -->
+              <div class="select-wrap">
+
+                <select id="style">
+                  <option value="none" selected>Без стиля</option>
+                  <option value="photorealistic">Фотореализм</option>
+                  <option value="cinematic">Кинематографичный</option>
+                  <option value="anime">Anime</option>
+                  <option value="illustration">Illustration</option>
+                </select>
+
+                <span class="select-arrow">⌄</span>
+
+              </div>
+
             </div>
 
+          </div>
 
-            <div class="section">
 
-                <div class="info">
+          <!-- INFO -->
+          <div class="notice">
+            💡 Чем подробнее описание, тем точнее результат. Можно написать промт вручную или нажать 🎤 и продиктовать его голосом.
+          </div>
 
-                    Бесплатные модели могут иметь
-                    ограничения или временные лимиты
-                    со стороны провайдера.
+        </div>
 
-                    <br><br>
-
-                    Размер, формат и качество
-                    выбираются перед каждой генерацией.
-
-                </div>
-
-            </div>
-
-        </aside>
+      </section>
 
     </main>
 
-</div>
+  </div>
 
 
-<script>
+  <script>
 
-    /*
-    ============================================
-    SETTINGS
-    ============================================
-    */
+    /* =========================
+       ELEMENTS
+    ========================= */
 
-    const API_URL = "/api/generate";
+    const promptInput = document.getElementById("prompt");
+    const micButton = document.getElementById("micButton");
+    const voiceStatus = document.getElementById("voiceStatus");
+
+    const generateButton = document.getElementById("generateButton");
+    const clearButton = document.getElementById("clearButton");
+
+    const resultImage = document.getElementById("resultImage");
+    const preview = document.getElementById("preview");
+    const previewEmpty = document.getElementById("previewEmpty");
+
+    const emptyIcon = document.getElementById("emptyIcon");
+    const emptyTitle = document.getElementById("emptyTitle");
+    const emptyText = document.getElementById("emptyText");
+
+    const status = document.getElementById("status");
+    const statusText = document.getElementById("statusText");
+
+    const errorMessage = document.getElementById("errorMessage");
+
+    const ratioSelect = document.getElementById("ratio");
+    const sizeSelect = document.getElementById("size");
+    const qualitySelect = document.getElementById("quality");
+    const styleSelect = document.getElementById("style");
+
+    const modelCards = document.querySelectorAll(".model-card");
+
+
+    /* =========================
+       MODEL
+    ========================= */
 
     let selectedModel = "flux";
 
 
-    /*
-    ============================================
-    ELEMENTS
-    ============================================
-    */
+    modelCards.forEach(card => {
 
-    const promptElement =
-        document.getElementById("prompt");
+      card.addEventListener("click", () => {
 
-    const generateButton =
-        document.getElementById("generate");
-
-    const clearButton =
-        document.getElementById("clear");
-
-    const preview =
-        document.getElementById("preview");
-
-    const previewInfo =
-        document.getElementById("previewInfo");
-
-    const status =
-        document.getElementById("status");
-
-    const statusDot =
-        document.getElementById("statusDot");
-
-    const loading =
-        document.getElementById("loading");
-
-    const ratio =
-        document.getElementById("ratio");
-
-    const size =
-        document.getElementById("size");
-
-    const quality =
-        document.getElementById("quality");
-
-
-    /*
-    ============================================
-    MODEL SELECTION
-    ============================================
-    */
-
-    document
-        .querySelectorAll(".model")
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    document
-                        .querySelectorAll(".model")
-                        .forEach(item => {
-
-                            item.classList.remove(
-                                "active"
-                            );
-
-                        });
-
-
-                    button.classList.add(
-                        "active"
-                    );
-
-
-                    selectedModel =
-                        button.dataset.model;
-
-                }
-            );
-
+        modelCards.forEach(item => {
+          item.classList.remove("active");
         });
 
+        card.classList.add("active");
 
-    /*
-    ============================================
-    DIMENSIONS
-    ============================================
-    */
+        selectedModel = card.dataset.model;
 
-    function getDimensions(
-        selectedRatio,
-        baseSize
-    ) {
+      });
 
-        const s =
-            Number(baseSize);
+    });
 
 
-        const dimensions = {
+    /* =========================
+       VOICE INPUT
+    ========================= */
 
-            "1:1": [
-                s,
-                s
-            ],
+    let recognition = null;
+    let isRecording = false;
 
-            "16:9": [
-                s,
-                Math.round(
-                    s * 9 / 16
-                )
-            ],
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
 
-            "9:16": [
-                Math.round(
-                    s * 9 / 16
-                ),
-                s
-            ],
 
-            "4:3": [
-                s,
-                Math.round(
-                    s * 3 / 4
-                )
-            ],
+    if (SpeechRecognition) {
 
-            "3:4": [
-                Math.round(
-                    s * 3 / 4
-                ),
-                s
-            ],
+      recognition = new SpeechRecognition();
 
-            "4:5": [
-                Math.round(
-                    s * 4 / 5
-                ),
-                s
-            ],
+      recognition.lang = "ru-RU";
 
-            "5:4": [
-                s,
-                Math.round(
-                    s * 4 / 5
-                )
-            ]
+      recognition.continuous = true;
+
+      recognition.interimResults = true;
+
+
+      recognition.onstart = () => {
+
+        isRecording = true;
+
+        micButton.classList.add("recording");
+
+        voiceStatus.classList.add("active");
+
+        voiceStatus.textContent = "Слушаю...";
+
+      };
+
+
+      recognition.onresult = event => {
+
+        let finalText = "";
+        let interimText = "";
+
+        for (
+          let i = event.resultIndex;
+          i < event.results.length;
+          i++
+        ) {
+
+          const transcript =
+            event.results[i][0].transcript;
+
+          if (event.results[i].isFinal) {
+
+            finalText += transcript + " ";
+
+          } else {
+
+            interimText += transcript;
+
+          }
+
+        }
+
+
+        if (finalText) {
+
+          const currentText =
+            promptInput.value.trim();
+
+          if (currentText) {
+
+            promptInput.value =
+              currentText +
+              " " +
+              finalText.trim();
+
+          } else {
+
+            promptInput.value =
+              finalText.trim();
+
+          }
+
+        }
+
+
+        if (interimText) {
+
+          voiceStatus.textContent =
+            "Распознано: " +
+            interimText;
+
+        }
+
+      };
+
+
+      recognition.onerror = event => {
+
+        console.error(
+          "Speech recognition error:",
+          event.error
+        );
+
+        isRecording = false;
+
+        micButton.classList.remove("recording");
+
+        voiceStatus.classList.remove("active");
+
+
+        if (event.error === "not-allowed") {
+
+          voiceStatus.textContent =
+            "Разреши доступ к микрофону";
+
+        } else if (event.error === "no-speech") {
+
+          voiceStatus.textContent =
+            "Речь не распознана";
+
+        } else {
+
+          voiceStatus.textContent =
+            "Ошибка микрофона";
+
+        }
+
+      };
+
+
+      recognition.onend = () => {
+
+        isRecording = false;
+
+        micButton.classList.remove("recording");
+
+        voiceStatus.classList.remove("active");
+
+        if (
+          voiceStatus.textContent === "Слушаю..."
+        ) {
+
+          voiceStatus.textContent =
+            "Нажми на микрофон";
+
+        }
+
+      };
+
+
+      micButton.addEventListener("click", () => {
+
+        if (!recognition) {
+          return;
+        }
+
+
+        if (isRecording) {
+
+          recognition.stop();
+
+        } else {
+
+          try {
+
+            recognition.start();
+
+          } catch (error) {
+
+            console.error(error);
+
+          }
+
+        }
+
+      });
+
+    } else {
+
+      /*
+        Browser does not support SpeechRecognition.
+      */
+
+      micButton.style.opacity = "0.4";
+
+      micButton.title =
+        "Голосовой ввод не поддерживается этим браузером";
+
+      voiceStatus.textContent =
+        "Голосовой ввод недоступен";
+
+      micButton.addEventListener("click", () => {
+
+        alert(
+          "Голосовой ввод не поддерживается этим браузером. Попробуй Chrome или Edge."
+        );
+
+      });
+
+    }
+
+
+    /* =========================
+       CLEAR
+    ========================= */
+
+    clearButton.addEventListener("click", () => {
+
+      promptInput.value = "";
+
+      promptInput.focus();
+
+      errorMessage.classList.remove("show");
+
+    });
+
+
+    /* =========================
+       RATIO
+    ========================= */
+
+    function getDimensions() {
+
+      const ratio = ratioSelect.value;
+
+      const size = sizeSelect.value;
+
+
+      let base;
+
+      switch (size) {
+
+        case "small":
+          base = 768;
+          break;
+
+        case "large":
+          base = 1280;
+          break;
+
+        case "xlarge":
+          base = 1536;
+          break;
+
+        default:
+          base = 1024;
+
+      }
+
+
+      let width = base;
+      let height = base;
+
+
+      if (ratio === "16:9") {
+
+        width = base;
+        height = Math.round(base * 9 / 16);
+
+      }
+
+      else if (ratio === "9:16") {
+
+        width = Math.round(base * 9 / 16);
+        height = base;
+
+      }
+
+      else if (ratio === "4:3") {
+
+        width = base;
+        height = Math.round(base * 3 / 4);
+
+      }
+
+      else if (ratio === "3:4") {
+
+        width = Math.round(base * 3 / 4);
+        height = base;
+
+      }
+
+      else if (ratio === "4:5") {
+
+        width = Math.round(base * 4 / 5);
+        height = base;
+
+      }
+
+      else if (ratio === "5:4") {
+
+        width = base;
+        height = Math.round(base * 4 / 5);
+
+      }
+
+
+      /*
+        Keep dimensions divisible by 16.
+      */
+
+      width = Math.round(width / 16) * 16;
+      height = Math.round(height / 16) * 16;
+
+
+      return {
+        width,
+        height
+      };
+
+    }
+
+
+    function updatePreviewInfo() {
+
+      const dimensions =
+        getDimensions();
+
+      document.getElementById("previewInfo").textContent =
+        `${ratioSelect.value} · ${dimensions.width}×${dimensions.height}`;
+
+    }
+
+
+    ratioSelect.addEventListener(
+      "change",
+      updatePreviewInfo
+    );
+
+    sizeSelect.addEventListener(
+      "change",
+      updatePreviewInfo
+    );
+
+    updatePreviewInfo();
+
+
+    /* =========================
+       STYLE
+    ========================= */
+
+    function buildPrompt(originalPrompt) {
+
+      const style =
+        styleSelect.value;
+
+      if (style === "photorealistic") {
+
+        return originalPrompt +
+          ", photorealistic, highly detailed, realistic textures, natural lighting";
+
+      }
+
+      if (style === "cinematic") {
+
+        return originalPrompt +
+          ", cinematic photography, dramatic lighting, film still, realistic details, shallow depth of field";
+
+      }
+
+      if (style === "anime") {
+
+        return originalPrompt +
+          ", high quality anime artwork, detailed anime style, beautiful composition";
+
+      }
+
+      if (style === "illustration") {
+
+        return originalPrompt +
+          ", detailed digital illustration, professional artwork, beautiful composition";
+
+      }
+
+      return originalPrompt;
+
+    }
+
+
+    /* =========================
+       STATUS
+    ========================= */
+
+    function setStatus(type, text) {
+
+      status.classList.remove(
+        "generating",
+        "error"
+      );
+
+      if (type === "generating") {
+
+        status.classList.add("generating");
+
+      }
+
+      if (type === "error") {
+
+        status.classList.add("error");
+
+      }
+
+      statusText.textContent = text;
+
+    }
+
+
+    /* =========================
+       ERROR
+    ========================= */
+
+    function showError(message) {
+
+      errorMessage.textContent =
+        message;
+
+      errorMessage.classList.add("show");
+
+      setStatus(
+        "error",
+        "Ошибка"
+      );
+
+    }
+
+
+    function hideError() {
+
+      errorMessage.classList.remove(
+        "show"
+      );
+
+    }
+
+
+    /* =========================
+       GENERATE
+    ========================= */
+
+    async function generateImage() {
+
+      const rawPrompt =
+        promptInput.value.trim();
+
+
+      if (!rawPrompt) {
+
+        showError(
+          "Сначала напиши или продиктуй описание изображения."
+        );
+
+        promptInput.focus();
+
+        return;
+
+      }
+
+
+      hideError();
+
+
+      const dimensions =
+        getDimensions();
+
+
+      const quality =
+        qualitySelect.value;
+
+
+      const finalPrompt =
+        buildPrompt(rawPrompt);
+
+
+      generateButton.disabled = true;
+
+      generateButton.textContent =
+        "Создаю изображение...";
+
+
+      setStatus(
+        "generating",
+        "Генерация..."
+      );
+
+
+      preview.classList.add(
+        "generating"
+      );
+
+
+      resultImage.style.display =
+        "none";
+
+
+      previewEmpty.style.display =
+        "flex";
+
+
+      emptyIcon.style.display =
+        "none";
+
+
+      emptyTitle.textContent =
+        "Создаю изображение...";
+
+
+      emptyText.textContent =
+        "Это может занять некоторое время.";
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/generate",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+
+                prompt: finalPrompt,
+
+                model: selectedModel,
+
+                width: dimensions.width,
+
+                height: dimensions.height,
+
+                quality: quality
+
+              })
+
+            }
+          );
+
+
+        let data;
+
+        try {
+
+          data =
+            await response.json();
+
+        } catch (jsonError) {
+
+          throw new Error(
+            "Сервер вернул некорректный ответ."
+          );
+
+        }
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.error ||
+            "Ошибка генерации изображения."
+          );
+
+        }
+
+
+        if (
+          !data.success ||
+          !data.image ||
+          !data.image.data
+        ) {
+
+          throw new Error(
+            "Изображение не было получено от сервера."
+          );
+
+        }
+
+
+        /*
+          Build image from base64.
+        */
+
+        const mime =
+          data.image.mime ||
+          "image/png";
+
+
+        resultImage.src =
+          `data:${mime};base64,${data.image.data}`;
+
+
+        resultImage.onload = () => {
+
+          previewEmpty.style.display =
+            "none";
+
+          resultImage.style.display =
+            "block";
 
         };
 
 
-        return (
-            dimensions[selectedRatio]
-            ||
-            dimensions["1:1"]
+        setStatus(
+          "ready",
+          "Готово"
         );
 
-    }
 
+      } catch (error) {
 
-    /*
-    ============================================
-    STATUS
-    ============================================
-    */
-
-    function setStatus(
-        text,
-        type = "normal"
-    ) {
-
-        status.textContent =
-            text;
-
-
-        if (type === "error") {
-
-            statusDot.style.background =
-                "#ff5f5f";
-
-        } else if (type === "loading") {
-
-            statusDot.style.background =
-                "#ff9a45";
-
-        } else {
-
-            statusDot.style.background =
-                "#48d597";
-
-        }
-
-    }
-
-
-    /*
-    ============================================
-    CLEAR
-    ============================================
-    */
-
-    clearButton.addEventListener(
-        "click",
-        () => {
-
-            promptElement.value = "";
-
-            preview.className =
-                "preview empty";
-
-            preview.innerHTML = `
-                <div
-                    id="previewInfo"
-                    class="preview-info"
-                ></div>
-            `;
-
-            setStatus("Ready");
-
-            promptElement.focus();
-
-        }
-    );
-
-
-    /*
-    ============================================
-    GENERATE
-    ============================================
-    */
-
-    async function generateImage() {
-
-        const prompt =
-            promptElement.value.trim();
-
-
-        if (!prompt) {
-
-            promptElement.focus();
-
-            setStatus(
-                "Введите промпт",
-                "error"
-            );
-
-            return;
-
-        }
-
-
-        const [
-            width,
-            height
-        ] = getDimensions(
-            ratio.value,
-            size.value
+        console.error(
+          "Generation error:",
+          error
         );
 
+
+        showError(
+          error.message ||
+          "Не удалось создать изображение."
+        );
+
+
+        emptyIcon.style.display =
+          "flex";
+
+
+        emptyIcon.textContent =
+          "!" ;
+
+
+        emptyTitle.textContent =
+          "Не удалось создать изображение";
+
+
+        emptyText.textContent =
+          error.message ||
+          "Проверь настройки и попробуй ещё раз.";
+
+      } finally {
 
         generateButton.disabled =
-            true;
+          false;
 
-        loading.classList.add(
-            "show"
+        generateButton.textContent =
+          "Создать изображение";
+
+        preview.classList.remove(
+          "generating"
         );
 
-        setStatus(
-            "Генерация…",
-            "loading"
-        );
-
-
-        try {
-
-            const response =
-                await fetch(
-                    API_URL,
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body: JSON.stringify({
-
-                            prompt,
-
-                            model:
-                                selectedModel,
-
-                            width,
-
-                            height,
-
-                            quality:
-                                quality.value
-
-                        })
-
-                    }
-                );
-
-
-            const data =
-                await response
-                    .json()
-                    .catch(() => ({}));
-
-
-            if (!response.ok) {
-
-                throw new Error(
-                    data.error ||
-                    "Ошибка генерации"
-                );
-
-            }
-
-
-            if (
-                !data.image ||
-                !data.image.data
-            ) {
-
-                throw new Error(
-                    "Сервер не вернул изображение"
-                );
-
-            }
-
-
-            const mime =
-                data.image.mime ||
-                "image/png";
-
-
-            const imageSource =
-                "data:" +
-                mime +
-                ";base64," +
-                data.image.data;
-
-
-            preview.className =
-                "preview";
-
-
-            preview.innerHTML = "";
-
-
-            const image =
-                document.createElement(
-                    "img"
-                );
-
-
-            image.alt =
-                prompt;
-
-
-            image.src =
-                imageSource;
-
-
-            preview.appendChild(
-                image
-            );
-
-
-            const info =
-                document.createElement(
-                    "div"
-                );
-
-
-            info.className =
-                "preview-info";
-
-
-            info.style.display =
-                "block";
-
-
-            info.textContent =
-                `${data.modelName || "AI"} · ${width}×${height}`;
-
-
-            preview.appendChild(
-                info
-            );
-
-
-            setStatus(
-                "Готово"
-            );
-
-
-        } catch (error) {
-
-            console.error(
-                "Generation error:",
-                error
-            );
-
-
-            setStatus(
-                "Ошибка",
-                "error"
-            );
-
-
-            alert(
-                error.message ||
-                "Не удалось создать изображение"
-            );
-
-        } finally {
-
-            generateButton.disabled =
-                false;
-
-            loading.classList.remove(
-                "show"
-            );
-
-        }
+      }
 
     }
 
 
+    /* =========================
+       GENERATE BUTTON
+    ========================= */
+
     generateButton.addEventListener(
-        "click",
-        generateImage
+      "click",
+      generateImage
     );
 
 
-    /*
-    ============================================
-    CTRL + ENTER
-    ============================================
-    */
+    /* =========================
+       CTRL + ENTER
+    ========================= */
 
-    promptElement.addEventListener(
-        "keydown",
-        event => {
+    promptInput.addEventListener(
+      "keydown",
+      event => {
 
-            if (
-                (event.ctrlKey ||
-                 event.metaKey) &&
-                event.key === "Enter"
-            ) {
+        if (
+          event.ctrlKey &&
+          event.key === "Enter"
+        ) {
 
-                event.preventDefault();
+          event.preventDefault();
 
-                generateImage();
-
-            }
+          generateImage();
 
         }
+
+      }
     );
 
-</script>
+
+    /* =========================
+       FOCUS
+    ========================= */
+
+    promptInput.addEventListener(
+      "input",
+      () => {
+
+        if (
+          errorMessage.classList.contains(
+            "show"
+          )
+        ) {
+
+          hideError();
+
+        }
+
+      }
+    );
+
+
+  </script>
 
 </body>
 </html>
