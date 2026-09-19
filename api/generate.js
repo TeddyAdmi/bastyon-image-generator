@@ -42,35 +42,33 @@ export default async function handler(req, res) {
             });
         }
 
-        // Формируем детальный промпт на английском/русском с акцентом на всех участников сцены
-        const detailedPrompt = `${userPrompt}, full shot, wide angle, all mentioned subjects clearly visible together in the frame, high quality`;
+        // Отправляем чистый запрос POST на официальный бесплатный эндпоинт генерации
+        const apiUrl = 'https://image.pollinations.ai/prompt';
 
-        const width = 1024;
-        const height = 1024;
-        const seed = Math.floor(Math.random() * 999999999);
-        
-        const encodedPrompt = encodeURIComponent(detailedPrompt);
-        
-        // Используем параметры для уменьшения эффекта «отсебятины»
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=false&model=flux`;
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                prompt: userPrompt,
+                width: 1024,
+                height: 1024,
+                nologo: true,
+                enhance: false
+            })
+        });
 
-        console.log(`FIXED FREE URL: ${imageUrl}`);
-
-        const imageResponse = await fetch(imageUrl);
-
-        if (!imageResponse.ok) {
-            if (imageResponse.status === 429) {
-                return res.status(429).json({
-                    error: 'Слишком много запросов (ошибка 429). Подождите 1 минуту.'
-                });
-            }
-            throw new Error(`Failed to generate image from public API: ${imageResponse.status}`);
+        if (!response.ok) {
+            return res.status(response.status).json({
+                error: `Failed to generate image from public API: ${response.status}`
+            });
         }
 
-        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+        const contentType = response.headers.get('content-type') || 'image/jpeg';
         const mimeType = contentType.split(';')[0];
 
-        const arrayBuffer = await imageResponse.arrayBuffer();
+        const arrayBuffer = await response.arrayBuffer();
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
         if (!base64Data) {
