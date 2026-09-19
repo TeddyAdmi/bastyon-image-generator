@@ -58,10 +58,10 @@
 
 <div class="app">
     <div class="title">AI Generator</div>
-    <div class="subtitle">Генерация изображений с защитой от таймаутов</div>
+    <div class="subtitle">Бесплатная генерация изображений</div>
 
     <div class="input-group">
-        <textarea id="promptInput" placeholder="Введите промпт для генерации изображения...">A futuristic cyberpunk city with neon lights, highly detailed, 4k</textarea>
+        <textarea id="promptInput" placeholder="Введите промпт для генерации изображения...">A cute cat in a cyberpunk city</textarea>
         <button id="generateBtn" class="btn" onclick="startGeneration()">Сгенерировать</button>
     </div>
 
@@ -90,34 +90,6 @@ async function initBastyon() {
     }
 }
 
-// Функция запроса с автоматическим повтором
-async function fetchWithRetry(url, options = {}, retries = 3, delay = 3000) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const controller = new AbortController();
-            // Выделяем до 120 секунд на каждую попытку
-            const timeoutId = setTimeout(() => controller.abort(), 120000);
-            
-            options.signal = controller.signal;
-            const response = await fetch(url, options);
-            clearTimeout(timeoutId);
-
-            // Если шлюз вернул ошибку, пробуем повторить
-            if (response.status === 524 || response.status === 504 || response.status === 502) {
-                throw new Error(`Server gateway error: ${response.status}`);
-            }
-
-            return response;
-        } catch (err) {
-            console.warn(`Попытка ${i + 1} из ${retries} не удалась:`, err.message);
-            if (i === retries - 1) throw err;
-            
-            document.getElementById("status").textContent = `⚠️ Повторная попытка (${i + 2}/${retries})...`;
-            await new Promise(resolve => setTimeout(resolve, delay * Math.pow(1.5, i)));
-        }
-    }
-}
-
 // Запуск процесса генерации
 async function startGeneration() {
     const promptText = document.getElementById("promptInput").value.trim();
@@ -133,10 +105,10 @@ async function startGeneration() {
 
     btn.disabled = true;
     resultContainer.style.display = "none";
-    statusEl.textContent = "⏳ Отправка запроса на генерацию...";
+    statusEl.textContent = "⏳ Генерация изображения (подождите)...";
 
     try {
-        const response = await fetchWithRetry('https://bastyon-image-generator.vercel.app/api/generate', {
+        const response = await fetch('https://bastyon-image-generator.vercel.app/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: promptText })
@@ -145,8 +117,11 @@ async function startGeneration() {
         const data = await response.json();
         console.log("Ответ от API:", data);
 
-        if (data.error) {
-            throw new Error(data.error);
+        if (!response.ok || data.error) {
+            if (response.status === 429) {
+                throw new Error("Слишком много запросов (ошибка 429). Сервер временно перегружен, подождите 1-2 минуты.");
+            }
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
         }
 
         const candidate = data?.candidates?.[0];
@@ -156,7 +131,7 @@ async function startGeneration() {
             throw new Error("Не удалось найти данные изображения в ответе сервера.");
         }
 
-        const mimeType = inlineData.mime_type || 'image/png';
+        const mimeType = inlineData.mime_type || 'image/jpeg';
         const base64String = inlineData.data;
 
         resultImage.src = `data:${mimeType};base64,${base64String}`;
@@ -165,9 +140,12 @@ async function startGeneration() {
 
     } catch (err) {
         console.error("Критическая ошибка генерации:", err);
-        statusEl.textContent = "❌ Ошибка: " + err.message;
+        statusEl.textContent = "❌ " + err.message;
     } finally {
-        btn.disabled = false;
+        // Защита от спама кнопкой: задержка 5 секунд перед повторным нажатием
+        setTimeout(() => {
+            btn.disabled = false;
+        }, 5000);
     }
 }
 
