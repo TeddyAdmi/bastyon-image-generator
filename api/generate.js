@@ -42,33 +42,35 @@ export default async function handler(req, res) {
             });
         }
 
-        // Отправляем чистый запрос POST на официальный бесплатный эндпоинт генерации
-        const apiUrl = 'https://image.pollinations.ai/prompt';
+        const width = 1024;
+        const height = 1024;
+        const seed = Math.floor(Math.random() * 999999999);
+        
+        // Кодируем промпт пользователя для безопасной передачи в URL
+        const encodedPrompt = encodeURIComponent(userPrompt);
+        
+        // Используем бесплатную модель nanobanana через публичный эндпоинт Pollinations
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=false&model=nanobanana`;
 
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                prompt: userPrompt,
-                width: 1024,
-                height: 1024,
-                nologo: true,
-                enhance: false
-            })
-        });
+        console.log(`NANOBANANA GENERATION URL: ${imageUrl}`);
 
-        if (!response.ok) {
-            return res.status(response.status).json({
-                error: `Failed to generate image from public API: ${response.status}`
+        const imageResponse = await fetch(imageUrl);
+
+        if (!imageResponse.ok) {
+            if (imageResponse.status === 429) {
+                return res.status(429).json({
+                    error: 'Слишком много запросов (ошибка 429). Подождите 1 минуту.'
+                });
+            }
+            return res.status(imageResponse.status).json({
+                error: `Failed to generate image from public API: ${imageResponse.status}`
             });
         }
 
-        const contentType = response.headers.get('content-type') || 'image/jpeg';
+        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
         const mimeType = contentType.split(';')[0];
 
-        const arrayBuffer = await response.arrayBuffer();
+        const arrayBuffer = await imageResponse.arrayBuffer();
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
         if (!base64Data) {
