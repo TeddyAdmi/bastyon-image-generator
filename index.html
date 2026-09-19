@@ -113,12 +113,15 @@
       height: 7px;
       border-radius: 50%;
       background: #35d07f;
-      box-shadow: 0 0 10px rgba(53, 208, 127, 0.7);
+      box-shadow:
+        0 0 10px rgba(53, 208, 127, 0.7);
     }
 
     .main {
       display: grid;
-      grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+      grid-template-columns:
+        minmax(0, 1.3fr)
+        minmax(300px, 0.7fr);
       gap: 18px;
     }
 
@@ -347,7 +350,8 @@
       background: rgba(112, 93, 243, 0.12);
       color: #ffffff;
       box-shadow:
-        inset 0 0 0 1px rgba(112, 93, 243, 0.18);
+        inset 0 0 0 1px
+        rgba(112, 93, 243, 0.18);
     }
 
     .model-name {
@@ -405,14 +409,16 @@
       font-size: 15px;
       font-weight: 750;
       box-shadow:
-        0 12px 30px rgba(112, 93, 243, 0.22);
+        0 12px 30px
+        rgba(112, 93, 243, 0.22);
       transition: 0.2s;
     }
 
     .generate-button:hover {
       transform: translateY(-1px);
       box-shadow:
-        0 15px 34px rgba(112, 93, 243, 0.3);
+        0 15px 34px
+        rgba(112, 93, 243, 0.3);
     }
 
     .generate-button:disabled {
@@ -483,6 +489,7 @@
     }
 
     @media (max-width: 850px) {
+
       .main {
         grid-template-columns: 1fr;
       }
@@ -501,6 +508,7 @@
     }
 
     @media (max-width: 520px) {
+
       .app {
         padding: 11px;
       }
@@ -571,6 +579,7 @@
         </div>
 
         <div>
+
           <div class="brand-title">
             Bastyon AI Image Generator
           </div>
@@ -578,23 +587,25 @@
           <div class="brand-subtitle">
             Free community image generation
           </div>
+
         </div>
 
       </div>
 
       <div class="status">
+
         <span class="status-dot"></span>
+
         <span id="statusText">
           Готов
         </span>
+
       </div>
 
     </header>
 
 
     <main class="main">
-
-      <!-- PREVIEW -->
 
       <section class="panel preview">
 
@@ -645,8 +656,7 @@
               class="loading-info"
               id="loadingInfo"
             >
-              Задача отправлена в AI Horde.
-              Ожидаем свободный сервер.
+              Подключаемся к AI Horde.
             </div>
 
           </div>
@@ -656,11 +666,7 @@
       </section>
 
 
-      <!-- CONTROLS -->
-
       <section class="panel controls">
-
-        <!-- PROMPT -->
 
         <div class="section">
 
@@ -694,8 +700,6 @@
         </div>
 
 
-        <!-- MODELS -->
-
         <div class="section">
 
           <div class="section-title">
@@ -709,6 +713,7 @@
               data-model="flux"
               type="button"
             >
+
               <div class="model-name">
                 FLUX
               </div>
@@ -716,6 +721,7 @@
               <div class="model-description">
                 Универсальная
               </div>
+
             </button>
 
 
@@ -724,6 +730,7 @@
               data-model="gpt-image-2"
               type="button"
             >
+
               <div class="model-name">
                 GPT Image
               </div>
@@ -731,6 +738,7 @@
               <div class="model-description">
                 Детальная
               </div>
+
             </button>
 
 
@@ -739,6 +747,7 @@
               data-model="zimage"
               type="button"
             >
+
               <div class="model-name">
                 Z-Image
               </div>
@@ -746,6 +755,7 @@
               <div class="model-description">
                 Реализм
               </div>
+
             </button>
 
 
@@ -754,6 +764,7 @@
               data-model="dream"
               type="button"
             >
+
               <div class="model-name">
                 Dream
               </div>
@@ -761,6 +772,7 @@
               <div class="model-description">
                 Арт
               </div>
+
             </button>
 
 
@@ -769,6 +781,7 @@
               data-model="seedream"
               type="button"
             >
+
               <div class="model-name">
                 Seedream
               </div>
@@ -776,6 +789,7 @@
               <div class="model-description">
                 Креатив
               </div>
+
             </button>
 
 
@@ -784,6 +798,7 @@
               data-model="qwen"
               type="button"
             >
+
               <div class="model-name">
                 Qwen Image
               </div>
@@ -791,14 +806,13 @@
               <div class="model-description">
                 Текст и детали
               </div>
+
             </button>
 
           </div>
 
         </div>
 
-
-        <!-- RATIO -->
 
         <div class="section">
 
@@ -872,8 +886,6 @@
         </div>
 
 
-        <!-- SIZE -->
-
         <div class="section">
 
           <div class="section-title">
@@ -922,8 +934,6 @@
         </div>
 
 
-        <!-- QUALITY -->
-
         <div class="section">
 
           <div class="section-title">
@@ -964,8 +974,6 @@
         </div>
 
 
-        <!-- GENERATE -->
-
         <div class="section">
 
           <button
@@ -983,6 +991,7 @@
               class="language-select"
               id="language"
             >
+
               <option value="ru">
                 Русский
               </option>
@@ -990,6 +999,7 @@
               <option value="en">
                 English
               </option>
+
             </select>
 
 
@@ -1027,10 +1037,6 @@
 
 
   <script>
-
-    /* =========================
-       ELEMENTS
-    ========================= */
 
     const promptInput =
       document.getElementById("prompt");
@@ -1087,10 +1093,6 @@
       );
 
 
-    /* =========================
-       STATE
-    ========================= */
-
     let selectedModel =
       "flux";
 
@@ -1109,10 +1111,9 @@
     let isRecording =
       false;
 
+    let isGenerating =
+      false;
 
-    /* =========================
-       DIMENSIONS
-    ========================= */
 
     function getDimensions(
       ratio,
@@ -1132,6 +1133,7 @@
         !rw ||
         !rh
       ) {
+
         return {
           width: size,
           height: size
@@ -1141,7 +1143,9 @@
       let width;
       let height;
 
-      if (rw >= rh) {
+      if (
+        rw >= rh
+      ) {
 
         width =
           size;
@@ -1162,21 +1166,20 @@
           );
       }
 
-      /*
-        AI Horde / SDXL models work better
-        when dimensions are reasonably aligned.
-      */
-
       width =
         Math.max(
           512,
-          Math.round(width / 64) * 64
+          Math.round(
+            width / 64
+          ) * 64
         );
 
       height =
         Math.max(
           512,
-          Math.round(height / 64) * 64
+          Math.round(
+            height / 64
+          ) * 64
         );
 
       return {
@@ -1186,13 +1189,10 @@
     }
 
 
-    /* =========================
-       UI HELPERS
-    ========================= */
-
     function setStatus(
       text
     ) {
+
       statusText.textContent =
         text;
     }
@@ -1229,10 +1229,12 @@
         "flex";
 
       loadingTitle.textContent =
-        title || "Генерация изображения...";
+        title ||
+        "Генерация изображения...";
 
       loadingInfo.textContent =
-        info || "";
+        info ||
+        "";
 
       generateButton.disabled =
         true;
@@ -1253,12 +1255,10 @@
     }
 
 
-    /* =========================
-       OPTION BUTTONS
-    ========================= */
-
     document
-      .querySelectorAll(".model-card")
+      .querySelectorAll(
+        ".model-card"
+      )
       .forEach(
         button => {
 
@@ -1397,10 +1397,6 @@
       );
 
 
-    /* =========================
-       PARSE RESPONSE
-    ========================= */
-
     async function readJson(
       response
     ) {
@@ -1423,40 +1419,48 @@
         );
       }
 
-      if (!response.ok) {
 
-        throw new Error(
-          data.error ||
-          data.message ||
-          `HTTP ${response.status}`
-        );
+      if (
+        !response.ok
+      ) {
+
+        const error =
+          new Error(
+            data.error ||
+            data.message ||
+            `HTTP ${response.status}`
+          );
+
+        error.status =
+          response.status;
+
+        error.retryAfter =
+          data.retryAfter ||
+          null;
+
+        throw error;
       }
+
 
       return data;
     }
 
 
-    /* =========================
-       IMAGE URL
-    ========================= */
-
     function normalizeImage(
       image
     ) {
 
-      if (!image) {
+      if (
+        !image
+      ) {
+
         return null;
       }
 
-      /*
-        AI Horde can return:
-        1. https://...
-        2. data:image/png;base64,...
-        3. plain base64
-      */
 
       if (
-        typeof image === "string"
+        typeof image ===
+        "string"
       ) {
 
         if (
@@ -1474,19 +1478,17 @@
           return image;
         }
 
+
         return (
           "data:image/png;base64," +
           image
         );
       }
 
+
       return null;
     }
 
-
-    /* =========================
-       WAIT
-    ========================= */
 
     function sleep(
       ms
@@ -1502,9 +1504,20 @@
     }
 
 
-    /* =========================
-       POLL AI HORDE
-    ========================= */
+    /*
+      AI HORDE RATE LIMIT
+
+      Не делаем запросы каждые 3 секунды.
+
+      Первая проверка:
+      5 секунд.
+
+      Далее:
+      8 секунд.
+
+      Если Horde отвечает 429:
+      ждём 12 секунд и пробуем снова.
+    */
 
     async function waitForResult(
       taskId
@@ -1516,28 +1529,128 @@
       const timeout =
         5 * 60 * 1000;
 
+      let firstCheck =
+        true;
+
       while (
         Date.now() -
         started <
         timeout
       ) {
 
-        const response =
-          await fetch(
-            "/api/status?id=" +
-            encodeURIComponent(
-              taskId
-            ),
-            {
-              method: "GET",
-              cache: "no-store"
-            }
+        if (
+          firstCheck
+        ) {
+
+          firstCheck =
+            false;
+
+          await sleep(
+            5000
           );
 
-        const data =
-          await readJson(
-            response
+        } else {
+
+          await sleep(
+            8000
           );
+        }
+
+
+        let response;
+
+        try {
+
+          response =
+            await fetch(
+              "/api/status?id=" +
+              encodeURIComponent(
+                taskId
+              ),
+              {
+                method: "GET",
+                cache: "no-store"
+              }
+            );
+
+        } catch (
+          error
+        ) {
+
+          console.error(
+            "Status request error:",
+            error
+          );
+
+          loadingTitle.textContent =
+            "Ошибка соединения...";
+
+          loadingInfo.textContent =
+            "Повторяем попытку.";
+
+          await sleep(
+            10000
+          );
+
+          continue;
+        }
+
+
+        /*
+          ВАЖНО:
+
+          429 больше не считается
+          окончательной ошибкой.
+        */
+
+        if (
+          response.status === 429
+        ) {
+
+          console.warn(
+            "AI Horde rate limit. Waiting..."
+          );
+
+          loadingTitle.textContent =
+            "Слишком много запросов...";
+
+          loadingInfo.textContent =
+            "Ждём ограничения AI Horde и продолжаем.";
+
+          await sleep(
+            12000
+          );
+
+          continue;
+        }
+
+
+        let data;
+
+        try {
+
+          data =
+            await readJson(
+              response
+            );
+
+        } catch (
+          error
+        ) {
+
+          console.error(
+            "Status error:",
+            error
+          );
+
+          throw error;
+        }
+
+
+        console.log(
+          "AI Horde status:",
+          data
+        );
 
 
         if (
@@ -1549,7 +1662,10 @@
               data.image
             );
 
-          if (!image) {
+
+          if (
+            !image
+          ) {
 
             throw new Error(
               "AI Horde завершил задачу, " +
@@ -1557,10 +1673,12 @@
             );
           }
 
+
           return {
             image,
             seed:
-              data.seed || null
+              data.seed ||
+              null
           };
         }
 
@@ -1579,6 +1697,7 @@
           Number(
             data.finished
           ) || 0;
+
 
         if (
           queue > 0
@@ -1599,7 +1718,7 @@
             "Изображение создаётся...";
 
           loadingInfo.textContent =
-            "Сейчас обрабатывается: " +
+            "Активных задач: " +
             processing;
 
         } else if (
@@ -1610,7 +1729,7 @@
             "Почти готово...";
 
           loadingInfo.textContent =
-            "Сервер завершает обработку.";
+            "Получаем результат.";
 
         } else {
 
@@ -1621,31 +1740,34 @@
             "AI Horde ищет доступного генератора.";
         }
 
-
-        await sleep(
-          3000
-        );
       }
 
 
       throw new Error(
-        "Превышено время ожидания. " +
-        "AI Horde сейчас сильно загружен. " +
+        "Время ожидания истекло. " +
+        "AI Horde сейчас перегружен. " +
         "Попробуйте ещё раз."
       );
     }
 
 
-    /* =========================
-       GENERATE IMAGE
-    ========================= */
-
     async function generateImage() {
+
+      if (
+        isGenerating
+      ) {
+
+        return;
+      }
+
 
       const prompt =
         promptInput.value.trim();
 
-      if (!prompt) {
+
+      if (
+        !prompt
+      ) {
 
         showError(
           "Введите описание изображения."
@@ -1655,6 +1777,10 @@
 
         return;
       }
+
+
+      isGenerating =
+        true;
 
 
       hideError();
@@ -1687,7 +1813,6 @@
 
         /*
           STEP 1
-          Создаём задачу
         */
 
         const response =
@@ -1705,7 +1830,6 @@
                 JSON.stringify({
 
                   prompt:
-
                     prompt,
 
                   model:
@@ -1722,6 +1846,7 @@
 
                   ratio:
                     selectedRatio
+
                 })
             }
           );
@@ -1755,9 +1880,14 @@
           data.id;
 
 
+        console.log(
+          "AI Horde task:",
+          taskId
+        );
+
+
         /*
           STEP 2
-          Ждём результат
         */
 
         const result =
@@ -1768,7 +1898,6 @@
 
         /*
           STEP 3
-          Показываем изображение
         */
 
         resultImage.onload =
@@ -1785,7 +1914,6 @@
             setStatus(
               "Готово"
             );
-
           };
 
 
@@ -1808,10 +1936,6 @@
         resultImage.src =
           result.image;
 
-
-        /*
-          Download
-        */
 
         downloadButton.href =
           result.image;
@@ -1841,13 +1965,14 @@
           error.message ||
           "Ошибка генерации изображения."
         );
+
+      } finally {
+
+        isGenerating =
+          false;
       }
     }
 
-
-    /* =========================
-       GENERATE BUTTON
-    ========================= */
 
     generateButton.addEventListener(
       "click",
@@ -1855,18 +1980,16 @@
     );
 
 
-    /* =========================
-       CTRL + ENTER
-    ========================= */
-
     promptInput.addEventListener(
       "keydown",
       event => {
 
         if (
           event.key === "Enter" &&
-          (event.ctrlKey ||
-            event.metaKey)
+          (
+            event.ctrlKey ||
+            event.metaKey
+          )
         ) {
 
           event.preventDefault();
@@ -1876,10 +1999,6 @@
       }
     );
 
-
-    /* =========================
-       MICROPHONE
-    ========================= */
 
     function setupSpeechRecognition() {
 
@@ -1891,9 +2010,6 @@
       if (
         !SpeechRecognition
       ) {
-
-        micButton.disabled =
-          false;
 
         micStatus.textContent =
           "Голосовой ввод лучше работает в Chrome или Edge.";
@@ -1911,7 +2027,6 @@
 
       recognition.interimResults =
         true;
-
 
       recognition.lang =
         "ru-RU";
@@ -1939,8 +2054,12 @@
             "";
 
           for (
-            let i = event.resultIndex;
-            i < event.results.length;
+            let i =
+              event.resultIndex;
+
+            i <
+              event.results.length;
+
             i++
           ) {
 
@@ -2001,10 +2120,6 @@
       "click",
       async () => {
 
-        /*
-          Check microphone permission
-        */
-
         try {
 
           if (
@@ -2018,6 +2133,7 @@
                   audio: true
                 }
               );
+
 
             stream
               .getTracks()
@@ -2091,10 +2207,6 @@
       }
     );
 
-
-    /* =========================
-       INITIAL
-    ========================= */
 
     setStatus(
       "Готов"
