@@ -1,4 +1,4 @@
-export const maxDuration = 60; // Увеличение лимита времени выполнения для Vercel
+export const maxDuration = 60;
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -50,13 +50,10 @@ export default async function handler(req, res) {
             });
         }
 
-        // Заменили тяжелую gpt-image-2 на стабильную быстрый Flux
         const model = String(body?.model || 'black-forest-labs/flux.2-flex');
         const size = String(body?.size || '1024x1024');
         const quality = String(body?.quality || 'high');
         const transparent = body?.transparent === true;
-
-        console.log(`MODEL SELECTED: ${model}`);
 
         const allowedModels = [
             'openai/gpt-image-2',
@@ -133,16 +130,6 @@ High visual quality.
             response_format: 'url'
         };
 
-        if (
-            transparent &&
-            (
-                model === 'openai/gpt-image-2' ||
-                model === 'openai/gpt-image-1.5'
-            )
-        ) {
-            requestBody.transparent = true;
-        }
-
         const response = await fetch(
             apiUrl,
             {
@@ -177,8 +164,9 @@ High visual quality.
                 status: response.status
             }));
 
-            return res.status(502).json({
-                error: `Image provider error: ${errorMessage}`
+            // Пробрасываем точный статус и ошибку провайдера (например, 402 при нехватке баланса)
+            return res.status(response.status).json({
+                error: typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage)
             });
         }
 
