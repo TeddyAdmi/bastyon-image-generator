@@ -2,15 +2,17 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0b0b0f">
 
-  <title>AI Image Generator</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Bastyon AI Image Generator</title>
 
   <style>
     * {
       box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
     }
 
     html,
@@ -18,9 +20,15 @@
       margin: 0;
       padding: 0;
       min-height: 100%;
-      background: #0b0b0f;
-      color: #f5f5f7;
-      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #0b0d12;
+      color: #ffffff;
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
     }
 
     body {
@@ -39,20 +47,17 @@
 
     .app {
       width: 100%;
-      max-width: 1500px;
-      min-height: 100vh;
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 16px;
+      padding: 18px;
     }
-
-    /* HEADER */
 
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
 
     .brand {
@@ -68,21 +73,27 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #fff, #777);
-      color: #08080b;
-      font-size: 19px;
+      background: linear-gradient(
+        135deg,
+        #6d5dfc,
+        #a855f7
+      );
+      font-size: 21px;
       font-weight: 800;
+      box-shadow:
+        0 8px 30px rgba(124, 92, 255, 0.25);
     }
 
     .brand-title {
-      font-size: 17px;
+      font-size: 18px;
       font-weight: 750;
+      letter-spacing: -0.3px;
     }
 
     .brand-subtitle {
       margin-top: 2px;
-      color: #85858e;
-      font-size: 11px;
+      color: #858b9b;
+      font-size: 12px;
     }
 
     .status {
@@ -90,147 +101,122 @@
       align-items: center;
       gap: 7px;
       padding: 8px 11px;
-      border: 1px solid #25252d;
       border-radius: 999px;
-      background: #111116;
-      color: #aaaab3;
-      font-size: 11px;
+      background: #151821;
+      color: #aeb4c4;
+      font-size: 12px;
+      white-space: nowrap;
     }
 
     .status-dot {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #61d394;
+      background: #35d07f;
+      box-shadow: 0 0 10px rgba(53, 208, 127, 0.7);
     }
 
-    .status.recording .status-dot {
-      background: #ff6573;
-      box-shadow: 0 0 10px rgba(255,101,115,.6);
-    }
-
-    .status.generating .status-dot {
-      background: #ffd166;
-    }
-
-    .status.error .status-dot {
-      background: #ff6262;
-    }
-
-    /* LAYOUT */
-
-    .workspace {
+    .main {
       display: grid;
-      grid-template-columns: minmax(0, 1.25fr) minmax(350px, .75fr);
-      gap: 16px;
+      grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+      gap: 18px;
     }
 
     .panel {
-      border: 1px solid #24242c;
+      background: #11141b;
+      border: 1px solid #20242f;
       border-radius: 20px;
-      background: #111116;
       overflow: hidden;
     }
 
-    /* PREVIEW */
-
-    .preview-panel {
-      min-height: 650px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .preview-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 17px;
-      border-bottom: 1px solid #24242c;
-    }
-
-    .section-title {
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .preview-info {
-      color: #777780;
-      font-size: 11px;
-    }
-
     .preview {
-      flex: 1;
-      min-height: 580px;
-      padding: 20px;
+      min-height: 560px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background:
-        radial-gradient(circle at center, rgba(255,255,255,.025), transparent 60%),
-        #0d0d12;
+      padding: 18px;
     }
 
-    .preview-empty {
-      width: min(100%, 620px);
-      aspect-ratio: 1 / 1;
-      max-height: 560px;
-      border: 1px dashed #303039;
-      border-radius: 18px;
+    .preview-inner {
+      position: relative;
+      width: 100%;
+      min-height: 520px;
+      border-radius: 16px;
+      overflow: hidden;
+      background:
+        radial-gradient(
+          circle at 50% 40%,
+          #1a1e29 0%,
+          #0c0f15 70%
+        );
+      border: 1px solid #202530;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 9px;
+    }
+
+    .preview-placeholder {
       padding: 30px;
       text-align: center;
-      color: #686871;
+      color: #747b8b;
     }
 
-    .preview-icon {
-      width: 58px;
-      height: 58px;
-      border-radius: 17px;
+    .preview-placeholder-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 14px;
+      border-radius: 18px;
+      background: #181c25;
+      border: 1px solid #272c37;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 5px;
-      background: #17171d;
-      font-size: 25px;
+      font-size: 28px;
     }
 
-    .preview-empty strong {
-      color: #a6a6ae;
-      font-size: 14px;
+    .preview-placeholder-title {
+      color: #c9ced9;
+      font-size: 16px;
+      font-weight: 650;
+      margin-bottom: 6px;
     }
 
-    .preview-empty span {
-      max-width: 320px;
-      font-size: 12px;
+    .preview-placeholder-text {
+      max-width: 360px;
+      margin: 0 auto;
       line-height: 1.5;
+      font-size: 13px;
     }
 
-    .result-image {
+    #resultImage {
       display: none;
-      max-width: 100%;
-      max-height: 570px;
-      border-radius: 16px;
+      width: 100%;
+      height: 100%;
+      max-height: 520px;
       object-fit: contain;
-      box-shadow: 0 25px 80px rgba(0,0,0,.45);
+      border-radius: 14px;
+    }
+
+    .preview-loading {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background: rgba(7, 9, 13, 0.82);
+      backdrop-filter: blur(7px);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 14px;
     }
 
     .spinner {
-      display: none;
-      width: 32px;
-      height: 32px;
-      margin-bottom: 10px;
-      border: 3px solid #33333b;
-      border-top-color: #fff;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-
-    .loading .spinner {
-      display: block;
+      border: 3px solid #292e3a;
+      border-top-color: #8b6cff;
+      animation: spin 0.8s linear infinite;
     }
 
     @keyframes spin {
@@ -239,32 +225,38 @@
       }
     }
 
-    /* CONTROLS */
+    .loading-title {
+      font-size: 15px;
+      font-weight: 650;
+    }
+
+    .loading-info {
+      color: #8e95a5;
+      font-size: 12px;
+      text-align: center;
+      max-width: 300px;
+    }
 
     .controls {
       padding: 18px;
     }
 
     .section {
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
-    .label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title {
       margin-bottom: 9px;
-      color: #d0d0d6;
+      color: #9ca3b3;
       font-size: 12px;
       font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
     }
-
-    .label small {
-      color: #686871;
-      font-weight: 400;
-    }
-
-    /* PROMPT */
 
     .prompt-wrap {
       position: relative;
@@ -272,124 +264,62 @@
 
     textarea {
       width: 100%;
-      min-height: 135px;
+      min-height: 120px;
       resize: vertical;
-      padding: 15px 58px 44px 15px;
-      border: 1px solid #2b2b34;
-      border-radius: 15px;
+      border: 1px solid #292e3a;
+      border-radius: 14px;
+      background: #0d1016;
+      color: #ffffff;
       outline: none;
-      background: #0d0d12;
-      color: #f4f4f6;
-      font-size: 14px;
+      padding: 14px 52px 14px 14px;
       line-height: 1.5;
-    }
-
-    textarea::placeholder {
-      color: #5e5e67;
+      font-size: 14px;
+      transition: 0.2s;
     }
 
     textarea:focus {
-      border-color: #55555f;
+      border-color: #6754e8;
+      box-shadow:
+        0 0 0 3px rgba(103, 84, 232, 0.12);
     }
 
-    /* MICROPHONE */
+    textarea::placeholder {
+      color: #5f6675;
+    }
 
     .mic-button {
       position: absolute;
       right: 10px;
-      bottom: 10px;
-
-      width: 40px;
-      height: 40px;
-
+      top: 10px;
+      width: 34px;
+      height: 34px;
+      border: 1px solid #292e3a;
+      border-radius: 10px;
+      background: #171b24;
+      color: #b7bdca;
       display: flex;
       align-items: center;
       justify-content: center;
-
-      border: 1px solid #34343d;
-      border-radius: 12px;
-
-      background: #19191f;
-      color: #d3d3d9;
-
-      transition: .2s;
+      transition: 0.2s;
     }
 
     .mic-button:hover {
-      background: #24242b;
-      color: #fff;
+      background: #202531;
+      color: #ffffff;
     }
 
     .mic-button.recording {
-      background: #39181e;
-      border-color: #9a414d;
-      color: #ff7180;
-      animation: pulse 1.2s infinite;
+      background: #47212a;
+      border-color: #8b394a;
+      color: #ff7d91;
     }
 
-    .mic-button svg {
-      width: 19px;
-      height: 19px;
+    .mic-status {
+      min-height: 17px;
+      margin-top: 6px;
+      color: #737b8b;
+      font-size: 11px;
     }
-
-    @keyframes pulse {
-      50% {
-        box-shadow: 0 0 0 7px rgba(255,90,105,.08);
-      }
-    }
-
-    .voice-status {
-      position: absolute;
-      left: 14px;
-      bottom: 14px;
-      max-width: calc(100% - 70px);
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      color: #66666f;
-      font-size: 10px;
-      pointer-events: none;
-    }
-
-    .voice-status.active {
-      color: #ff7180;
-    }
-
-    /* BUTTONS */
-
-    .action-row {
-      display: flex;
-      gap: 9px;
-      margin-top: 9px;
-    }
-
-    .clear {
-      width: 46px;
-      flex: 0 0 46px;
-      border: 1px solid #292930;
-      border-radius: 13px;
-      background: #15151b;
-      color: #9999a1;
-      font-size: 19px;
-    }
-
-    .generate {
-      flex: 1;
-      min-height: 48px;
-      border: 0;
-      border-radius: 13px;
-      background: #f2f2f4;
-      color: #09090c;
-      font-size: 14px;
-      font-weight: 750;
-    }
-
-    .generate:disabled {
-      opacity: .45;
-      cursor: not-allowed;
-    }
-
-    /* MODELS */
 
     .models {
       display: grid;
@@ -397,151 +327,232 @@
       gap: 8px;
     }
 
-    .model {
-      padding: 12px;
-      border: 1px solid #292930;
+    .model-card {
+      min-height: 48px;
+      padding: 9px 10px;
+      border: 1px solid #292e3a;
       border-radius: 12px;
-      background: #0e0e13;
-      color: #9999a2;
+      background: #0d1016;
+      color: #aeb4c1;
       text-align: left;
+      transition: 0.2s;
     }
 
-    .model:hover {
-      border-color: #45454f;
+    .model-card:hover {
+      border-color: #444b5b;
     }
 
-    .model.active {
-      border-color: #777780;
-      background: #19191f;
-      color: #fff;
+    .model-card.active {
+      border-color: #705df3;
+      background: rgba(112, 93, 243, 0.12);
+      color: #ffffff;
+      box-shadow:
+        inset 0 0 0 1px rgba(112, 93, 243, 0.18);
     }
 
     .model-name {
-      display: block;
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 700;
     }
 
     .model-description {
-      display: block;
-      margin-top: 4px;
-      color: #66666f;
-      font-size: 9px;
+      margin-top: 3px;
+      color: #727a8b;
+      font-size: 10px;
     }
 
-    /* OPTIONS */
+    .model-card.active .model-description {
+      color: #9e96d9;
+    }
 
-    .options {
+    .options-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 9px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
     }
 
-    .select-wrap {
-      position: relative;
+    .option-button {
+      min-height: 42px;
+      padding: 8px;
+      border-radius: 11px;
+      border: 1px solid #292e3a;
+      background: #0d1016;
+      color: #aeb4c1;
+      transition: 0.2s;
     }
 
-    select {
+    .option-button:hover {
+      border-color: #444b5b;
+    }
+
+    .option-button.active {
+      border-color: #705df3;
+      background: rgba(112, 93, 243, 0.12);
+      color: #ffffff;
+    }
+
+    .generate-button {
       width: 100%;
-      height: 45px;
-      padding: 0 30px 0 12px;
-      border: 1px solid #292930;
-      border-radius: 12px;
-      outline: none;
-      appearance: none;
-      background: #0d0d12;
-      color: #d8d8de;
-      font-size: 12px;
+      min-height: 52px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(
+        135deg,
+        #705df3,
+        #9b5de5
+      );
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 750;
+      box-shadow:
+        0 12px 30px rgba(112, 93, 243, 0.22);
+      transition: 0.2s;
     }
 
-    .arrow {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #777780;
-      pointer-events: none;
+    .generate-button:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 15px 34px rgba(112, 93, 243, 0.3);
+    }
+
+    .generate-button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+      transform: none;
+    }
+
+    .bottom-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .language-select {
+      width: 100%;
+      min-height: 40px;
+      padding: 0 10px;
+      border-radius: 10px;
+      border: 1px solid #292e3a;
+      background: #0d1016;
+      color: #aeb4c1;
+      outline: none;
+    }
+
+    .download-button {
+      display: none;
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid #292e3a;
+      border-radius: 10px;
+      background: #171b24;
+      color: #ffffff;
+      text-decoration: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .download-button:hover {
+      background: #202531;
     }
 
     .notice {
-      padding: 11px 12px;
-      border: 1px solid #22222a;
+      margin-top: 10px;
+      padding: 10px 12px;
       border-radius: 11px;
-      background: #0e0e13;
-      color: #707079;
-      font-size: 10px;
+      background: #151820;
+      border: 1px solid #222733;
+      color: #737b8b;
       line-height: 1.45;
+      font-size: 10px;
     }
 
     .error {
       display: none;
-      margin-top: 9px;
+      margin-top: 10px;
       padding: 10px 12px;
-      border: 1px solid #572a30;
-      border-radius: 10px;
-      background: #1d1013;
-      color: #ff858f;
+      border-radius: 11px;
+      background: #28151a;
+      border: 1px solid #54262f;
+      color: #ff9aaa;
+      line-height: 1.45;
       font-size: 11px;
-      line-height: 1.4;
+      word-break: break-word;
     }
 
-    .error.show {
-      display: block;
-    }
-
-    @media (max-width: 900px) {
-      .workspace {
+    @media (max-width: 850px) {
+      .main {
         grid-template-columns: 1fr;
       }
 
-      .preview-panel {
+      .preview {
         min-height: auto;
       }
 
-      .preview {
-        min-height: 0;
-        padding: 12px;
+      .preview-inner {
+        min-height: 430px;
       }
 
-      .preview-empty {
-        max-height: none;
-      }
-
-      .result-image {
-        max-height: 70vh;
+      #resultImage {
+        max-height: 430px;
       }
     }
 
-    @media (max-width: 560px) {
+    @media (max-width: 520px) {
       .app {
-        padding: 9px;
+        padding: 11px;
+      }
+
+      .header {
+        margin-bottom: 12px;
+      }
+
+      .brand-title {
+        font-size: 16px;
+      }
+
+      .brand-subtitle {
+        font-size: 10px;
+      }
+
+      .status {
+        font-size: 10px;
+        padding: 7px 9px;
+      }
+
+      .status-dot {
+        width: 6px;
+        height: 6px;
       }
 
       .panel {
         border-radius: 16px;
       }
 
-      .models {
-        grid-template-columns: 1fr 1fr;
+      .preview {
+        padding: 10px;
+      }
+
+      .preview-inner {
+        min-height: 340px;
+      }
+
+      #resultImage {
+        max-height: 340px;
       }
 
       .controls {
         padding: 13px;
       }
 
-      .preview-header {
-        padding: 12px 13px;
-      }
-    }
-
-    @media (max-width: 370px) {
-      .status {
-        display: none;
+      .models {
+        grid-template-columns: 1fr 1fr;
       }
 
-      .models,
-      .options {
-        grid-template-columns: 1fr;
+      .model-card {
+        min-height: 46px;
       }
     }
   </style>
@@ -549,212 +560,135 @@
 
 <body>
 
-<div class="app">
+  <div class="app">
 
-  <header class="header">
+    <header class="header">
 
-    <div class="brand">
+      <div class="brand">
 
-      <div class="brand-icon">
-        AI
-      </div>
-
-      <div>
-        <div class="brand-title">
-          AI Image Generator
+        <div class="brand-icon">
+          AI
         </div>
 
-        <div class="brand-subtitle">
-          Create images from text
-        </div>
-      </div>
-
-    </div>
-
-    <div class="status" id="status">
-      <span class="status-dot"></span>
-      <span id="statusText">Готов</span>
-    </div>
-
-  </header>
-
-
-  <main class="workspace">
-
-    <!-- PREVIEW -->
-
-    <section class="panel preview-panel">
-
-      <div class="preview-header">
-
-        <div class="section-title">
-          Предпросмотр
-        </div>
-
-        <div
-          class="preview-info"
-          id="previewInfo"
-        >
-          1:1 · 1024×1024
-        </div>
-
-      </div>
-
-
-      <div
-        class="preview"
-        id="preview"
-      >
-
-        <div
-          class="preview-empty"
-          id="previewEmpty"
-        >
-
-          <div
-            class="spinner"
-            id="spinner"
-          ></div>
-
-          <div
-            class="preview-icon"
-            id="previewIcon"
-          >
-            ✦
+        <div>
+          <div class="brand-title">
+            Bastyon AI Image Generator
           </div>
 
-          <strong id="previewTitle">
-            Создай изображение
-          </strong>
-
-          <span id="previewText">
-            Напиши промт или продиктуй его голосом.
-          </span>
-
+          <div class="brand-subtitle">
+            Free community image generation
+          </div>
         </div>
-
-
-        <img
-          id="resultImage"
-          class="result-image"
-          alt="Generated image"
-        >
 
       </div>
 
-    </section>
+      <div class="status">
+        <span class="status-dot"></span>
+        <span id="statusText">
+          Готов
+        </span>
+      </div>
+
+    </header>
 
 
-    <!-- CONTROLS -->
+    <main class="main">
 
-    <section class="panel">
+      <!-- PREVIEW -->
 
-      <div class="controls">
+      <section class="panel preview">
 
+        <div class="preview-inner">
+
+          <div
+            class="preview-placeholder"
+            id="previewPlaceholder"
+          >
+
+            <div class="preview-placeholder-icon">
+              ✨
+            </div>
+
+            <div class="preview-placeholder-title">
+              Создай изображение
+            </div>
+
+            <div class="preview-placeholder-text">
+              Опиши сцену, персонажа или идею —
+              AI создаст изображение по твоему описанию.
+            </div>
+
+          </div>
+
+
+          <img
+            id="resultImage"
+            alt="Generated image"
+          >
+
+
+          <div
+            class="preview-loading"
+            id="previewLoading"
+          >
+
+            <div class="spinner"></div>
+
+            <div
+              class="loading-title"
+              id="loadingTitle"
+            >
+              Генерация изображения...
+            </div>
+
+            <div
+              class="loading-info"
+              id="loadingInfo"
+            >
+              Задача отправлена в AI Horde.
+              Ожидаем свободный сервер.
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- CONTROLS -->
+
+      <section class="panel controls">
 
         <!-- PROMPT -->
 
         <div class="section">
 
-          <div class="label">
-
-            <span>
-              Промт
-            </span>
-
-            <small>
-              Ctrl + Enter
-            </small>
-
+          <div class="section-title">
+            Описание
           </div>
-
 
           <div class="prompt-wrap">
 
             <textarea
               id="prompt"
-              placeholder="Например: маленький рыжий кот сидит на улице Нью-Йорка ночью, кинематографичный свет, реалистичная фотография..."
-              spellcheck="true"
+              placeholder="Например: маленький рыжий кот сидит на улице Нью-Йорка, кинематографичный свет, фотореализм..."
             ></textarea>
 
-
-            <div
-              class="voice-status"
-              id="voiceStatus"
-            >
-              Нажми 🎤 и говори
-            </div>
-
-
             <button
-              type="button"
               class="mic-button"
               id="micButton"
-              aria-label="Голосовой ввод"
+              type="button"
               title="Голосовой ввод"
             >
-
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-
-                <rect
-                  x="9"
-                  y="2"
-                  width="6"
-                  height="12"
-                  rx="3"
-                ></rect>
-
-                <path
-                  d="M5 10a7 7 0 0 0 14 0"
-                ></path>
-
-                <path
-                  d="M12 19v3"
-                ></path>
-
-                <path
-                  d="M8 22h8"
-                ></path>
-
-              </svg>
-
+              🎙
             </button>
 
           </div>
-
-
-          <div class="action-row">
-
-            <button
-              class="clear"
-              id="clearButton"
-              type="button"
-              title="Очистить"
-            >
-              ×
-            </button>
-
-            <button
-              class="generate"
-              id="generateButton"
-              type="button"
-            >
-              Создать изображение
-            </button>
-
-          </div>
-
 
           <div
-            class="error"
-            id="errorMessage"
+            class="mic-status"
+            id="micStatus"
           ></div>
 
         </div>
@@ -764,120 +698,99 @@
 
         <div class="section">
 
-          <div class="label">
-
-            <span>
-              Модель
-            </span>
-
-            <small>
-              Выбери модель
-            </small>
-
+          <div class="section-title">
+            Модель
           </div>
-
 
           <div class="models">
 
             <button
-              class="model active"
-              type="button"
+              class="model-card active"
               data-model="flux"
+              type="button"
             >
+              <div class="model-name">
+                FLUX
+              </div>
 
-              <span class="model-name">
-                FLUX.1 Schnell
-              </span>
-
-              <span class="model-description">
-                Быстрая генерация
-              </span>
-
+              <div class="model-description">
+                Универсальная
+              </div>
             </button>
 
 
             <button
-              class="model"
-              type="button"
+              class="model-card"
               data-model="gpt-image-2"
+              type="button"
             >
+              <div class="model-name">
+                GPT Image
+              </div>
 
-              <span class="model-name">
-                GPT Image 2
-              </span>
-
-              <span class="model-description">
-                Следование промту
-              </span>
-
+              <div class="model-description">
+                Детальная
+              </div>
             </button>
 
 
             <button
-              class="model"
-              type="button"
+              class="model-card"
               data-model="zimage"
+              type="button"
             >
+              <div class="model-name">
+                Z-Image
+              </div>
 
-              <span class="model-name">
-                Z-Image Turbo
-              </span>
-
-              <span class="model-description">
-                Быстрая модель
-              </span>
-
+              <div class="model-description">
+                Реализм
+              </div>
             </button>
 
 
             <button
-              class="model"
-              type="button"
+              class="model-card"
               data-model="dream"
+              type="button"
             >
+              <div class="model-name">
+                Dream
+              </div>
 
-              <span class="model-name">
-                DreamShaper
-              </span>
-
-              <span class="model-description">
-                Арт и изображения
-              </span>
-
+              <div class="model-description">
+                Арт
+              </div>
             </button>
 
 
             <button
-              class="model"
-              type="button"
+              class="model-card"
               data-model="seedream"
+              type="button"
             >
-
-              <span class="model-name">
+              <div class="model-name">
                 Seedream
-              </span>
+              </div>
 
-              <span class="model-description">
-                Детальные изображения
-              </span>
-
+              <div class="model-description">
+                Креатив
+              </div>
             </button>
 
 
             <button
-              class="model"
-              type="button"
+              class="model-card"
               data-model="qwen"
+              type="button"
             >
-
-              <span class="model-name">
+              <div class="model-name">
                 Qwen Image
-              </span>
+              </div>
 
-              <span class="model-description">
-                Хорошее следование тексту
-              </span>
-
+              <div class="model-description">
+                Текст и детали
+              </div>
             </button>
 
           </div>
@@ -885,985 +798,1309 @@
         </div>
 
 
-        <!-- SETTINGS -->
+        <!-- RATIO -->
 
         <div class="section">
 
-          <div class="label">
-            <span>
-              Настройки
-            </span>
+          <div class="section-title">
+            Формат
           </div>
 
+          <div
+            class="options-grid"
+            id="ratioOptions"
+          >
 
-          <div class="options">
+            <button
+              class="option-button active"
+              data-ratio="1:1"
+              type="button"
+            >
+              1:1
+            </button>
 
-            <div class="select-wrap">
+            <button
+              class="option-button"
+              data-ratio="16:9"
+              type="button"
+            >
+              16:9
+            </button>
 
-              <select id="ratio">
+            <button
+              class="option-button"
+              data-ratio="9:16"
+              type="button"
+            >
+              9:16
+            </button>
 
-                <option value="1:1">
-                  1:1 — Квадрат
-                </option>
+            <button
+              class="option-button"
+              data-ratio="4:3"
+              type="button"
+            >
+              4:3
+            </button>
 
-                <option value="16:9">
-                  16:9 — Landscape
-                </option>
+            <button
+              class="option-button"
+              data-ratio="3:4"
+              type="button"
+            >
+              3:4
+            </button>
 
-                <option value="9:16">
-                  9:16 — Portrait
-                </option>
+            <button
+              class="option-button"
+              data-ratio="4:5"
+              type="button"
+            >
+              4:5
+            </button>
 
-                <option value="4:3">
-                  4:3 — Landscape
-                </option>
-
-                <option value="3:4">
-                  3:4 — Portrait
-                </option>
-
-                <option value="4:5">
-                  4:5 — Portrait
-                </option>
-
-                <option value="5:4">
-                  5:4 — Landscape
-                </option>
-
-              </select>
-
-              <span class="arrow">⌄</span>
-
-            </div>
-
-
-            <div class="select-wrap">
-
-              <select id="size">
-
-                <option value="768">
-                  768 px
-                </option>
-
-                <option
-                  value="1024"
-                  selected
-                >
-                  1024 px
-                </option>
-
-                <option value="1280">
-                  1280 px
-                </option>
-
-                <option value="1536">
-                  1536 px
-                </option>
-
-              </select>
-
-              <span class="arrow">⌄</span>
-
-            </div>
-
-
-            <div class="select-wrap">
-
-              <select id="quality">
-
-                <option value="low">
-                  Быстро
-                </option>
-
-                <option
-                  value="medium"
-                  selected
-                >
-                  Стандарт
-                </option>
-
-                <option value="high">
-                  Высокое
-                </option>
-
-              </select>
-
-              <span class="arrow">⌄</span>
-
-            </div>
-
-
-            <div class="select-wrap">
-
-              <select id="language">
-
-                <option value="ru-RU" selected>
-                  🎤 Русский
-                </option>
-
-                <option value="en-US">
-                  🎤 English
-                </option>
-
-              </select>
-
-              <span class="arrow">⌄</span>
-
-            </div>
+            <button
+              class="option-button"
+              data-ratio="5:4"
+              type="button"
+            >
+              5:4
+            </button>
 
           </div>
 
         </div>
 
 
-        <div class="notice">
+        <!-- SIZE -->
 
-          💡 Микрофон переводит твою речь непосредственно в текст промта.
-          Выбери модель, формат и качество, затем нажми «Создать изображение».
+        <div class="section">
+
+          <div class="section-title">
+            Размер
+          </div>
+
+          <div
+            class="options-grid"
+            id="sizeOptions"
+          >
+
+            <button
+              class="option-button"
+              data-size="768"
+              type="button"
+            >
+              768
+            </button>
+
+            <button
+              class="option-button active"
+              data-size="1024"
+              type="button"
+            >
+              1024
+            </button>
+
+            <button
+              class="option-button"
+              data-size="1280"
+              type="button"
+            >
+              1280
+            </button>
+
+            <button
+              class="option-button"
+              data-size="1536"
+              type="button"
+            >
+              1536
+            </button>
+
+          </div>
 
         </div>
 
-      </div>
 
-    </section>
+        <!-- QUALITY -->
 
-  </main>
+        <div class="section">
 
-</div>
+          <div class="section-title">
+            Качество
+          </div>
 
+          <div
+            class="options-grid"
+            id="qualityOptions"
+          >
 
-<script>
+            <button
+              class="option-button"
+              data-quality="low"
+              type="button"
+            >
+              Быстро
+            </button>
 
-  /* =========================
-     ELEMENTS
-  ========================= */
+            <button
+              class="option-button active"
+              data-quality="medium"
+              type="button"
+            >
+              Среднее
+            </button>
 
-  const promptInput =
-    document.getElementById("prompt");
+            <button
+              class="option-button"
+              data-quality="high"
+              type="button"
+            >
+              Высокое
+            </button>
 
-  const micButton =
-    document.getElementById("micButton");
+          </div>
 
-  const voiceStatus =
-    document.getElementById("voiceStatus");
-
-  const languageSelect =
-    document.getElementById("language");
-
-  const generateButton =
-    document.getElementById("generateButton");
-
-  const clearButton =
-    document.getElementById("clearButton");
-
-  const resultImage =
-    document.getElementById("resultImage");
-
-  const preview =
-    document.getElementById("preview");
-
-  const previewEmpty =
-    document.getElementById("previewEmpty");
-
-  const previewIcon =
-    document.getElementById("previewIcon");
-
-  const previewTitle =
-    document.getElementById("previewTitle");
-
-  const previewText =
-    document.getElementById("previewText");
-
-  const status =
-    document.getElementById("status");
-
-  const statusText =
-    document.getElementById("statusText");
-
-  const errorMessage =
-    document.getElementById("errorMessage");
-
-  const ratio =
-    document.getElementById("ratio");
-
-  const size =
-    document.getElementById("size");
-
-  const quality =
-    document.getElementById("quality");
-
-  const modelButtons =
-    document.querySelectorAll(".model");
+        </div>
 
 
-  /* =========================
-     MODEL
-  ========================= */
+        <!-- GENERATE -->
 
-  let selectedModel = "flux";
+        <div class="section">
+
+          <button
+            class="generate-button"
+            id="generateButton"
+            type="button"
+          >
+            ✨ Создать изображение
+          </button>
 
 
-  modelButtons.forEach(button => {
+          <div class="bottom-row">
 
-    button.addEventListener(
-      "click",
-      () => {
+            <select
+              class="language-select"
+              id="language"
+            >
+              <option value="ru">
+                Русский
+              </option>
 
-        modelButtons.forEach(item => {
-          item.classList.remove("active");
-        });
+              <option value="en">
+                English
+              </option>
+            </select>
 
-        button.classList.add("active");
 
-        selectedModel =
-          button.dataset.model;
+            <a
+              class="download-button"
+              id="downloadButton"
+              href="#"
+              download="bastyon-ai-image.png"
+            >
+              Скачать
+            </a>
 
+          </div>
+
+
+          <div class="notice">
+            Генерация выполняется через бесплатную
+            общественную сеть AI Horde. При высокой
+            нагрузке ожидание может занять несколько минут.
+          </div>
+
+
+          <div
+            class="error"
+            id="errorBox"
+          ></div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+
+  <script>
+
+    /* =========================
+       ELEMENTS
+    ========================= */
+
+    const promptInput =
+      document.getElementById("prompt");
+
+    const generateButton =
+      document.getElementById("generateButton");
+
+    const resultImage =
+      document.getElementById("resultImage");
+
+    const previewPlaceholder =
+      document.getElementById(
+        "previewPlaceholder"
+      );
+
+    const previewLoading =
+      document.getElementById(
+        "previewLoading"
+      );
+
+    const loadingTitle =
+      document.getElementById(
+        "loadingTitle"
+      );
+
+    const loadingInfo =
+      document.getElementById(
+        "loadingInfo"
+      );
+
+    const statusText =
+      document.getElementById(
+        "statusText"
+      );
+
+    const errorBox =
+      document.getElementById(
+        "errorBox"
+      );
+
+    const downloadButton =
+      document.getElementById(
+        "downloadButton"
+      );
+
+    const micButton =
+      document.getElementById(
+        "micButton"
+      );
+
+    const micStatus =
+      document.getElementById(
+        "micStatus"
+      );
+
+
+    /* =========================
+       STATE
+    ========================= */
+
+    let selectedModel =
+      "flux";
+
+    let selectedRatio =
+      "1:1";
+
+    let selectedSize =
+      1024;
+
+    let selectedQuality =
+      "medium";
+
+    let recognition =
+      null;
+
+    let isRecording =
+      false;
+
+
+    /* =========================
+       DIMENSIONS
+    ========================= */
+
+    function getDimensions(
+      ratio,
+      size
+    ) {
+
+      const parts =
+        ratio.split(":");
+
+      const rw =
+        Number(parts[0]);
+
+      const rh =
+        Number(parts[1]);
+
+      if (
+        !rw ||
+        !rh
+      ) {
+        return {
+          width: size,
+          height: size
+        };
       }
-    );
 
-  });
+      let width;
+      let height;
+
+      if (rw >= rh) {
+
+        width =
+          size;
+
+        height =
+          Math.round(
+            size * rh / rw
+          );
+
+      } else {
+
+        height =
+          size;
+
+        width =
+          Math.round(
+            size * rw / rh
+          );
+      }
+
+      /*
+        AI Horde / SDXL models work better
+        when dimensions are reasonably aligned.
+      */
+
+      width =
+        Math.max(
+          512,
+          Math.round(width / 64) * 64
+        );
+
+      height =
+        Math.max(
+          512,
+          Math.round(height / 64) * 64
+        );
+
+      return {
+        width,
+        height
+      };
+    }
 
 
-  /* =========================
-     VOICE
-  ========================= */
+    /* =========================
+       UI HELPERS
+    ========================= */
 
-  let recognition = null;
-
-  let recording = false;
-
-  const SpeechRecognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-
-  if (SpeechRecognition) {
-
-    recognition =
-      new SpeechRecognition();
-
-
-    recognition.continuous = true;
-
-    recognition.interimResults = true;
-
-
-    recognition.onstart = () => {
-
-      recording = true;
-
-      micButton.classList.add(
-        "recording"
-      );
-
-      status.classList.add(
-        "recording"
-      );
-
+    function setStatus(
+      text
+    ) {
       statusText.textContent =
-        "Слушаю";
+        text;
+    }
 
-      voiceStatus.classList.add(
-        "active"
+
+    function showError(
+      message
+    ) {
+
+      errorBox.textContent =
+        message;
+
+      errorBox.style.display =
+        "block";
+    }
+
+
+    function hideError() {
+
+      errorBox.textContent =
+        "";
+
+      errorBox.style.display =
+        "none";
+    }
+
+
+    function showLoading(
+      title,
+      info
+    ) {
+
+      previewLoading.style.display =
+        "flex";
+
+      loadingTitle.textContent =
+        title || "Генерация изображения...";
+
+      loadingInfo.textContent =
+        info || "";
+
+      generateButton.disabled =
+        true;
+
+      setStatus(
+        "Генерация"
+      );
+    }
+
+
+    function hideLoading() {
+
+      previewLoading.style.display =
+        "none";
+
+      generateButton.disabled =
+        false;
+    }
+
+
+    /* =========================
+       OPTION BUTTONS
+    ========================= */
+
+    document
+      .querySelectorAll(".model-card")
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              document
+                .querySelectorAll(
+                  ".model-card"
+                )
+                .forEach(
+                  item =>
+                    item.classList.remove(
+                      "active"
+                    )
+                );
+
+              button.classList.add(
+                "active"
+              );
+
+              selectedModel =
+                button.dataset.model;
+            }
+          );
+
+        }
       );
 
-      voiceStatus.textContent =
-        "🔴 Говори...";
 
-    };
+    document
+      .querySelectorAll(
+        "#ratioOptions .option-button"
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              document
+                .querySelectorAll(
+                  "#ratioOptions .option-button"
+                )
+                .forEach(
+                  item =>
+                    item.classList.remove(
+                      "active"
+                    )
+                );
+
+              button.classList.add(
+                "active"
+              );
+
+              selectedRatio =
+                button.dataset.ratio;
+            }
+          );
+
+        }
+      );
 
 
-    recognition.onresult = event => {
+    document
+      .querySelectorAll(
+        "#sizeOptions .option-button"
+      )
+      .forEach(
+        button => {
 
-      let finalText = "";
+          button.addEventListener(
+            "click",
+            () => {
 
-      let interimText = "";
+              document
+                .querySelectorAll(
+                  "#sizeOptions .option-button"
+                )
+                .forEach(
+                  item =>
+                    item.classList.remove(
+                      "active"
+                    )
+                );
+
+              button.classList.add(
+                "active"
+              );
+
+              selectedSize =
+                Number(
+                  button.dataset.size
+                );
+            }
+          );
+
+        }
+      );
 
 
-      for (
-        let i = event.resultIndex;
-        i < event.results.length;
-        i++
+    document
+      .querySelectorAll(
+        "#qualityOptions .option-button"
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              document
+                .querySelectorAll(
+                  "#qualityOptions .option-button"
+                )
+                .forEach(
+                  item =>
+                    item.classList.remove(
+                      "active"
+                    )
+                );
+
+              button.classList.add(
+                "active"
+              );
+
+              selectedQuality =
+                button.dataset.quality;
+            }
+          );
+
+        }
+      );
+
+
+    /* =========================
+       PARSE RESPONSE
+    ========================= */
+
+    async function readJson(
+      response
+    ) {
+
+      const text =
+        await response.text();
+
+      let data;
+
+      try {
+
+        data =
+          JSON.parse(text);
+
+      } catch {
+
+        throw new Error(
+          "Сервер вернул не JSON: " +
+          text.slice(0, 300)
+        );
+      }
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.error ||
+          data.message ||
+          `HTTP ${response.status}`
+        );
+      }
+
+      return data;
+    }
+
+
+    /* =========================
+       IMAGE URL
+    ========================= */
+
+    function normalizeImage(
+      image
+    ) {
+
+      if (!image) {
+        return null;
+      }
+
+      /*
+        AI Horde can return:
+        1. https://...
+        2. data:image/png;base64,...
+        3. plain base64
+      */
+
+      if (
+        typeof image === "string"
       ) {
 
-        const text =
-          event.results[i][0].transcript;
+        if (
+          image.startsWith(
+            "http://"
+          ) ||
+          image.startsWith(
+            "https://"
+          ) ||
+          image.startsWith(
+            "data:"
+          )
+        ) {
+
+          return image;
+        }
+
+        return (
+          "data:image/png;base64," +
+          image
+        );
+      }
+
+      return null;
+    }
+
+
+    /* =========================
+       WAIT
+    ========================= */
+
+    function sleep(
+      ms
+    ) {
+
+      return new Promise(
+        resolve =>
+          setTimeout(
+            resolve,
+            ms
+          )
+      );
+    }
+
+
+    /* =========================
+       POLL AI HORDE
+    ========================= */
+
+    async function waitForResult(
+      taskId
+    ) {
+
+      const started =
+        Date.now();
+
+      const timeout =
+        5 * 60 * 1000;
+
+      while (
+        Date.now() -
+        started <
+        timeout
+      ) {
+
+        const response =
+          await fetch(
+            "/api/status?id=" +
+            encodeURIComponent(
+              taskId
+            ),
+            {
+              method: "GET",
+              cache: "no-store"
+            }
+          );
+
+        const data =
+          await readJson(
+            response
+          );
 
 
         if (
-          event.results[i].isFinal
+          data.done === true
         ) {
 
-          finalText +=
-            text + " ";
+          const image =
+            normalizeImage(
+              data.image
+            );
+
+          if (!image) {
+
+            throw new Error(
+              "AI Horde завершил задачу, " +
+              "но не вернул изображение."
+            );
+          }
+
+          return {
+            image,
+            seed:
+              data.seed || null
+          };
+        }
+
+
+        const queue =
+          Number(
+            data.queue_position
+          ) || 0;
+
+        const processing =
+          Number(
+            data.processing
+          ) || 0;
+
+        const finished =
+          Number(
+            data.finished
+          ) || 0;
+
+        if (
+          queue > 0
+        ) {
+
+          loadingTitle.textContent =
+            "Ожидание генерации...";
+
+          loadingInfo.textContent =
+            "Позиция в очереди: " +
+            queue;
+
+        } else if (
+          processing > 0
+        ) {
+
+          loadingTitle.textContent =
+            "Изображение создаётся...";
+
+          loadingInfo.textContent =
+            "Сейчас обрабатывается: " +
+            processing;
+
+        } else if (
+          finished > 0
+        ) {
+
+          loadingTitle.textContent =
+            "Почти готово...";
+
+          loadingInfo.textContent =
+            "Сервер завершает обработку.";
 
         } else {
 
-          interimText += text;
+          loadingTitle.textContent =
+            "Ожидаем свободный сервер...";
 
+          loadingInfo.textContent =
+            "AI Horde ищет доступного генератора.";
         }
 
+
+        await sleep(
+          3000
+        );
       }
 
 
-      if (finalText.trim()) {
-
-        const current =
-          promptInput.value.trim();
-
-
-        if (current) {
-
-          promptInput.value =
-            current +
-            " " +
-            finalText.trim();
-
-        } else {
-
-          promptInput.value =
-            finalText.trim();
-
-        }
-
-      }
-
-
-      if (interimText) {
-
-        voiceStatus.textContent =
-          "🎤 " + interimText;
-
-      }
-
-    };
-
-
-    recognition.onerror = event => {
-
-      console.error(
-        "Speech recognition:",
-        event.error
+      throw new Error(
+        "Превышено время ожидания. " +
+        "AI Horde сейчас сильно загружен. " +
+        "Попробуйте ещё раз."
       );
+    }
 
 
-      recording = false;
+    /* =========================
+       GENERATE IMAGE
+    ========================= */
 
-      micButton.classList.remove(
-        "recording"
-      );
+    async function generateImage() {
 
-      status.classList.remove(
-        "recording"
-      );
+      const prompt =
+        promptInput.value.trim();
 
+      if (!prompt) {
 
-      if (
-        event.error === "not-allowed"
-      ) {
-
-        voiceStatus.textContent =
-          "⚠ Разреши доступ к микрофону";
-
-        alert(
-          "Браузер заблокировал микрофон.\n\nНажми на значок 🔒 слева от адреса сайта и разреши доступ к микрофону."
+        showError(
+          "Введите описание изображения."
         );
 
+        promptInput.focus();
+
+        return;
       }
 
-      else if (
-        event.error === "network"
-      ) {
 
-        voiceStatus.textContent =
-          "Ошибка соединения распознавания";
-
-      }
-
-      else if (
-        event.error === "no-speech"
-      ) {
-
-        voiceStatus.textContent =
-          "Речь не распознана";
-
-      }
-
-      else {
-
-        voiceStatus.textContent =
-          "Ошибка микрофона";
-
-      }
-
-    };
+      hideError();
 
 
-    recognition.onend = () => {
+      resultImage.style.display =
+        "none";
 
-      recording = false;
+      previewPlaceholder.style.display =
+        "flex";
 
-      micButton.classList.remove(
-        "recording"
+      downloadButton.style.display =
+        "none";
+
+
+      const dimensions =
+        getDimensions(
+          selectedRatio,
+          selectedSize
+        );
+
+
+      showLoading(
+        "Отправляем задачу...",
+        "Подключаемся к бесплатной сети AI Horde."
       );
 
-      status.classList.remove(
-        "recording"
-      );
 
-      statusText.textContent =
-        "Готов";
+      try {
+
+        /*
+          STEP 1
+          Создаём задачу
+        */
+
+        const response =
+          await fetch(
+            "/api/generate",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+
+                  prompt:
+
+                    prompt,
+
+                  model:
+                    selectedModel,
+
+                  width:
+                    dimensions.width,
+
+                  height:
+                    dimensions.height,
+
+                  quality:
+                    selectedQuality,
+
+                  ratio:
+                    selectedRatio
+                })
+            }
+          );
+
+
+        const data =
+          await readJson(
+            response
+          );
+
+
+        console.log(
+          "AI Horde generate response:",
+          data
+        );
+
+
+        if (
+          !data.success ||
+          !data.id
+        ) {
+
+          throw new Error(
+            data.error ||
+            "API не вернул ID задачи."
+          );
+        }
+
+
+        const taskId =
+          data.id;
+
+
+        /*
+          STEP 2
+          Ждём результат
+        */
+
+        const result =
+          await waitForResult(
+            taskId
+          );
+
+
+        /*
+          STEP 3
+          Показываем изображение
+        */
+
+        resultImage.onload =
+          () => {
+
+            previewPlaceholder.style.display =
+              "none";
+
+            resultImage.style.display =
+              "block";
+
+            hideLoading();
+
+            setStatus(
+              "Готово"
+            );
+
+          };
+
+
+        resultImage.onerror =
+          () => {
+
+            hideLoading();
+
+            setStatus(
+              "Ошибка"
+            );
+
+            showError(
+              "Изображение получено, " +
+              "но браузер не смог его открыть."
+            );
+          };
+
+
+        resultImage.src =
+          result.image;
+
+
+        /*
+          Download
+        */
+
+        downloadButton.href =
+          result.image;
+
+        downloadButton.style.display =
+          "flex";
+
+
+      } catch (
+        error
+      ) {
+
+        console.error(
+          "Generation error:",
+          error
+        );
+
+
+        hideLoading();
+
+        setStatus(
+          "Ошибка"
+        );
+
+
+        showError(
+          error.message ||
+          "Ошибка генерации изображения."
+        );
+      }
+    }
+
+
+    /* =========================
+       GENERATE BUTTON
+    ========================= */
+
+    generateButton.addEventListener(
+      "click",
+      generateImage
+    );
+
+
+    /* =========================
+       CTRL + ENTER
+    ========================= */
+
+    promptInput.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key === "Enter" &&
+          (event.ctrlKey ||
+            event.metaKey)
+        ) {
+
+          event.preventDefault();
+
+          generateImage();
+        }
+      }
+    );
+
+
+    /* =========================
+       MICROPHONE
+    ========================= */
+
+    function setupSpeechRecognition() {
+
+      const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
 
 
       if (
-        voiceStatus.textContent.indexOf("⚠") !== 0
+        !SpeechRecognition
       ) {
 
-        voiceStatus.textContent =
-          "Нажми 🎤 и говори";
+        micButton.disabled =
+          false;
 
+        micStatus.textContent =
+          "Голосовой ввод лучше работает в Chrome или Edge.";
+
+        return;
       }
 
-    };
+
+      recognition =
+        new SpeechRecognition();
+
+
+      recognition.continuous =
+        false;
+
+      recognition.interimResults =
+        true;
+
+
+      recognition.lang =
+        "ru-RU";
+
+
+      recognition.onstart =
+        () => {
+
+          isRecording =
+            true;
+
+          micButton.classList.add(
+            "recording"
+          );
+
+          micStatus.textContent =
+            "Слушаю...";
+        };
+
+
+      recognition.onresult =
+        event => {
+
+          let transcript =
+            "";
+
+          for (
+            let i = event.resultIndex;
+            i < event.results.length;
+            i++
+          ) {
+
+            transcript +=
+              event.results[i][0].transcript;
+          }
+
+
+          if (
+            transcript
+          ) {
+
+            promptInput.value =
+              transcript;
+          }
+        };
+
+
+      recognition.onerror =
+        event => {
+
+          console.error(
+            "Speech recognition error:",
+            event.error
+          );
+
+          micStatus.textContent =
+            "Не удалось распознать речь.";
+        };
+
+
+      recognition.onend =
+        () => {
+
+          isRecording =
+            false;
+
+          micButton.classList.remove(
+            "recording"
+          );
+
+          if (
+            micStatus.textContent ===
+            "Слушаю..."
+          ) {
+
+            micStatus.textContent =
+              "";
+          }
+        };
+    }
+
+
+    setupSpeechRecognition();
 
 
     micButton.addEventListener(
       "click",
       async () => {
 
-        if (recording) {
-
-          recognition.stop();
-
-          return;
-
-        }
-
+        /*
+          Check microphone permission
+        */
 
         try {
 
-          /*
-            Ask browser for microphone
-            permission first.
-          */
+          if (
+            navigator.mediaDevices &&
+            navigator.mediaDevices.getUserMedia
+          ) {
 
-          await navigator.mediaDevices.getUserMedia({
-            audio: true
-          });
+            const stream =
+              await navigator.mediaDevices.getUserMedia(
+                {
+                  audio: true
+                }
+              );
 
+            stream
+              .getTracks()
+              .forEach(
+                track =>
+                  track.stop()
+              );
+          }
 
-          recognition.lang =
-            languageSelect.value;
-
-
-          recognition.start();
-
-        }
-
-        catch (error) {
+        } catch (
+          error
+        ) {
 
           console.error(
             "Microphone permission:",
             error
           );
 
+          micStatus.textContent =
+            "Разрешите доступ к микрофону.";
 
-          voiceStatus.textContent =
-            "⚠ Доступ к микрофону запрещён";
-
-
-          alert(
-            "Не удалось получить доступ к микрофону.\n\nПроверь разрешение микрофона для этого сайта в настройках браузера."
-          );
-
+          return;
         }
 
+
+        if (
+          !recognition
+        ) {
+
+          micStatus.textContent =
+            "Используйте Chrome или Edge для голосового ввода.";
+
+          return;
+        }
+
+
+        if (
+          isRecording
+        ) {
+
+          recognition.stop();
+
+          return;
+        }
+
+
+        const language =
+          document.getElementById(
+            "language"
+          ).value;
+
+
+        recognition.lang =
+          language === "en"
+            ? "en-US"
+            : "ru-RU";
+
+
+        try {
+
+          recognition.start();
+
+        } catch (
+          error
+        ) {
+
+          console.error(
+            error
+          );
+        }
       }
     );
 
 
-  } else {
-
-    voiceStatus.textContent =
-      "Голосовой ввод не поддерживается";
-
-
-    micButton.addEventListener(
-      "click",
-      () => {
-
-        alert(
-          "Этот браузер не поддерживает голосовой ввод.\n\nПопробуй Google Chrome или Microsoft Edge."
-        );
-
-      }
-    );
-
-  }
-
-
-  /* =========================
-     CLEAR
-  ========================= */
-
-  clearButton.addEventListener(
-    "click",
-    () => {
-
-      promptInput.value = "";
-
-      promptInput.focus();
-
-      hideError();
-
-    }
-  );
-
-
-  /* =========================
-     DIMENSIONS
-  ========================= */
-
-  function getDimensions() {
-
-    const maxSize =
-      Number(size.value);
-
-    const selectedRatio =
-      ratio.value;
-
-
-    let width = maxSize;
-
-    let height = maxSize;
-
-
-    if (
-      selectedRatio === "16:9"
-    ) {
-
-      height =
-        Math.round(maxSize * 9 / 16);
-
-    }
-
-    else if (
-      selectedRatio === "9:16"
-    ) {
-
-      width =
-        Math.round(maxSize * 9 / 16);
-
-    }
-
-    else if (
-      selectedRatio === "4:3"
-    ) {
-
-      height =
-        Math.round(maxSize * 3 / 4);
-
-    }
-
-    else if (
-      selectedRatio === "3:4"
-    ) {
-
-      width =
-        Math.round(maxSize * 3 / 4);
-
-    }
-
-    else if (
-      selectedRatio === "4:5"
-    ) {
-
-      width =
-        Math.round(maxSize * 4 / 5);
-
-    }
-
-    else if (
-      selectedRatio === "5:4"
-    ) {
-
-      height =
-        Math.round(maxSize * 4 / 5);
-
-    }
-
-
-    /*
-      Most image APIs prefer dimensions
-      divisible by 16.
-    */
-
-    width =
-      Math.round(width / 16) * 16;
-
-    height =
-      Math.round(height / 16) * 16;
-
-
-    return {
-      width,
-      height
-    };
-
-  }
-
-
-  function updateDimensions() {
-
-    const dimensions =
-      getDimensions();
-
-
-    document.getElementById(
-      "previewInfo"
-    ).textContent =
-      `${ratio.value} · ${dimensions.width}×${dimensions.height}`;
-
-  }
-
-
-  ratio.addEventListener(
-    "change",
-    updateDimensions
-  );
-
-  size.addEventListener(
-    "change",
-    updateDimensions
-  );
-
-
-  updateDimensions();
-
-
-  /* =========================
-     STATUS
-  ========================= */
-
-  function setStatus(
-    type,
-    text
-  ) {
-
-    status.classList.remove(
-      "recording",
-      "generating",
-      "error"
-    );
-
-
-    if (type) {
-
-      status.classList.add(type);
-
-    }
-
-
-    statusText.textContent =
-      text;
-
-  }
-
-
-  /* =========================
-     ERROR
-  ========================= */
-
-  function showError(message) {
-
-    errorMessage.textContent =
-      message;
-
-    errorMessage.classList.add(
-      "show"
-    );
-
-  }
-
-
-  function hideError() {
-
-    errorMessage.classList.remove(
-      "show"
-    );
-
-  }
-
-
-  /* =========================
-     GENERATE
-  ========================= */
-
-  async function generateImage() {
-
-    const prompt =
-      promptInput.value.trim();
-
-
-    if (!prompt) {
-
-      showError(
-        "Сначала напиши или продиктуй промт."
-      );
-
-      promptInput.focus();
-
-      return;
-
-    }
-
-
-    hideError();
-
-
-    const dimensions =
-      getDimensions();
-
-
-    generateButton.disabled =
-      true;
-
-    generateButton.textContent =
-      "Создаю...";
-
+    /* =========================
+       INITIAL
+    ========================= */
 
     setStatus(
-      "generating",
-      "Генерация..."
+      "Готов"
     );
 
-
-    preview.classList.add(
-      "loading"
-    );
-
-
-    resultImage.style.display =
-      "none";
-
-
-    previewEmpty.style.display =
-      "flex";
-
-
-    previewIcon.textContent =
-      "✦";
-
-    previewIcon.style.display =
-      "flex";
-
-
-    previewTitle.textContent =
-      "Создаю изображение...";
-
-
-    previewText.textContent =
-      "Модель обрабатывает твой промт.";
-
-
-    try {
-
-      const response =
-        await fetch(
-          "/api/generate",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body: JSON.stringify({
-
-              prompt: prompt,
-
-              model: selectedModel,
-
-              width:
-                dimensions.width,
-
-              height:
-                dimensions.height,
-
-              quality:
-                quality.value
-
-            })
-
-          }
-        );
-
-
-      let data;
-
-
-      try {
-
-        data =
-          await response.json();
-
-      }
-
-      catch {
-
-        throw new Error(
-          "API вернул не JSON. Проверь api/generate.js."
-        );
-
-      }
-
-
-      if (!response.ok) {
-
-        throw new Error(
-          data.error ||
-          `Ошибка API: ${response.status}`
-        );
-
-      }
-
-
-      if (
-        !data.success ||
-        !data.image ||
-        !data.image.data
-      ) {
-
-        throw new Error(
-          "API не вернул изображение."
-        );
-
-      }
-
-
-      const mime =
-        data.image.mime ||
-        "image/png";
-
-
-      resultImage.src =
-        `data:${mime};base64,${data.image.data}`;
-
-
-      resultImage.onload = () => {
-
-        previewEmpty.style.display =
-          "none";
-
-        resultImage.style.display =
-          "block";
-
-      };
-
-
-      setStatus(
-        "",
-        "Готово"
-      );
-
-
-    }
-
-    catch (error) {
-
-      console.error(
-        "Generation error:",
-        error
-      );
-
-
-      showError(
-        error.message ||
-        "Ошибка генерации."
-      );
-
-
-      previewIcon.textContent =
-        "!";
-
-
-      previewTitle.textContent =
-        "Ошибка генерации";
-
-
-      previewText.textContent =
-        error.message ||
-        "Проверь API и попробуй снова.";
-
-
-      setStatus(
-        "error",
-        "Ошибка"
-      );
-
-    }
-
-    finally {
-
-      generateButton.disabled =
-        false;
-
-      generateButton.textContent =
-        "Создать изображение";
-
-      preview.classList.remove(
-        "loading"
-      );
-
-    }
-
-  }
-
-
-  /* =========================
-     GENERATE BUTTON
-  ========================= */
-
-  generateButton.addEventListener(
-    "click",
-    generateImage
-  );
-
-
-  /* =========================
-     CTRL + ENTER
-  ========================= */
-
-  promptInput.addEventListener(
-    "keydown",
-    event => {
-
-      if (
-        event.ctrlKey &&
-        event.key === "Enter"
-      ) {
-
-        event.preventDefault();
-
-        generateImage();
-
-      }
-
-    }
-  );
-
-
-  /* =========================
-     PROMPT CHANGE
-  ========================= */
-
-  promptInput.addEventListener(
-    "input",
-    hideError
-  );
-
-</script>
+  </script>
 
 </body>
 </html>
