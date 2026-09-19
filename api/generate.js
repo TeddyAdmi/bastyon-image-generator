@@ -1,29 +1,22 @@
-```javascript
-export default async function handler(req, res) {
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "*"
-  );
+export default function handler(req, res) {
+  console.log("API GENERATE CALLED");
+  console.log("METHOD:", req.method);
 
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "POST, OPTIONS"
-  );
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
 
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type"
-  );
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
+  if (req.method !== "POST") {
+    return res.status(405).end(JSON.stringify({
+      success: false,
+      error: "Method not allowed",
+      method: req.method
+    }));
   }
 
-  return res.status(200).json({
+  return res.status(200).end(JSON.stringify({
     success: true,
     test: true,
-    message: "Vercel API работает",
+    message: "API GENERATE WORKS",
     time: new Date().toISOString()
-  });
+  }));
 }
-```
