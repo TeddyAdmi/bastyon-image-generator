@@ -1,33 +1,42 @@
 ```javascript
 // api/generate.js
 // Bastyon AI Image Generator
-// Бесплатная генерация через AI Horde
+// AI Horde — полностью бесплатная генерация
 //
-// Не нужны:
-// GEMINI_API_KEY
-// POLLINATIONS_KEY
-//
-// AI Horde anonymous API key:
-// 0000000000
+// Этот endpoint ТОЛЬКО создаёт задание.
+// Результат забирается через /api/status?id=...
 
 export default async function handler(req, res) {
   // --------------------------------------------------
   // CORS
   // --------------------------------------------------
 
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "*"
+  );
+
   res.setHeader(
     "Access-Control-Allow-Methods",
     "POST, OPTIONS"
   );
+
   res.setHeader(
     "Access-Control-Allow-Headers",
     "Content-Type"
   );
 
+  // --------------------------------------------------
+  // OPTIONS
+  // --------------------------------------------------
+
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
+
+  // --------------------------------------------------
+  // METHOD
+  // --------------------------------------------------
 
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -38,7 +47,7 @@ export default async function handler(req, res) {
 
   try {
     // ------------------------------------------------
-    // INPUT
+    // BODY
     // ------------------------------------------------
 
     const body = req.body || {};
@@ -58,40 +67,37 @@ export default async function handler(req, res) {
     // AI HORDE
     // ------------------------------------------------
 
-    const HORDE_URL =
+    const HORDE_API =
       "https://aihorde.net/api/v2";
 
-    // Полностью бесплатный анонимный ключ
-    const API_KEY =
+    /*
+      AI Horde официально разрешает
+      анонимный API key:
+
+      0000000000
+
+      Для приложения лучше потом получить
+      собственный бесплатный ключ.
+    */
+
+    const apiKey =
       process.env.AI_HORDE_API_KEY ||
       "0000000000";
 
     // ------------------------------------------------
-    // FRONTEND SIZE
+    // FRONTEND PARAMETERS
     // ------------------------------------------------
 
-    let width =
+    let requestedWidth =
       Number(body.width) || 1024;
 
-    let height =
+    let requestedHeight =
       Number(body.height) || 1024;
 
-    // ------------------------------------------------
-    // LIMIT EXTREME SIZES
-    // ------------------------------------------------
-
-    // Для бесплатной очереди не отправляем
-    // огромные изображения.
-
-    width = Math.max(
-      512,
-      Math.min(width, 1536)
-    );
-
-    height = Math.max(
-      512,
-      Math.min(height, 1536)
-    );
+    const quality =
+      String(
+        body.quality || "medium"
+      ).toLowerCase();
 
     // ------------------------------------------------
     // ASPECT RATIO
@@ -147,21 +153,21 @@ export default async function handler(req, res) {
       for (
         const item of ratios
       ) {
-        const current =
+        const currentDifference =
           Math.abs(
             ratio -
             item.value
           );
 
         if (
-          current <
+          currentDifference <
           difference
         ) {
           closest =
             item;
 
           difference =
-            current;
+            currentDifference;
         }
       }
 
@@ -170,19 +176,73 @@ export default async function handler(req, res) {
 
     const aspectRatio =
       getAspectRatio(
-        width,
-        height
+        requestedWidth,
+        requestedHeight
       );
 
     // ------------------------------------------------
-    // QUALITY
+    // DIMENSIONS
     // ------------------------------------------------
 
-    const quality =
-      String(
-        body.quality ||
-        "medium"
-      ).toLowerCase();
+    /*
+      Для SDXL используем проверенные размеры.
+
+      Это важнее, чем просто отправлять
+      любые 768 / 1024 / 1280 / 1536,
+      потому что AI Horde работает
+      с разными workers.
+    */
+
+    const dimensions = {
+      "1:1": {
+        width: 1024,
+        height: 1024
+      },
+
+      "16:9": {
+        width: 1216,
+        height: 704
+      },
+
+      "9:16": {
+        width: 704,
+        height: 1216
+      },
+
+      "4:3": {
+        width: 1152,
+        height: 896
+      },
+
+      "3:4": {
+        width: 896,
+        height: 1152
+      },
+
+      "4:5": {
+        width: 896,
+        height: 1120
+      },
+
+      "5:4": {
+        width: 1120,
+        height: 896
+      }
+    };
+
+    const selectedDimensions =
+      dimensions[aspectRatio] ||
+      dimensions["1:1"];
+
+    const width =
+      selectedDimensions.width;
+
+    const height =
+      selectedDimensions.height;
+
+    // ------------------------------------------------
+    // QUALITY → STEPS
+    // ------------------------------------------------
 
     let steps = 25;
 
@@ -208,37 +268,18 @@ export default async function handler(req, res) {
     // MODEL
     // ------------------------------------------------
 
-    // SDXL — хороший универсальный вариант
-    // для бесплатной генерации через Horde.
+    /*
+      Не привязываемся к старым моделям
+      из твоего Gemini/Pollinations интерфейса.
+
+      SDXL 1.0 — основной вариант.
+    */
 
     const model =
       "SDXL 1.0";
 
     // ------------------------------------------------
-    // DIMENSIONS
-    // ------------------------------------------------
-
-    /*
-      AI Horde / SDXL лучше работает,
-      когда размеры соответствуют выбранной
-      пропорции.
-    */
-
-    const dimensions =
-      getDimensionsForRatio(
-        aspectRatio,
-        width,
-        height
-      );
-
-    width =
-      dimensions.width;
-
-    height =
-      dimensions.height;
-
-    // ------------------------------------------------
-    // REQUEST
+    // HORDE REQUEST
     // ------------------------------------------------
 
     const requestBody = {
@@ -246,6 +287,7 @@ export default async function handler(req, res) {
 
       params: {
         width: width,
+
         height: height,
 
         steps: steps,
@@ -257,6 +299,11 @@ export default async function handler(req, res) {
 
         n: 1,
 
+        /*
+          Не просим дополнительные
+          post-processing операции.
+        */
+
         post_processing: []
       },
 
@@ -264,65 +311,75 @@ export default async function handler(req, res) {
         model
       ],
 
+      /*
+        Разрешаем R2 storage,
+        чтобы Horde мог вернуть URL
+        готового изображения.
+      */
+
       r2: true,
+
+      /*
+        Без NSFW.
+      */
 
       nsfw: false
     };
 
     console.log(
-      "================================="
+      "--------------------------------"
     );
 
     console.log(
-      "AI HORDE GENERATION"
+      "AI HORDE REQUEST"
     );
 
     console.log(
-      "model:",
+      "Model:",
       model
     );
 
     console.log(
-      "aspect:",
-      aspectRatio
-    );
-
-    console.log(
-      "width:",
-      width
-    );
-
-    console.log(
-      "height:",
-      height
-    );
-
-    console.log(
-      "quality:",
-      quality
-    );
-
-    console.log(
-      "steps:",
-      steps
-    );
-
-    console.log(
-      "prompt:",
+      "Prompt:",
       prompt
     );
 
     console.log(
-      "================================="
+      "Aspect:",
+      aspectRatio
+    );
+
+    console.log(
+      "Width:",
+      width
+    );
+
+    console.log(
+      "Height:",
+      height
+    );
+
+    console.log(
+      "Quality:",
+      quality
+    );
+
+    console.log(
+      "Steps:",
+      steps
+    );
+
+    console.log(
+      "--------------------------------"
     );
 
     // ------------------------------------------------
-    // START GENERATION
+    // SEND JOB
     // ------------------------------------------------
 
-    const generationResponse =
+    const response =
       await fetch(
-        `${HORDE_URL}/generate/async`,
+        `${HORDE_API}/generate/async`,
         {
           method: "POST",
 
@@ -331,9 +388,9 @@ export default async function handler(req, res) {
               "application/json",
 
             apikey:
-              API_KEY,
+              apiKey,
 
-            Client-Agent:
+            "Client-Agent":
               "Bastyon-AI-Image-Generator:1.0"
           },
 
@@ -344,29 +401,35 @@ export default async function handler(req, res) {
         }
       );
 
-    const generationText =
-      await generationResponse.text();
+    // ------------------------------------------------
+    // READ RESPONSE
+    // ------------------------------------------------
+
+    const text =
+      await response.text();
 
     console.log(
-      "AI Horde submit status:",
-      generationResponse.status
+      "AI Horde HTTP:",
+      response.status
     );
 
     console.log(
-      "AI Horde submit response:",
-      generationText.substring(
+      "AI Horde RESPONSE:",
+      text.substring(
         0,
         3000
       )
     );
 
-    let generationData;
+    // ------------------------------------------------
+    // JSON
+    // ------------------------------------------------
+
+    let data;
 
     try {
-      generationData =
-        JSON.parse(
-          generationText
-        );
+      data =
+        JSON.parse(text);
     } catch (error) {
       return res.status(502).json({
         success: false,
@@ -374,8 +437,11 @@ export default async function handler(req, res) {
         error:
           "AI Horde вернул не JSON",
 
+        status:
+          response.status,
+
         response:
-          generationText.substring(
+          text.substring(
             0,
             2000
           )
@@ -383,165 +449,106 @@ export default async function handler(req, res) {
     }
 
     // ------------------------------------------------
-    // SUBMIT ERROR
+    // HORDE ERROR
     // ------------------------------------------------
 
     if (
-      !generationResponse.ok
+      !response.ok
     ) {
       return res.status(
-        generationResponse.status
+        response.status
       ).json({
         success: false,
 
         error:
-          generationData?.message ||
-          generationData?.error ||
-          "AI Horde не принял запрос",
+          data?.message ||
+          data?.error ||
+          "AI Horde отклонил запрос",
 
         details:
-          generationData
+          data
       });
     }
 
-    const generationId =
-      generationData.id;
+    // ------------------------------------------------
+    // GENERATION ID
+    // ------------------------------------------------
 
-    if (!generationId) {
+    const generationId =
+      data?.id;
+
+    if (
+      !generationId
+    ) {
       return res.status(502).json({
         success: false,
 
         error:
-          "AI Horde не вернул ID генерации",
+          "AI Horde не вернул ID задания",
 
         response:
-          generationData
+          data
       });
     }
 
     console.log(
-      "Generation ID:",
+      "AI HORDE JOB ID:",
       generationId
     );
 
     // ------------------------------------------------
-    // WAIT FOR RESULT
+    // IMPORTANT
     // ------------------------------------------------
 
-    const MAX_WAIT =
-      240000;
+    /*
+      НИЧЕГО БОЛЬШЕ НЕ ЖДЁМ.
 
-    const POLL_INTERVAL =
-      2500;
+      Не делаем здесь polling.
 
-    const startTime =
-      Date.now();
+      Vercel сразу отдаёт браузеру JSON.
+    */
 
-    let lastStatus =
-      null;
+    return res.status(200).json({
+      success: true,
 
-    while (
-      Date.now() -
-        startTime <
-      MAX_WAIT
-    ) {
-      await sleep(
-        POLL_INTERVAL
-      );
+      pending: true,
 
-      const statusResponse =
-        await fetch(
-          `${HORDE_URL}/generate/status/${generationId}`,
-          {
-            method: "GET",
+      id:
+        generationId,
 
-            headers: {
-              apikey:
-                API_KEY,
+      model:
+        model,
 
-              "Client-Agent":
-                "Bastyon-AI-Image-Generator:1.0"
-            }
-          }
-        );
+      width:
+        width,
 
-      const statusText =
-        await statusResponse.text();
+      height:
+        height,
 
-      let statusData;
+      aspectRatio:
+        aspectRatio,
 
-      try {
-        statusData =
-          JSON.parse(
-            statusText
-          );
-      } catch (error) {
-        console.error(
-          "Invalid Horde status JSON:",
-          statusText.substring(
-            0,
-            2000
-          )
-        );
+      quality:
+        quality,
 
-        continue;
-      }
+      steps:
+        steps,
 
-      lastStatus =
-        statusData;
+      message:
+        "Изображение поставлено в очередь AI Horde"
+    });
 
-      console.log(
-        "Horde status:",
-        JSON.stringify(
-          {
-            done:
-              statusData.done,
+  } catch (error) {
+    console.error(
+      "AI HORDE ERROR:",
+      error
+    );
 
-            processing:
-              statusData.processing,
+    return res.status(500).json({
+      success: false,
 
-            queue_position:
-              statusData.queue_position,
+      error:
+        error?.message ||
+        "Внутренняя ошибка сервера"
 
-            finished:
-              statusData.finished
-          }
-        )
-      );
-
-      // ------------------------------------------------
-      // DONE
-      // ------------------------------------------------
-
-      if (
-        statusData.done === true
-      ) {
-        // ----------------------------------------------
-        // CHECK GENERATIONS
-        // ----------------------------------------------
-
-        if (
-          !Array.isArray(
-            statusData.generations
-          ) ||
-          statusData.generations.length === 0
-        ) {
-          return res.status(502).json({
-            success: false,
-
-            error:
-              "AI Horde завершил генерацию, но изображение отсутствует",
-
-            response:
-              statusData
-          });
-        }
-
-        const result =
-          statusData
-            .generations[0];
-
-        // ----------------------------------------------
-        // IMAGE URL
-        // -------------------------------------------
 ```
