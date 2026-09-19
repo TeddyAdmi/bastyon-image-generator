@@ -90,30 +90,29 @@ async function initBastyon() {
     }
 }
 
-// Функция запроса с автоматическим повтором (решает проблему 524 таймаутов)
+// Функция запроса с автоматическим повтором
 async function fetchWithRetry(url, options = {}, retries = 3, delay = 3000) {
     for (let i = 0; i < retries; i++) {
         try {
             const controller = new AbortController();
-            // Выделяем 120 секунд на попытку для тяжелых нейросетей
+            // Выделяем до 120 секунд на каждую попытку
             const timeoutId = setTimeout(() => controller.abort(), 120000);
             
             options.signal = controller.signal;
             const response = await fetch(url, options);
             clearTimeout(timeoutId);
 
-            // Если поймали ошибку шлюза/таймаута Cloudflare (524, 504, 502), пробуем снова
+            // Если шлюз вернул ошибку, пробуем повторить
             if (response.status === 524 || response.status === 504 || response.status === 502) {
-                throw new Error(`Server gateway/timeout error: ${response.status}`);
+                throw new Error(`Server gateway error: ${response.status}`);
             }
 
             return response;
         } catch (err) {
             console.warn(`Попытка ${i + 1} из ${retries} не удалась:`, err.message);
-            if (i === retries - 1) throw err; // Исчерпали все попытки
+            if (i === retries - 1) throw err;
             
-            document.getElementById("status").textContent = `⚠️ Сервер думает... Повтор попытки (${i + 2}/${retries})...`;
-            // Ожидание перед повтором (увеличивается с каждой попыткой)
+            document.getElementById("status").textContent = `⚠️ Повторная попытка (${i + 2}/${retries})...`;
             await new Promise(resolve => setTimeout(resolve, delay * Math.pow(1.5, i)));
         }
     }
@@ -134,10 +133,9 @@ async function startGeneration() {
 
     btn.disabled = true;
     resultContainer.style.display = "none";
-    statusEl.textContent = "⏳ Отправка запроса на генерацию (до 2 минут)...";
+    statusEl.textContent = "⏳ Отправка запроса на генерацию...";
 
     try {
-        // Запрос к вашему API на Vercel с поддержкой ретриев
         const response = await fetchWithRetry('https://bastyon-image-generator.vercel.app/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -145,13 +143,12 @@ async function startGeneration() {
         });
 
         const data = await response.json();
-        console.log("Полный ответ от API:", data);
+        console.log("Ответ от API:", data);
 
         if (data.error) {
             throw new Error(data.error);
         }
 
-        // Извлекаем изображение из структуры candidates, которую формирует бэкенд
         const candidate = data?.candidates?.[0];
         const inlineData = candidate?.content?.parts?.[0]?.inline_data;
 
@@ -162,15 +159,13 @@ async function startGeneration() {
         const mimeType = inlineData.mime_type || 'image/png';
         const base64String = inlineData.data;
 
-        // Передаем base64 строку в тег img
         resultImage.src = `data:${mimeType};base64,${base64String}`;
         resultContainer.style.display = "block";
-        statusEl.textContent = "✅ Изображение успешно сгенерировано!";
+        statusEl.textContent = "✅ Готово!";
 
     } catch (err) {
         console.error("Критическая ошибка генерации:", err);
         statusEl.textContent = "❌ Ошибка: " + err.message;
-        alert("Не удалось дождаться ответа от сервера (возможно, ошибка 524). Попробуйте еще раз позже.");
     } finally {
         btn.disabled = false;
     }
