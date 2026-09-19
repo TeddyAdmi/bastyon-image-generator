@@ -1,11 +1,29 @@
+```javascript
 // api/generate.js
 // Bastyon AI Image Generator
-// Gemini 3.1 Flash Image
+// Бесплатная генерация через AI Horde
+//
+// Не нужны:
+// GEMINI_API_KEY
+// POLLINATIONS_KEY
+//
+// AI Horde anonymous API key:
+// 0000000000
 
 export default async function handler(req, res) {
+  // --------------------------------------------------
+  // CORS
+  // --------------------------------------------------
+
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "POST, OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type"
+  );
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -19,17 +37,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      return res.status(500).json({
-        success: false,
-        error: "GEMINI_API_KEY не настроен в Vercel"
-      });
-    }
+    // ------------------------------------------------
+    // INPUT
+    // ------------------------------------------------
 
     const body = req.body || {};
-    const prompt = String(body.prompt || "").trim();
+
+    const prompt = String(
+      body.prompt || ""
+    ).trim();
 
     if (!prompt) {
       return res.status(400).json({
@@ -38,288 +54,494 @@ export default async function handler(req, res) {
       });
     }
 
-    // --------------------------------------------------
-    // MODEL
-    // --------------------------------------------------
+    // ------------------------------------------------
+    // AI HORDE
+    // ------------------------------------------------
 
-    const model = "gemini-3.1-flash-image";
+    const HORDE_URL =
+      "https://aihorde.net/api/v2";
 
-    // --------------------------------------------------
-    // SIZE
-    // --------------------------------------------------
+    // Полностью бесплатный анонимный ключ
+    const API_KEY =
+      process.env.AI_HORDE_API_KEY ||
+      "0000000000";
 
-    const width = Number(body.width) || 1024;
-    const height = Number(body.height) || 1024;
+    // ------------------------------------------------
+    // FRONTEND SIZE
+    // ------------------------------------------------
 
-    // --------------------------------------------------
+    let width =
+      Number(body.width) || 1024;
+
+    let height =
+      Number(body.height) || 1024;
+
+    // ------------------------------------------------
+    // LIMIT EXTREME SIZES
+    // ------------------------------------------------
+
+    // Для бесплатной очереди не отправляем
+    // огромные изображения.
+
+    width = Math.max(
+      512,
+      Math.min(width, 1536)
+    );
+
+    height = Math.max(
+      512,
+      Math.min(height, 1536)
+    );
+
+    // ------------------------------------------------
     // ASPECT RATIO
-    // --------------------------------------------------
+    // ------------------------------------------------
 
-    function getAspectRatio(width, height) {
-      const ratio = width / height;
+    function getAspectRatio(
+      width,
+      height
+    ) {
+      const ratio =
+        width / height;
 
-      const available = [
-        { name: "1:1", value: 1 },
-        { name: "16:9", value: 16 / 9 },
-        { name: "9:16", value: 9 / 16 },
-        { name: "4:3", value: 4 / 3 },
-        { name: "3:4", value: 3 / 4 },
-        { name: "4:5", value: 4 / 5 },
-        { name: "5:4", value: 5 / 4 },
-        { name: "3:2", value: 3 / 2 },
-        { name: "2:3", value: 2 / 3 },
-        { name: "21:9", value: 21 / 9 }
+      const ratios = [
+        {
+          name: "1:1",
+          value: 1
+        },
+        {
+          name: "16:9",
+          value: 16 / 9
+        },
+        {
+          name: "9:16",
+          value: 9 / 16
+        },
+        {
+          name: "4:3",
+          value: 4 / 3
+        },
+        {
+          name: "3:4",
+          value: 3 / 4
+        },
+        {
+          name: "4:5",
+          value: 4 / 5
+        },
+        {
+          name: "5:4",
+          value: 5 / 4
+        }
       ];
 
-      let closest = available[0];
-      let difference = Math.abs(ratio - closest.value);
+      let closest =
+        ratios[0];
 
-      for (const item of available) {
-        const currentDifference = Math.abs(
-          ratio - item.value
+      let difference =
+        Math.abs(
+          ratio -
+          closest.value
         );
 
-        if (currentDifference < difference) {
-          closest = item;
-          difference = currentDifference;
+      for (
+        const item of ratios
+      ) {
+        const current =
+          Math.abs(
+            ratio -
+            item.value
+          );
+
+        if (
+          current <
+          difference
+        ) {
+          closest =
+            item;
+
+          difference =
+            current;
         }
       }
 
       return closest.name;
     }
 
-    const aspectRatio = getAspectRatio(width, height);
+    const aspectRatio =
+      getAspectRatio(
+        width,
+        height
+      );
 
-    // --------------------------------------------------
+    // ------------------------------------------------
     // QUALITY
-    // --------------------------------------------------
+    // ------------------------------------------------
 
-    const quality = String(
-      body.quality || "medium"
-    ).toLowerCase();
+    const quality =
+      String(
+        body.quality ||
+        "medium"
+      ).toLowerCase();
 
-    let imageSize = "1K";
+    let steps = 25;
 
-    if (quality === "low") {
-      imageSize = "512px";
+    if (
+      quality === "low"
+    ) {
+      steps = 15;
     }
 
-    if (quality === "medium") {
-      imageSize = "1K";
+    if (
+      quality === "medium"
+    ) {
+      steps = 25;
     }
 
-    if (quality === "high") {
-      imageSize = "2K";
+    if (
+      quality === "high"
+    ) {
+      steps = 35;
     }
 
-    // --------------------------------------------------
-    // GEMINI INTERACTIONS API
-    // --------------------------------------------------
+    // ------------------------------------------------
+    // MODEL
+    // ------------------------------------------------
 
-    const url =
-      "https://generativelanguage.googleapis.com/v1beta/interactions";
+    // SDXL — хороший универсальный вариант
+    // для бесплатной генерации через Horde.
+
+    const model =
+      "SDXL 1.0";
+
+    // ------------------------------------------------
+    // DIMENSIONS
+    // ------------------------------------------------
+
+    /*
+      AI Horde / SDXL лучше работает,
+      когда размеры соответствуют выбранной
+      пропорции.
+    */
+
+    const dimensions =
+      getDimensionsForRatio(
+        aspectRatio,
+        width,
+        height
+      );
+
+    width =
+      dimensions.width;
+
+    height =
+      dimensions.height;
+
+    // ------------------------------------------------
+    // REQUEST
+    // ------------------------------------------------
 
     const requestBody = {
-      model: model,
+      prompt: prompt,
 
-      input: prompt,
+      params: {
+        width: width,
+        height: height,
 
-      response_format: {
-        type: "image",
+        steps: steps,
 
-        // Gemini currently expects JPEG here
-        mime_type: "image/jpeg",
+        cfg_scale: 7,
 
-        aspect_ratio: aspectRatio,
+        sampler_name:
+          "k_euler_a",
 
-        image_size: imageSize
-      }
-    };
+        n: 1,
 
-    console.log("=================================");
-    console.log("GEMINI REQUEST");
-    console.log("model:", model);
-    console.log("aspectRatio:", aspectRatio);
-    console.log("imageSize:", imageSize);
-    console.log("quality:", quality);
-    console.log("width:", width);
-    console.log("height:", height);
-    console.log("prompt:", prompt);
-    console.log("=================================");
-
-    const response = await fetch(url, {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
+        post_processing: []
       },
 
-      body: JSON.stringify(requestBody)
-    });
+      models: [
+        model
+      ],
 
-    const responseText = await response.text();
+      r2: true,
+
+      nsfw: false
+    };
 
     console.log(
-      "Gemini HTTP status:",
-      response.status
+      "================================="
     );
 
     console.log(
-      "Gemini response:",
-      responseText.substring(0, 5000)
+      "AI HORDE GENERATION"
     );
 
-    // --------------------------------------------------
-    // JSON
-    // --------------------------------------------------
+    console.log(
+      "model:",
+      model
+    );
 
-    let data;
+    console.log(
+      "aspect:",
+      aspectRatio
+    );
+
+    console.log(
+      "width:",
+      width
+    );
+
+    console.log(
+      "height:",
+      height
+    );
+
+    console.log(
+      "quality:",
+      quality
+    );
+
+    console.log(
+      "steps:",
+      steps
+    );
+
+    console.log(
+      "prompt:",
+      prompt
+    );
+
+    console.log(
+      "================================="
+    );
+
+    // ------------------------------------------------
+    // START GENERATION
+    // ------------------------------------------------
+
+    const generationResponse =
+      await fetch(
+        `${HORDE_URL}/generate/async`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            apikey:
+              API_KEY,
+
+            Client-Agent:
+              "Bastyon-AI-Image-Generator:1.0"
+          },
+
+          body:
+            JSON.stringify(
+              requestBody
+            )
+        }
+      );
+
+    const generationText =
+      await generationResponse.text();
+
+    console.log(
+      "AI Horde submit status:",
+      generationResponse.status
+    );
+
+    console.log(
+      "AI Horde submit response:",
+      generationText.substring(
+        0,
+        3000
+      )
+    );
+
+    let generationData;
 
     try {
-      data = JSON.parse(responseText);
+      generationData =
+        JSON.parse(
+          generationText
+        );
     } catch (error) {
       return res.status(502).json({
         success: false,
-        error: "Gemini вернул не JSON",
-        status: response.status,
-        response: responseText.substring(0, 2000)
+
+        error:
+          "AI Horde вернул не JSON",
+
+        response:
+          generationText.substring(
+            0,
+            2000
+          )
       });
     }
 
-    // --------------------------------------------------
-    // API ERROR
-    // --------------------------------------------------
+    // ------------------------------------------------
+    // SUBMIT ERROR
+    // ------------------------------------------------
 
-    if (!response.ok) {
-      const message =
-        data?.error?.message ||
-        data?.message ||
-        "Ошибка Gemini API";
-
-      return res.status(response.status).json({
+    if (
+      !generationResponse.ok
+    ) {
+      return res.status(
+        generationResponse.status
+      ).json({
         success: false,
-        error: message,
-        details: data
+
+        error:
+          generationData?.message ||
+          generationData?.error ||
+          "AI Horde не принял запрос",
+
+        details:
+          generationData
       });
     }
 
-    // --------------------------------------------------
-    // IMAGE
-    // --------------------------------------------------
+    const generationId =
+      generationData.id;
 
-    let imageData = null;
-    let mimeType = "image/jpeg";
-
-    // Основной формат Interactions API
-    if (
-      data?.output_image?.data
-    ) {
-      imageData =
-        data.output_image.data;
-
-      mimeType =
-        data.output_image.mime_type ||
-        data.output_image.mimeType ||
-        "image/jpeg";
-    }
-
-    // --------------------------------------------------
-    // FALLBACK: steps
-    // --------------------------------------------------
-
-    if (
-      !imageData &&
-      Array.isArray(data?.steps)
-    ) {
-      for (const step of data.steps) {
-        if (!Array.isArray(step.content)) {
-          continue;
-        }
-
-        for (const content of step.content) {
-          if (
-            content &&
-            content.type === "image" &&
-            content.data
-          ) {
-            imageData = content.data;
-
-            mimeType =
-              content.mime_type ||
-              content.mimeType ||
-              "image/jpeg";
-
-            break;
-          }
-        }
-
-        if (imageData) {
-          break;
-        }
-      }
-    }
-
-    // --------------------------------------------------
-    // NO IMAGE
-    // --------------------------------------------------
-
-    if (!imageData) {
-      console.error(
-        "Gemini не вернул изображение:",
-        JSON.stringify(data).substring(0, 5000)
-      );
-
+    if (!generationId) {
       return res.status(502).json({
         success: false,
-        error: "Gemini не вернул изображение",
-        response: data
+
+        error:
+          "AI Horde не вернул ID генерации",
+
+        response:
+          generationData
       });
     }
 
-    // --------------------------------------------------
-    // SUCCESS
-    // --------------------------------------------------
-
-    console.log("IMAGE RECEIVED");
-    console.log("mime:", mimeType);
     console.log(
-      "base64 length:",
-      imageData.length
+      "Generation ID:",
+      generationId
     );
 
-    return res.status(200).json({
-      success: true,
+    // ------------------------------------------------
+    // WAIT FOR RESULT
+    // ------------------------------------------------
 
-      model: model,
+    const MAX_WAIT =
+      240000;
 
-      width: width,
+    const POLL_INTERVAL =
+      2500;
 
-      height: height,
+    const startTime =
+      Date.now();
 
-      aspectRatio: aspectRatio,
+    let lastStatus =
+      null;
 
-      imageSize: imageSize,
+    while (
+      Date.now() -
+        startTime <
+      MAX_WAIT
+    ) {
+      await sleep(
+        POLL_INTERVAL
+      );
 
-      quality: quality,
+      const statusResponse =
+        await fetch(
+          `${HORDE_URL}/generate/status/${generationId}`,
+          {
+            method: "GET",
 
-      image: {
-        mime: mimeType,
-        data: imageData
+            headers: {
+              apikey:
+                API_KEY,
+
+              "Client-Agent":
+                "Bastyon-AI-Image-Generator:1.0"
+            }
+          }
+        );
+
+      const statusText =
+        await statusResponse.text();
+
+      let statusData;
+
+      try {
+        statusData =
+          JSON.parse(
+            statusText
+          );
+      } catch (error) {
+        console.error(
+          "Invalid Horde status JSON:",
+          statusText.substring(
+            0,
+            2000
+          )
+        );
+
+        continue;
       }
-    });
 
-  } catch (error) {
-    console.error(
-      "Gemini generation error:",
-      error
-    );
+      lastStatus =
+        statusData;
 
-    return res.status(500).json({
-      success: false,
-      error:
-        error?.message ||
-        "Внутренняя ошибка сервера"
-    });
-  }
-}
+      console.log(
+        "Horde status:",
+        JSON.stringify(
+          {
+            done:
+              statusData.done,
+
+            processing:
+              statusData.processing,
+
+            queue_position:
+              statusData.queue_position,
+
+            finished:
+              statusData.finished
+          }
+        )
+      );
+
+      // ------------------------------------------------
+      // DONE
+      // ------------------------------------------------
+
+      if (
+        statusData.done === true
+      ) {
+        // ----------------------------------------------
+        // CHECK GENERATIONS
+        // ----------------------------------------------
+
+        if (
+          !Array.isArray(
+            statusData.generations
+          ) ||
+          statusData.generations.length === 0
+        ) {
+          return res.status(502).json({
+            success: false,
+
+            error:
+              "AI Horde завершил генерацию, но изображение отсутствует",
+
+            response:
+              statusData
+          });
+        }
+
+        const result =
+          statusData
+            .generations[0];
+
+        // ----------------------------------------------
+        // IMAGE URL
+        // -------------------------------------------
+```
