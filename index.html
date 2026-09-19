@@ -2,61 +2,64 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#09090b">
-  <meta name="description" content="Bastyon AI Image Generator">
-
-  <title>Bastyon AI Image Generator</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
+  <meta name="theme-color" content="#0b0b0f">
+  <title>Bastyon AI Studio</title>
 
   <style>
-    :root {
-      --bg: #08080a;
-      --panel: #111114;
-      --panel2: #17171b;
-      --border: #29292f;
-      --border-hover: #414149;
-      --text: #f5f5f5;
-      --muted: #96969f;
-      --muted2: #686871;
-      --accent: #ffffff;
-      --accent-text: #08080a;
-      --danger: #ff6666;
-      --success: #66d9a3;
-      --radius: 18px;
-    }
-
     * {
       box-sizing: border-box;
     }
 
-    html {
-      scroll-behavior: smooth;
+    :root {
+      --bg: #08080b;
+      --bg2: #0e0e13;
+      --panel: #121218;
+      --panel2: #17171f;
+      --panel3: #1d1d27;
+      --border: rgba(255,255,255,.09);
+      --border2: rgba(255,255,255,.14);
+      --text: #f5f5f7;
+      --muted: #92929d;
+      --muted2: #6e6e78;
+      --accent: #ffffff;
+      --accentText: #08080b;
+      --danger: #ff5d6c;
+      --success: #51d88a;
+      --shadow: 0 20px 60px rgba(0,0,0,.35);
+      --radius: 18px;
     }
 
+    html,
     body {
       margin: 0;
-      min-height: 100vh;
+      padding: 0;
+      min-height: 100%;
       background:
-        radial-gradient(
-          circle at 50% -10%,
-          #202025 0,
-          #0c0c0f 32%,
-          #08080a 65%
-        );
+        radial-gradient(circle at 50% -10%, rgba(255,255,255,.055), transparent 35%),
+        var(--bg);
       color: var(--text);
       font-family:
         Inter,
+        ui-sans-serif,
+        system-ui,
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
-        Arial,
         sans-serif;
     }
 
+    body {
+      min-height: 100vh;
+    }
+
     button,
+    input,
     textarea,
-    select,
-    input {
+    select {
       font: inherit;
     }
 
@@ -65,62 +68,69 @@
     }
 
     .app {
-      width: 100%;
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 22px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     /* HEADER */
 
-    .header {
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: 68px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,8,11,.82);
+      backdrop-filter: blur(22px);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 20px;
-      margin-bottom: 22px;
+      padding: 0 24px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 13px;
+      gap: 11px;
+      min-width: 0;
     }
 
-    .brand-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 13px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
       background: #fff;
       color: #000;
-      font-size: 22px;
-      box-shadow: 0 10px 35px rgba(255,255,255,.08);
+      display: grid;
+      place-items: center;
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: -1px;
     }
 
-    .brand-text h1 {
-      margin: 0;
-      font-size: 20px;
-      line-height: 1.2;
-      letter-spacing: -.4px;
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
     }
 
-    .brand-text p {
-      margin: 4px 0 0;
+    .brand-name {
+      font-size: 15px;
+      font-weight: 750;
+      letter-spacing: -.3px;
+    }
+
+    .brand-sub {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
+      margin-top: 4px;
     }
 
-    .status-pill {
+    .status {
       display: flex;
       align-items: center;
-      gap: 7px;
-      padding: 8px 11px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: rgba(255,255,255,.025);
+      gap: 8px;
       color: var(--muted);
       font-size: 12px;
     }
@@ -130,442 +140,713 @@
       height: 7px;
       border-radius: 50%;
       background: var(--success);
-      box-shadow: 0 0 10px rgba(102,217,163,.55);
+      box-shadow: 0 0 10px rgba(81,216,138,.7);
     }
 
-    /* LAYOUT */
+    /* MODE SWITCH */
+
+    .modebar {
+      display: flex;
+      justify-content: center;
+      padding: 18px 20px 0;
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      padding: 4px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      box-shadow: var(--shadow);
+    }
+
+    .mode-btn {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 10px 20px;
+      border-radius: 11px;
+      font-size: 13px;
+      font-weight: 700;
+      transition: .2s ease;
+    }
+
+    .mode-btn:hover {
+      color: var(--text);
+    }
+
+    .mode-btn.active {
+      color: #000;
+      background: #fff;
+    }
+
+    /* MAIN */
+
+    .main {
+      width: min(1450px, 100%);
+      margin: 0 auto;
+      padding: 22px 22px 60px;
+      flex: 1;
+    }
+
+    .mode {
+      display: none;
+    }
+
+    .mode.active {
+      display: block;
+    }
 
     .workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 370px;
-      gap: 20px;
+      grid-template-columns: minmax(0, 1.5fr) minmax(330px, .72fr);
+      gap: 18px;
       align-items: start;
     }
 
-    .main-column {
-      min-width: 0;
+    .editor-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(350px, .75fr);
+      gap: 18px;
+      align-items: start;
     }
 
-    .side-column {
-      position: sticky;
-      top: 18px;
-    }
+    /* PANELS */
 
-    /* CARDS */
-
-    .card {
-      background: rgba(17,17,20,.92);
+    .panel {
+      background: linear-gradient(
+        145deg,
+        rgba(255,255,255,.035),
+        rgba(255,255,255,.018)
+      );
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      box-shadow: 0 20px 70px rgba(0,0,0,.22);
+      overflow: hidden;
     }
 
-    .card + .card {
-      margin-top: 16px;
-    }
-
-    .card-header {
+    .panel-header {
+      min-height: 58px;
+      padding: 15px 17px;
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 18px 18px 0;
     }
 
-    .card-title {
-      margin: 0;
-      font-size: 15px;
-      font-weight: 700;
-    }
-
-    .card-subtitle {
-      margin: 4px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    /* PROMPT */
-
-    .prompt-card {
-      padding: 18px;
-    }
-
-    .prompt-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 11px;
-    }
-
-    .prompt-label {
+    .panel-title {
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 750;
     }
 
-    .char-count {
-      color: var(--muted2);
-      font-size: 11px;
-    }
-
-    .prompt-wrap {
-      position: relative;
-    }
-
-    #prompt {
-      display: block;
-      width: 100%;
-      min-height: 175px;
-      padding: 17px 54px 45px 17px;
-      resize: vertical;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      outline: none;
-      background: #0b0b0e;
-      color: var(--text);
-      font-size: 15px;
-      line-height: 1.55;
-      transition: border-color .18s, box-shadow .18s;
-    }
-
-    #prompt::placeholder {
-      color: #55555d;
-    }
-
-    #prompt:focus {
-      border-color: var(--border-hover);
-      box-shadow: 0 0 0 3px rgba(255,255,255,.025);
-    }
-
-    .prompt-tools {
-      position: absolute;
-      left: 10px;
-      right: 10px;
-      bottom: 9px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .prompt-left-tools,
-    .prompt-right-tools {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .tool-btn {
-      height: 32px;
-      min-width: 32px;
-      padding: 0 9px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      border: 1px solid transparent;
-      border-radius: 9px;
-      background: transparent;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .tool-btn:hover {
-      background: #19191d;
-      border-color: var(--border);
-      color: #fff;
-    }
-
-    .tool-btn.active {
-      background: #202024;
-      color: #fff;
-      border-color: #37373e;
-    }
-
-    .templates {
-      display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
-      margin-top: 11px;
-    }
-
-    .template {
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 7px 10px;
-      background: #0d0d10;
+    .panel-subtitle {
       color: var(--muted);
       font-size: 11px;
-      cursor: pointer;
+      margin-top: 3px;
     }
 
-    .template:hover {
-      border-color: var(--border-hover);
-      color: #fff;
-    }
-
-    /* CONTROLS */
-
-    .controls-card {
-      padding: 18px;
-    }
-
-    .controls-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 13px;
-    }
-
-    .control {
-      min-width: 0;
-    }
-
-    .control.full {
-      grid-column: 1 / -1;
-    }
-
-    .control-label {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 7px;
-      color: #bdbdc4;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .control-note {
-      color: var(--muted2);
-      font-size: 10px;
-      font-weight: 400;
-    }
-
-    select {
-      width: 100%;
-      height: 45px;
-      padding: 0 12px;
-      border: 1px solid var(--border);
-      border-radius: 11px;
-      outline: none;
-      background: #0b0b0e;
-      color: #fff;
-      cursor: pointer;
-    }
-
-    select:focus {
-      border-color: var(--border-hover);
-    }
-
-    .ratio-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 7px;
-    }
-
-    .ratio-btn {
-      min-height: 62px;
-      border: 1px solid var(--border);
-      border-radius: 11px;
-      background: #0b0b0e;
-      color: var(--muted);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 10px;
-    }
-
-    .ratio-btn:hover {
-      border-color: var(--border-hover);
-      color: #fff;
-    }
-
-    .ratio-btn.selected {
-      border-color: #fff;
-      background: #1d1d21;
-      color: #fff;
-    }
-
-    .ratio-preview {
-      width: 22px;
-      height: 22px;
-      border: 1.5px solid currentColor;
-      border-radius: 3px;
-    }
-
-    .ratio-preview.r169 {
-      width: 25px;
-      height: 15px;
-    }
-
-    .ratio-preview.r916 {
-      width: 15px;
-      height: 25px;
-    }
-
-    .ratio-preview.r43 {
-      width: 22px;
-      height: 17px;
-    }
-
-    .ratio-preview.r34 {
-      width: 17px;
-      height: 22px;
-    }
-
-    .ratio-preview.r21 {
-      width: 28px;
-      height: 14px;
-    }
-
-    .ratio-preview.r12 {
-      width: 14px;
-      height: 28px;
-    }
-
-    .ratio-preview.r32 {
-      width: 25px;
-      height: 17px;
-    }
-
-    .ratio-preview.r23 {
-      width: 17px;
-      height: 25px;
-    }
-
-    .ratio-preview.r45 {
-      width: 19px;
-      height: 24px;
-    }
-
-    .ratio-preview.r54 {
-      width: 24px;
-      height: 19px;
-    }
-
-    /* GENERATE */
-
-    .generate-row {
-      display: grid;
-      grid-template-columns: 1fr 120px;
-      gap: 9px;
-      margin-top: 15px;
-    }
-
-    .generate-btn {
-      height: 52px;
-      border: 0;
-      border-radius: 13px;
-      background: #fff;
-      color: #000;
-      font-weight: 800;
-      font-size: 14px;
-      transition: transform .15s, opacity .15s;
-    }
-
-    .generate-btn:hover {
-      transform: translateY(-1px);
-    }
-
-    .generate-btn:active {
-      transform: translateY(0);
-    }
-
-    .generate-btn:disabled {
-      opacity: .5;
-      cursor: wait;
-      transform: none;
-    }
-
-    .copies-select {
-      height: 52px;
+    .panel-body {
+      padding: 17px;
     }
 
     /* PREVIEW */
 
-    .preview-card {
-      overflow: hidden;
+    .preview-panel {
+      min-height: 620px;
     }
 
-    .preview-header {
+    .preview-area {
+      min-height: 560px;
       padding: 18px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 10px;
-    }
-
-    .preview-title {
-      margin: 0;
-      font-size: 15px;
-    }
-
-    .preview-info {
-      color: var(--muted);
-      font-size: 11px;
-    }
-
-    .preview-stage {
-      min-height: 430px;
-      padding: 14px;
-      display: flex;
       justify-content: center;
-      align-items: center;
+      position: relative;
       background:
-        linear-gradient(45deg, #111 25%, transparent 25%),
-        linear-gradient(-45deg, #111 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #111 75%),
-        linear-gradient(-45deg, transparent 75%, #111 75%);
+        linear-gradient(45deg, rgba(255,255,255,.025) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255,255,255,.025) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255,255,255,.025) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,.025) 75%);
       background-size: 28px 28px;
       background-position: 0 0, 0 14px, 14px -14px, -14px 0;
     }
 
     .empty-preview {
       text-align: center;
-      max-width: 320px;
+      max-width: 390px;
       color: var(--muted);
     }
 
     .empty-icon {
-      width: 62px;
-      height: 62px;
-      margin: 0 auto 15px;
+      width: 70px;
+      height: 70px;
+      border-radius: 20px;
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,.035);
+      display: grid;
+      place-items: center;
+      margin: 0 auto 18px;
+      font-size: 28px;
+    }
+
+    .empty-title {
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 750;
+      margin-bottom: 7px;
+    }
+
+    .empty-text {
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .preview-image {
+      display: none;
+      max-width: 100%;
+      max-height: 540px;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 25px 70px rgba(0,0,0,.5);
+    }
+
+    .preview-image.visible {
+      display: block;
+    }
+
+    /* RESULT GALLERY */
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 14px;
+      width: 100%;
+    }
+
+    .result-card {
+      position: relative;
+      background: #0b0b0f;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .result-card img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      background: #0a0a0d;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 7px;
+      padding: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .small-btn {
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-size: 11px;
+      flex: 1;
+    }
+
+    .small-btn:hover {
+      background: var(--panel3);
+    }
+
+    /* CONTROLS */
+
+    .control-panel {
+      position: sticky;
+      top: 86px;
+    }
+
+    .control-section {
+      padding: 16px 17px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .control-section:last-child {
+      border-bottom: 0;
+    }
+
+    .section-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 700;
+      margin-bottom: 9px;
+    }
+
+    .prompt-wrap {
+      position: relative;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      border: 1px solid var(--border2);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 13px;
+      padding: 13px 13px 40px;
+      outline: none;
+      line-height: 1.55;
+      font-size: 13px;
+      transition: .2s ease;
+    }
+
+    textarea:focus {
+      border-color: rgba(255,255,255,.28);
+      background: rgba(0,0,0,.3);
+    }
+
+    textarea::placeholder {
+      color: var(--muted2);
+    }
+
+    .prompt-counter {
+      position: absolute;
+      right: 10px;
+      bottom: 9px;
+      color: var(--muted2);
+      font-size: 10px;
+    }
+
+    .prompt-tools {
+      display: flex;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .tool-btn {
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 9px;
+      font-size: 11px;
+    }
+
+    .tool-btn:hover {
+      color: var(--text);
+      background: var(--panel3);
+    }
+
+    /* TEMPLATE BUTTONS */
+
+    .templates {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .template {
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--muted);
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-size: 11px;
+    }
+
+    .template:hover {
+      color: var(--text);
+      border-color: var(--border2);
+    }
+
+    /* OPTIONS */
+
+    .select-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .field-label {
+      color: var(--muted);
+      font-size: 10px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 10px;
+      outline: none;
+      font-size: 12px;
+    }
+
+    /* RATIO */
+
+    .ratios {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+    }
+
+    .ratio {
+      min-height: 43px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--muted);
+      border-radius: 9px;
+      font-size: 11px;
+      transition: .15s ease;
+    }
+
+    .ratio:hover {
+      color: var(--text);
+    }
+
+    .ratio.active {
+      color: #000;
+      background: #fff;
+      border-color: #fff;
+      font-weight: 750;
+    }
+
+    /* GENERATE */
+
+    .generate-btn {
+      width: 100%;
+      border: 0;
+      background: #fff;
+      color: #000;
+      border-radius: 12px;
+      min-height: 48px;
+      font-size: 13px;
+      font-weight: 800;
+      transition: .2s ease;
+    }
+
+    .generate-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 35px rgba(255,255,255,.1);
+    }
+
+    .generate-btn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .secondary-btn {
+      width: 100%;
+      margin-top: 8px;
+      min-height: 43px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      border-radius: 11px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .secondary-btn:hover {
+      background: var(--panel3);
+    }
+
+    /* EDITOR UPLOAD */
+
+    .upload-zone {
+      min-height: 280px;
+      border: 1px dashed rgba(255,255,255,.2);
+      border-radius: 16px;
+      background: rgba(255,255,255,.018);
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 18px;
-      background: #17171b;
-      border: 1px solid #29292f;
-      font-size: 26px;
+      text-align: center;
+      padding: 25px;
+      transition: .2s ease;
+      position: relative;
+      overflow: hidden;
     }
 
-    .empty-preview strong {
-      display: block;
-      margin-bottom: 7px;
-      color: #ddd;
-      font-size: 14px;
+    .upload-zone.dragover {
+      border-color: #fff;
+      background: rgba(255,255,255,.06);
     }
 
-    .empty-preview span {
+    .upload-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .upload-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 17px;
+      background: var(--panel3);
+      border: 1px solid var(--border2);
+      display: grid;
+      place-items: center;
+      margin: 0 auto 14px;
+      font-size: 25px;
+    }
+
+    .upload-title {
+      font-size: 15px;
+      font-weight: 750;
+      margin-bottom: 6px;
+    }
+
+    .upload-text {
+      color: var(--muted);
       font-size: 12px;
       line-height: 1.5;
+    }
+
+    .upload-button {
+      margin-top: 14px;
+      border: 1px solid var(--border2);
+      background: #fff;
+      color: #000;
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    #editorFile {
+      display: none;
+    }
+
+    .editor-source {
+      display: none;
+      position: relative;
+    }
+
+    .editor-source.visible {
+      display: block;
+    }
+
+    .source-image {
+      width: 100%;
+      max-height: 590px;
+      object-fit: contain;
+      display: block;
+      border-radius: 14px;
+      background: #08080b;
+    }
+
+    .source-toolbar {
+      display: flex;
+      gap: 7px;
+      margin-top: 9px;
+    }
+
+    .source-toolbar button {
+      flex: 1;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      padding: 9px;
+      border-radius: 9px;
+      font-size: 11px;
+    }
+
+    /* QUICK EDIT ACTIONS */
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .quick-action {
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--muted);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      text-align: left;
+      transition: .15s ease;
+    }
+
+    .quick-action:hover {
+      color: var(--text);
+      background: var(--panel3);
+      border-color: var(--border2);
+    }
+
+    .quick-action strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 3px;
+      font-size: 11px;
+    }
+
+    /* COMPARE */
+
+    .compare {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .compare.visible {
+      display: grid;
+    }
+
+    .compare-item {
+      min-width: 0;
+    }
+
+    .compare-label {
+      font-size: 10px;
+      color: var(--muted);
+      margin: 0 0 7px 2px;
+    }
+
+    .compare-image {
+      width: 100%;
+      max-height: 500px;
+      object-fit: contain;
+      background: #09090c;
+      border-radius: 12px;
+      display: block;
+    }
+
+    .compare-placeholder {
+      width: 100%;
+      min-height: 260px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      background: rgba(0,0,0,.18);
+    }
+
+    /* EDITOR RESULT */
+
+    .editor-result {
+      margin-top: 14px;
+      display: none;
+    }
+
+    .editor-result.visible {
+      display: block;
+    }
+
+    .result-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 9px;
+    }
+
+    .result-toolbar button {
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      padding: 9px 13px;
+      border-radius: 9px;
+      font-size: 11px;
+    }
+
+    /* HISTORY */
+
+    .history {
+      margin-top: 18px;
+    }
+
+    .history-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0,1fr));
+      gap: 9px;
+    }
+
+    .history-item {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .history-item img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+    }
+
+    .history-empty {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 15px 0;
+    }
+
+    /* ERROR */
+
+    .error-box {
+      display: none;
+      margin-top: 12px;
+      padding: 11px 12px;
+      border: 1px solid rgba(255,93,108,.25);
+      background: rgba(255,93,108,.07);
+      color: #ff9aa4;
+      border-radius: 10px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .error-box.visible {
+      display: block;
     }
 
     /* LOADING */
 
     .loading {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
       display: none;
-      width: 100%;
-      max-width: 480px;
-      text-align: center;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,.7);
+      backdrop-filter: blur(12px);
     }
 
-    .loading-spinner {
-      width: 44px;
-      height: 44px;
-      margin: 0 auto 16px;
-      border: 3px solid #333;
-      border-top-color: #fff;
+    .loading.visible {
+      display: flex;
+    }
+
+    .loading-card {
+      width: min(340px, calc(100vw - 35px));
+      padding: 28px;
+      border-radius: 20px;
+      border: 1px solid var(--border2);
+      background: #111117;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .spinner {
+      width: 42px;
+      height: 42px;
+      margin: 0 auto 17px;
       border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.12);
+      border-top-color: #fff;
       animation: spin .8s linear infinite;
     }
 
@@ -577,373 +858,110 @@
 
     .loading-title {
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 750;
     }
 
     .loading-text {
+      color: var(--muted);
+      font-size: 11px;
       margin-top: 6px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .progress {
-      height: 4px;
-      margin-top: 16px;
-      overflow: hidden;
-      border-radius: 999px;
-      background: #25252a;
-    }
-
-    .progress-bar {
-      width: 20%;
-      height: 100%;
-      background: #fff;
-      border-radius: inherit;
-      animation: progress 1.6s ease-in-out infinite;
-    }
-
-    @keyframes progress {
-      0% {
-        transform: translateX(-120%);
-      }
-
-      100% {
-        transform: translateX(550%);
-      }
-    }
-
-    /* RESULTS */
-
-    .results {
-      display: none;
-      padding: 18px;
-    }
-
-    .results-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .results-title {
-      margin: 0;
-      font-size: 15px;
-    }
-
-    .results-actions {
-      display: flex;
-      gap: 6px;
-    }
-
-    .small-btn {
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 8px 10px;
-      background: #0d0d10;
-      color: #bbb;
-      font-size: 11px;
-    }
-
-    .small-btn:hover {
-      border-color: var(--border-hover);
-      color: #fff;
-    }
-
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .image-card {
-      position: relative;
-      overflow: hidden;
-      border-radius: 13px;
-      border: 1px solid var(--border);
-      background: #09090b;
-    }
-
-    .image-card img {
-      display: block;
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: contain;
-      background: #050505;
-    }
-
-    .image-card-footer {
-      display: flex;
-      gap: 6px;
-      padding: 8px;
-      background: #101014;
-    }
-
-    .image-action {
-      flex: 1;
-      min-width: 0;
-      padding: 8px 5px;
-      border: 1px solid #29292f;
-      border-radius: 8px;
-      background: #18181c;
-      color: #bbb;
-      font-size: 10px;
-    }
-
-    .image-action:hover {
-      color: #fff;
-      border-color: #414149;
-    }
-
-    /* SIDE */
-
-    .side-card {
-      padding: 18px;
-    }
-
-    .side-section + .side-section {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #242429;
-    }
-
-    .side-heading {
-      margin: 0 0 11px;
-      font-size: 13px;
-    }
-
-    .model-card {
-      padding: 13px;
-      border: 1px solid #fff;
-      border-radius: 12px;
-      background: #19191d;
-    }
-
-    .model-name {
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .model-description {
-      margin-top: 5px;
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.45;
-    }
-
-    .model-badge {
-      display: inline-flex;
-      margin-top: 9px;
-      padding: 4px 7px;
-      border-radius: 999px;
-      background: #27272d;
-      color: #ccc;
-      font-size: 9px;
-    }
-
-    .quick-list {
-      display: grid;
-      gap: 7px;
-    }
-
-    .quick-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px;
-      border: 1px solid #242429;
-      border-radius: 10px;
-      background: #0d0d10;
-      color: #aaa;
-      font-size: 11px;
-    }
-
-    .quick-number {
-      width: 22px;
-      height: 22px;
-      flex: 0 0 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 7px;
-      background: #1d1d21;
-      color: #fff;
-      font-size: 10px;
-    }
-
-    .history-card {
-      display: none;
-      padding: 18px;
-    }
-
-    .history-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
-    .history-item {
-      overflow: hidden;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: #0b0b0e;
-      cursor: pointer;
-    }
-
-    .history-item img {
-      display: block;
-      width: 100%;
-      aspect-ratio: 1;
-      object-fit: cover;
-    }
-
-    .history-item-info {
-      padding: 7px;
-      color: #888;
-      font-size: 9px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* ERROR */
-
-    .message {
-      display: none;
-      margin-top: 12px;
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 12px;
       line-height: 1.5;
-      white-space: pre-wrap;
     }
 
-    .message.error {
-      background: #281313;
-      border: 1px solid #552626;
-      color: #ffaaaa;
-    }
+    /* FOOTER */
 
-    .message.success {
-      background: #10231b;
-      border: 1px solid #214a37;
-      color: #a4ebca;
-    }
-
-    /* DEBUG */
-
-    .debug-toggle {
-      margin-top: 14px;
-      color: #55555d;
-      background: transparent;
-      border: 0;
-      padding: 0;
+    .footer {
+      padding: 18px 22px 30px;
+      text-align: center;
+      color: var(--muted2);
       font-size: 10px;
     }
 
-    .debug {
-      display: none;
-      margin-top: 8px;
-      padding: 12px;
-      overflow: auto;
-      max-height: 250px;
-      border: 1px solid #222;
-      border-radius: 10px;
-      background: #050505;
-      color: #777;
-      font-family: monospace;
-      font-size: 10px;
-      white-space: pre-wrap;
-    }
+    /* RESPONSIVE */
 
-    /* MOBILE */
-
-    @media (max-width: 950px) {
-      .workspace {
+    @media (max-width: 1050px) {
+      .workspace,
+      .editor-workspace {
         grid-template-columns: 1fr;
       }
 
-      .side-column {
+      .control-panel {
         position: static;
       }
 
-      .side-card {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px;
+      .preview-panel {
+        min-height: 500px;
       }
 
-      .side-section + .side-section {
-        margin-top: 0;
-        padding-top: 0;
-        border-top: 0;
-        border-left: 1px solid #242429;
-        padding-left: 18px;
+      .preview-area {
+        min-height: 440px;
+      }
+
+      .history-grid {
+        grid-template-columns: repeat(4, minmax(0,1fr));
       }
     }
 
     @media (max-width: 650px) {
-      .app {
-        padding: 12px;
+      .topbar {
+        padding: 0 13px;
+        height: 61px;
       }
 
-      .header {
-        margin-bottom: 15px;
-      }
-
-      .brand-icon {
-        width: 39px;
-        height: 39px;
-        border-radius: 11px;
-      }
-
-      .brand-text h1 {
-        font-size: 17px;
-      }
-
-      .status-pill {
+      .brand-sub,
+      .status span {
         display: none;
       }
 
-      .controls-grid {
-        grid-template-columns: 1fr;
+      .main {
+        padding: 14px 10px 45px;
       }
 
-      .control.full {
-        grid-column: auto;
+      .modebar {
+        padding: 12px 10px 0;
       }
 
-      .ratio-grid {
-        grid-template-columns: repeat(4, 1fr);
+      .mode-btn {
+        padding: 9px 14px;
+        font-size: 12px;
       }
 
-      .generate-row {
-        grid-template-columns: 1fr;
+      .panel-body,
+      .control-section {
+        padding: 13px;
+      }
+
+      .preview-area {
+        min-height: 360px;
+        padding: 10px;
+      }
+
+      .preview-panel {
+        min-height: 410px;
       }
 
       .gallery {
         grid-template-columns: 1fr;
       }
 
-      .preview-stage {
-        min-height: 330px;
-      }
-
-      .side-card {
+      .compare {
         grid-template-columns: 1fr;
       }
 
-      .side-section + .side-section {
-        border-left: 0;
-        padding-left: 0;
-        margin-top: 0;
-        padding-top: 18px;
-        border-top: 1px solid #242429;
+      .history-grid {
+        grid-template-columns: repeat(3, minmax(0,1fr));
       }
 
-      .history-grid {
-        grid-template-columns: repeat(2, 1fr);
+      .ratios {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .upload-zone {
+        min-height: 230px;
+      }
+
+      textarea {
+        min-height: 125px;
       }
     }
   </style>
@@ -955,96 +973,152 @@
 
   <!-- HEADER -->
 
-  <header class="header">
-
+  <header class="topbar">
     <div class="brand">
-
-      <div class="brand-icon">
-        ✦
-      </div>
+      <div class="brand-logo">AI</div>
 
       <div class="brand-text">
-        <h1>Bastyon AI</h1>
-        <p>AI Image Generator</p>
+        <div class="brand-name">Bastyon AI Studio</div>
+        <div class="brand-sub">AI Image Generator & Editor</div>
       </div>
-
     </div>
 
-    <div class="status-pill">
+    <div class="status">
       <span class="status-dot"></span>
-      Flux Dev · Online
+      <span>AI online</span>
     </div>
-
   </header>
 
+  <!-- MODE SWITCH -->
 
-  <div class="workspace">
+  <div class="modebar">
+    <div class="mode-switch">
+      <button
+        class="mode-btn active"
+        id="generatorModeBtn"
+        type="button"
+      >
+        ✨ Генератор
+      </button>
 
-    <!-- MAIN -->
+      <button
+        class="mode-btn"
+        id="editorModeBtn"
+        type="button"
+      >
+        🪄 AI Editor
+      </button>
+    </div>
+  </div>
 
-    <main class="main-column">
+  <main class="main">
 
-      <!-- PROMPT -->
+    <!-- ========================================================= -->
+    <!-- GENERATOR MODE -->
+    <!-- ========================================================= -->
 
-      <section class="card prompt-card">
+    <section class="mode active" id="generatorMode">
 
-        <div class="prompt-top">
+      <div class="workspace">
 
-          <div class="prompt-label">
-            Что создать?
+        <!-- PREVIEW -->
+
+        <div class="panel preview-panel">
+
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Результат</div>
+              <div class="panel-subtitle">
+                Flux Dev
+              </div>
+            </div>
+
+            <button
+              class="small-btn"
+              id="downloadAllBtn"
+              type="button"
+              style="display:none;max-width:120px;"
+            >
+              Скачать всё
+            </button>
           </div>
 
-          <div id="charCount" class="char-count">
-            0 / 2000
-          </div>
+          <div class="preview-area">
 
+            <div
+              class="empty-preview"
+              id="generatorEmpty"
+            >
+              <div class="empty-icon">✦</div>
+
+              <div class="empty-title">
+                Создай изображение
+              </div>
+
+              <div class="empty-text">
+                Опиши изображение слева или выбери готовый шаблон.
+                После генерации результат появится здесь.
+              </div>
+            </div>
+
+            <div
+              class="gallery"
+              id="generatorGallery"
+            ></div>
+
+          </div>
         </div>
 
+        <!-- CONTROLS -->
 
-        <div class="prompt-wrap">
+        <aside class="panel control-panel">
 
-          <textarea
-            id="prompt"
-            maxlength="2000"
-            placeholder="Опишите изображение максимально подробно...
+          <!-- PROMPT -->
 
-Например:
-Фотореалистичный маленький рыжий кот сидит на мокрой улице Нью-Йорка ночью, неоновые вывески отражаются в лужах, cinematic lighting, shallow depth of field, ultra detailed..."
-          ></textarea>
+          <div class="control-section">
 
+            <div class="section-label">
+              Prompt
+            </div>
 
-          <div class="prompt-tools">
+            <div class="prompt-wrap">
 
-            <div class="prompt-left-tools">
+              <textarea
+                id="prompt"
+                maxlength="4000"
+                placeholder="Например: маленький рыжий кот сидит на улице Нью-Йорка ночью, кинематографический свет, фотореализм..."
+              ></textarea>
 
-              <button
-                id="micBtn"
-                class="tool-btn"
-                type="button"
-                title="Голосовой ввод"
+              <div
+                class="prompt-counter"
+                id="promptCounter"
               >
-                🎤
-                <span>Голос</span>
-              </button>
-
-              <button
-                id="improveBtn"
-                class="tool-btn"
-                type="button"
-                title="Улучшить описание"
-              >
-                ✨
-                <span>Улучшить</span>
-              </button>
+                0 / 4000
+              </div>
 
             </div>
 
-
-            <div class="prompt-right-tools">
+            <div class="prompt-tools">
 
               <button
-                id="clearPromptBtn"
                 class="tool-btn"
+                id="voiceBtn"
+                type="button"
+              >
+                🎙 Голос
+              </button>
+
+              <button
+                class="tool-btn"
+                id="improvePromptBtn"
+                type="button"
+              >
+                ✨ Улучшить
+              </button>
+
+              <button
+                class="tool-btn"
+                id="clearPromptBtn"
                 type="button"
               >
                 Очистить
@@ -1054,560 +1128,661 @@
 
           </div>
 
-        </div>
+          <!-- TEMPLATES -->
 
+          <div class="control-section">
 
-        <div class="templates">
-
-          <button
-            class="template"
-            data-template="photorealistic"
-            type="button"
-          >
-            📷 Фотореализм
-          </button>
-
-          <button
-            class="template"
-            data-template="cinematic"
-            type="button"
-          >
-            🎬 Cinematic
-          </button>
-
-          <button
-            class="template"
-            data-template="portrait"
-            type="button"
-          >
-            👤 Портрет
-          </button>
-
-          <button
-            class="template"
-            data-template="product"
-            type="button"
-          >
-            📦 Product
-          </button>
-
-          <button
-            class="template"
-            data-template="anime"
-            type="button"
-          >
-            🎨 Anime
-          </button>
-
-        </div>
-
-      </section>
-
-
-      <!-- SETTINGS -->
-
-      <section class="card controls-card">
-
-        <div class="controls-grid">
-
-          <div class="control">
-
-            <div class="control-label">
-              <span>Модель</span>
-              <span class="control-note">API</span>
+            <div class="section-label">
+              Быстрые шаблоны
             </div>
 
-            <select id="model">
-
-              <option value="flux-dev">
-                Flux Dev
-              </option>
-
-            </select>
-
-          </div>
-
-
-          <div class="control">
-
-            <div class="control-label">
-              <span>Количество</span>
-              <span class="control-note">до 4</span>
-            </div>
-
-            <select id="copies">
-
-              <option value="1">
-                1 изображение
-              </option>
-
-              <option value="2">
-                2 изображения
-              </option>
-
-              <option value="3">
-                3 изображения
-              </option>
-
-              <option value="4">
-                4 изображения
-              </option>
-
-            </select>
-
-          </div>
-
-
-          <div class="control full">
-
-            <div class="control-label">
-              <span>Соотношение сторон</span>
-              <span id="selectedRatioText" class="control-note">
-                1:1
-              </span>
-            </div>
-
-
-            <div class="ratio-grid">
+            <div class="templates">
 
               <button
-                class="ratio-btn selected"
-                data-ratio="1:1"
+                class="template"
+                data-template="photorealistic"
                 type="button"
               >
-                <span class="ratio-preview"></span>
-                <span>1:1</span>
+                📷 Фотореализм
               </button>
 
-
               <button
-                class="ratio-btn"
-                data-ratio="16:9"
+                class="template"
+                data-template="cinematic"
                 type="button"
               >
-                <span class="ratio-preview r169"></span>
-                <span>16:9</span>
+                🎬 Cinematic
               </button>
 
-
               <button
-                class="ratio-btn"
-                data-ratio="9:16"
+                class="template"
+                data-template="portrait"
                 type="button"
               >
-                <span class="ratio-preview r916"></span>
-                <span>9:16</span>
+                👤 Портрет
               </button>
 
-
               <button
-                class="ratio-btn"
-                data-ratio="4:3"
+                class="template"
+                data-template="product"
                 type="button"
               >
-                <span class="ratio-preview r43"></span>
-                <span>4:3</span>
+                📦 Product
               </button>
 
-
               <button
-                class="ratio-btn"
-                data-ratio="3:4"
+                class="template"
+                data-template="anime"
                 type="button"
               >
-                <span class="ratio-preview r34"></span>
-                <span>3:4</span>
-              </button>
-
-
-              <button
-                class="ratio-btn"
-                data-ratio="2:1"
-                type="button"
-              >
-                <span class="ratio-preview r21"></span>
-                <span>2:1</span>
-              </button>
-
-
-              <button
-                class="ratio-btn"
-                data-ratio="1:2"
-                type="button"
-              >
-                <span class="ratio-preview r12"></span>
-                <span>1:2</span>
-              </button>
-
-
-              <button
-                class="ratio-btn"
-                data-ratio="3:2"
-                type="button"
-              >
-                <span class="ratio-preview r32"></span>
-                <span>3:2</span>
-              </button>
-
-
-              <button
-                class="ratio-btn"
-                data-ratio="2:3"
-                type="button"
-              >
-                <span class="ratio-preview r23"></span>
-                <span>2:3</span>
-              </button>
-
-
-              <button
-                class="ratio-btn"
-                data-ratio="4:5"
-                type="button"
-              >
-                <span class="ratio-preview r45"></span>
-                <span>4:5</span>
-              </button>
-
-
-              <button
-                class="ratio-btn"
-                data-ratio="5:4"
-                type="button"
-              >
-                <span class="ratio-preview r54"></span>
-                <span>5:4</span>
+                🎨 Anime
               </button>
 
             </div>
 
           </div>
 
-        </div>
+          <!-- OPTIONS -->
 
+          <div class="control-section">
 
-        <div class="generate-row">
-
-          <button
-            id="generateBtn"
-            class="generate-btn"
-            type="button"
-          >
-            ✨ Создать изображение
-          </button>
-
-
-          <select
-            id="copiesBottom"
-            class="copies-select"
-          >
-
-            <option value="1">
-              × 1
-            </option>
-
-            <option value="2">
-              × 2
-            </option>
-
-            <option value="3">
-              × 3
-            </option>
-
-            <option value="4">
-              × 4
-            </option>
-
-          </select>
-
-        </div>
-
-
-        <div id="messageError" class="message error"></div>
-
-        <div id="messageSuccess" class="message success"></div>
-
-        <button
-          id="debugToggle"
-          class="debug-toggle"
-          type="button"
-        >
-          показать техническую информацию
-        </button>
-
-        <div id="debug" class="debug"></div>
-
-      </section>
-
-
-      <!-- PREVIEW -->
-
-      <section class="card preview-card">
-
-        <div class="preview-header">
-
-          <div>
-            <h2 class="preview-title">
-              Результат
-            </h2>
-
-            <div
-              id="previewInfo"
-              class="preview-info"
-            >
-              Здесь появится созданное изображение
+            <div class="section-label">
+              Параметры
             </div>
+
+            <div class="select-row">
+
+              <div>
+                <label class="field-label">
+                  Модель
+                </label>
+
+                <select id="model">
+                  <option value="flux">
+                    Flux Dev
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label class="field-label">
+                  Количество
+                </label>
+
+                <select id="copies">
+                  <option value="1">1 изображение</option>
+                  <option value="2">2 изображения</option>
+                  <option value="3">3 изображения</option>
+                  <option value="4">4 изображения</option>
+                </select>
+              </div>
+
+            </div>
+
           </div>
 
+          <!-- RATIO -->
 
-          <div class="results-actions">
+          <div class="control-section">
+
+            <div class="section-label">
+              Соотношение сторон
+            </div>
+
+            <div class="ratios" id="generatorRatios">
+
+              <button class="ratio active" data-ratio="1:1" type="button">1:1</button>
+              <button class="ratio" data-ratio="16:9" type="button">16:9</button>
+              <button class="ratio" data-ratio="9:16" type="button">9:16</button>
+              <button class="ratio" data-ratio="4:3" type="button">4:3</button>
+              <button class="ratio" data-ratio="3:4" type="button">3:4</button>
+              <button class="ratio" data-ratio="2:1" type="button">2:1</button>
+              <button class="ratio" data-ratio="1:2" type="button">1:2</button>
+              <button class="ratio" data-ratio="3:2" type="button">3:2</button>
+              <button class="ratio" data-ratio="2:3" type="button">2:3</button>
+              <button class="ratio" data-ratio="4:5" type="button">4:5</button>
+              <button class="ratio" data-ratio="5:4" type="button">5:4</button>
+
+            </div>
+
+          </div>
+
+          <!-- GENERATE -->
+
+          <div class="control-section">
 
             <button
-              id="clearResultsBtn"
-              class="small-btn"
+              class="generate-btn"
+              id="generateBtn"
               type="button"
-              style="display:none"
             >
-              Очистить
+              ✨ Создать изображение
             </button>
-
-          </div>
-
-        </div>
-
-
-        <div
-          id="previewStage"
-          class="preview-stage"
-        >
-
-          <div
-            id="emptyPreview"
-            class="empty-preview"
-          >
-
-            <div class="empty-icon">
-              ✦
-            </div>
-
-            <strong>
-              Создайте первое изображение
-            </strong>
-
-            <span>
-              Напишите описание выше, выберите формат и нажмите «Создать изображение».
-            </span>
-
-          </div>
-
-
-          <div
-            id="loading"
-            class="loading"
-          >
-
-            <div class="loading-spinner"></div>
-
-            <div class="loading-title">
-              Создаём изображение
-            </div>
-
-            <div
-              id="loadingText"
-              class="loading-text"
-            >
-              Flux Dev обрабатывает ваш prompt…
-            </div>
-
-            <div class="progress">
-              <div class="progress-bar"></div>
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- RESULTS -->
-
-      <section
-        id="results"
-        class="card results"
-      >
-
-        <div class="results-header">
-
-          <div>
-
-            <h2 class="results-title">
-              Галерея
-            </h2>
-
-          </div>
-
-
-          <div class="results-actions">
 
             <button
-              id="downloadAllBtn"
-              class="small-btn"
+              class="secondary-btn"
+              id="openEditorFromGenerator"
               type="button"
             >
-              Скачать всё
+              🪄 Открыть AI Editor
             </button>
+
+            <div
+              class="error-box"
+              id="generatorError"
+            ></div>
 
           </div>
 
-        </div>
+        </aside>
 
+      </div>
 
-        <div
-          id="gallery"
-          class="gallery"
-        ></div>
+      <!-- GENERATOR HISTORY -->
 
-      </section>
+      <div class="panel history">
 
-
-      <!-- HISTORY -->
-
-      <section
-        id="historyCard"
-        class="card history-card"
-      >
-
-        <div class="results-header">
-
+        <div class="panel-header">
           <div>
-
-            <h2 class="results-title">
-              История
-            </h2>
-
+            <div class="panel-title">История</div>
+            <div class="panel-subtitle">
+              Изображения сохраняются локально в браузере
+            </div>
           </div>
 
           <button
-            id="clearHistoryBtn"
             class="small-btn"
+            id="clearHistoryBtn"
             type="button"
+            style="max-width:110px;"
           >
             Очистить
           </button>
+        </div>
+
+        <div class="panel-body">
+
+          <div
+            class="history-grid"
+            id="historyGrid"
+          ></div>
+
+          <div
+            class="history-empty"
+            id="historyEmpty"
+          >
+            История пока пуста.
+          </div>
 
         </div>
 
+      </div>
 
-        <div
-          id="historyGrid"
-          class="history-grid"
-        ></div>
-
-      </section>
-
-    </main>
+    </section>
 
 
-    <!-- SIDE -->
+    <!-- ========================================================= -->
+    <!-- AI EDITOR MODE -->
+    <!-- ========================================================= -->
 
-    <aside class="side-column">
+    <section class="mode" id="editorMode">
 
-      <section class="card side-card">
+      <div class="editor-workspace">
 
-        <div class="side-section">
+        <!-- EDITOR CANVAS -->
 
-          <h3 class="side-heading">
-            Модель
-          </h3>
+        <div class="panel">
 
+          <div class="panel-header">
 
-          <div class="model-card">
+            <div>
+              <div class="panel-title">
+                AI Editor
+              </div>
 
-            <div class="model-name">
-              Flux Dev
+              <div class="panel-subtitle">
+                Flux Kontext Dev · Image to Image
+              </div>
             </div>
 
-            <div class="model-description">
-              Текущая рабочая модель через PixelSter. Поддерживает все доступные форматы генератора.
+            <button
+              class="small-btn"
+              id="resetEditorBtn"
+              type="button"
+              style="max-width:100px;"
+            >
+              Сбросить
+            </button>
+
+          </div>
+
+          <div class="panel-body">
+
+            <!-- UPLOAD -->
+
+            <div
+              class="upload-zone"
+              id="uploadZone"
+            >
+
+              <div class="upload-content">
+
+                <div class="upload-icon">
+                  ↑
+                </div>
+
+                <div class="upload-title">
+                  Загрузите изображение
+                </div>
+
+                <div class="upload-text">
+                  Перетащите JPG, PNG или WebP сюда<br>
+                  или выберите файл с компьютера
+                </div>
+
+                <button
+                  class="upload-button"
+                  id="chooseImageBtn"
+                  type="button"
+                >
+                  Выбрать изображение
+                </button>
+
+              </div>
+
+              <input
+                type="file"
+                id="editorFile"
+                accept="image/png,image/jpeg,image/webp"
+              >
+
             </div>
 
-            <span class="model-badge">
-              ACTIVE
-            </span>
+            <!-- SOURCE -->
+
+            <div
+              class="editor-source"
+              id="editorSource"
+            >
+
+              <img
+                class="source-image"
+                id="sourceImage"
+                alt="Исходное изображение"
+              >
+
+              <div class="source-toolbar">
+
+                <button
+                  id="changeImageBtn"
+                  type="button"
+                >
+                  Заменить
+                </button>
+
+                <button
+                  id="removeImageBtn"
+                  type="button"
+                >
+                  Удалить
+                </button>
+
+                <button
+                  id="useGeneratorImageBtn"
+                  type="button"
+                >
+                  Использовать результат
+                </button>
+
+              </div>
+
+            </div>
+
+            <!-- COMPARE -->
+
+            <div
+              class="compare"
+              id="editorCompare"
+              style="margin-top:16px;"
+            >
+
+              <div class="compare-item">
+
+                <div class="compare-label">
+                  Оригинал
+                </div>
+
+                <img
+                  class="compare-image"
+                  id="compareOriginal"
+                  alt="Original"
+                >
+
+              </div>
+
+              <div class="compare-item">
+
+                <div class="compare-label">
+                  Результат
+                </div>
+
+                <div
+                  class="compare-placeholder"
+                  id="compareResultPlaceholder"
+                >
+                  Здесь появится результат
+                </div>
+
+                <img
+                  class="compare-image"
+                  id="compareResult"
+                  alt="Result"
+                  style="display:none;"
+                >
+
+              </div>
+
+            </div>
+
+            <!-- EDIT RESULT -->
+
+            <div
+              class="editor-result"
+              id="editorResult"
+            >
+
+              <img
+                class="compare-image"
+                id="editorResultImage"
+                alt="AI edited result"
+              >
+
+              <div class="result-toolbar">
+
+                <button
+                  id="downloadEditedBtn"
+                  type="button"
+                >
+                  ↓ Скачать
+                </button>
+
+                <button
+                  id="sendEditedToGeneratorBtn"
+                  type="button"
+                >
+                  ✨ В генератор
+                </button>
+
+              </div>
+
+            </div>
 
           </div>
 
         </div>
 
 
-        <div class="side-section">
+        <!-- EDITOR CONTROLS -->
 
-          <h3 class="side-heading">
-            Как пользоваться
-          </h3>
+        <aside class="panel control-panel">
 
+          <!-- EDIT PROMPT -->
 
-          <div class="quick-list">
+          <div class="control-section">
 
-            <div class="quick-item">
+            <div class="section-label">
+              Что изменить?
+            </div>
 
-              <span class="quick-number">
-                1
-              </span>
+            <div class="prompt-wrap">
 
-              <span>
-                Опишите изображение
-              </span>
+              <textarea
+                id="editPrompt"
+                maxlength="4000"
+                placeholder="Например: замени фон на ночной Нью-Йорк, сохрани человека и его лицо без изменений..."
+              ></textarea>
+
+              <div
+                class="prompt-counter"
+                id="editPromptCounter"
+              >
+                0 / 4000
+              </div>
 
             </div>
 
+            <div class="prompt-tools">
 
-            <div class="quick-item">
+              <button
+                class="tool-btn"
+                id="clearEditPromptBtn"
+                type="button"
+              >
+                Очистить
+              </button>
 
-              <span class="quick-number">
-                2
-              </span>
-
-              <span>
-                Выберите формат
-              </span>
-
-            </div>
-
-
-            <div class="quick-item">
-
-              <span class="quick-number">
-                3
-              </span>
-
-              <span>
-                Нажмите создать
-              </span>
-
-            </div>
-
-
-            <div class="quick-item">
-
-              <span class="quick-number">
-                4
-              </span>
-
-              <span>
-                Скачайте результат
-              </span>
+              <button
+                class="tool-btn"
+                id="copyEditPromptBtn"
+                type="button"
+              >
+                Копировать
+              </button>
 
             </div>
 
           </div>
 
-        </div>
+          <!-- QUICK ACTIONS -->
 
-      </section>
+          <div class="control-section">
 
-    </aside>
+            <div class="section-label">
+              Быстрые действия
+            </div>
+
+            <div class="quick-actions">
+
+              <button
+                class="quick-action"
+                data-edit="background"
+                type="button"
+              >
+                <strong>🌅 Фон</strong>
+                Изменить окружение
+              </button>
+
+              <button
+                class="quick-action"
+                data-edit="lighting"
+                type="button"
+              >
+                <strong>💡 Свет</strong>
+                Сделать свет кинематографичным
+              </button>
+
+              <button
+                class="quick-action"
+                data-edit="style"
+                type="button"
+              >
+                <strong>🎨 Стиль</strong>
+                Изменить визуальный стиль
+              </button>
+
+              <button
+                class="quick-action"
+                data-edit="clothes"
+                type="button"
+              >
+                <strong>👕 Одежда</strong>
+                Изменить одежду
+              </button>
+
+              <button
+                class="quick-action"
+                data-edit="quality"
+                type="button"
+              >
+                <strong>✨ Детализация</strong>
+                Сделать фотореалистичным
+              </button>
+
+              <button
+                class="quick-action"
+                data-edit="cinematic"
+                type="button"
+              >
+                <strong>🎬 Cinematic</strong>
+                Голливудский кадр
+              </button>
+
+            </div>
+
+          </div>
+
+          <!-- RATIO -->
+
+          <div class="control-section">
+
+            <div class="section-label">
+              Соотношение
+            </div>
+
+            <div
+              class="ratios"
+              id="editorRatios"
+            >
+
+              <button class="ratio active" data-ratio="auto" type="button">
+                Auto
+              </button>
+
+              <button class="ratio" data-ratio="1:1" type="button">
+                1:1
+              </button>
+
+              <button class="ratio" data-ratio="16:9" type="button">
+                16:9
+              </button>
+
+              <button class="ratio" data-ratio="9:16" type="button">
+                9:16
+              </button>
+
+              <button class="ratio" data-ratio="4:3" type="button">
+                4:3
+              </button>
+
+              <button class="ratio" data-ratio="3:4" type="button">
+                3:4
+              </button>
+
+              <button class="ratio" data-ratio="3:2" type="button">
+                3:2
+              </button>
+
+              <button class="ratio" data-ratio="2:3" type="button">
+                2:3
+              </button>
+
+              <button class="ratio" data-ratio="4:5" type="button">
+                4:5
+              </button>
+
+              <button class="ratio" data-ratio="5:4" type="button">
+                5:4
+              </button>
+
+            </div>
+
+          </div>
+
+          <!-- MODEL -->
+
+          <div class="control-section">
+
+            <div class="section-label">
+              AI модель
+            </div>
+
+            <select id="editorModel">
+
+              <option value="flux-kontext">
+                Flux Kontext Dev
+              </option>
+
+            </select>
+
+          </div>
+
+          <!-- EDIT -->
+
+          <div class="control-section">
+
+            <button
+              class="generate-btn"
+              id="editBtn"
+              type="button"
+              disabled
+            >
+              🪄 Редактировать изображение
+            </button>
+
+            <button
+              class="secondary-btn"
+              id="editorToGeneratorBtn"
+              type="button"
+            >
+              ← Вернуться к генератору
+            </button>
+
+            <div
+              class="error-box"
+              id="editorError"
+            ></div>
+
+          </div>
+
+        </aside>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    Bastyon AI Studio · Flux Dev · Flux Kontext Dev
+  </footer>
+
+</div>
+
+
+<!-- LOADING -->
+
+<div
+  class="loading"
+  id="loading"
+>
+
+  <div class="loading-card">
+
+    <div class="spinner"></div>
+
+    <div
+      class="loading-title"
+      id="loadingTitle"
+    >
+      Генерируем изображение
+    </div>
+
+    <div
+      class="loading-text"
+      id="loadingText"
+    >
+      Это может занять некоторое время.
+    </div>
 
   </div>
 
@@ -1615,279 +1790,154 @@
 
 
 <script>
-
-  /* ============================================
-     ELEMENTS
-  ============================================ */
-
-  const promptInput = document.getElementById("prompt");
-
-  const charCount = document.getElementById("charCount");
-
-  const micBtn = document.getElementById("micBtn");
-
-  const improveBtn = document.getElementById("improveBtn");
-
-  const clearPromptBtn =
-    document.getElementById("clearPromptBtn");
-
-  const modelInput =
-    document.getElementById("model");
-
-  const copiesInput =
-    document.getElementById("copies");
-
-  const copiesBottom =
-    document.getElementById("copiesBottom");
-
-  const generateBtn =
-    document.getElementById("generateBtn");
-
-  const ratioButtons =
-    document.querySelectorAll(".ratio-btn");
-
-  const selectedRatioText =
-    document.getElementById("selectedRatioText");
-
-  const previewStage =
-    document.getElementById("previewStage");
-
-  const emptyPreview =
-    document.getElementById("emptyPreview");
-
-  const loading =
-    document.getElementById("loading");
-
-  const loadingText =
-    document.getElementById("loadingText");
-
-  const results =
-    document.getElementById("results");
-
-  const gallery =
-    document.getElementById("gallery");
-
-  const previewInfo =
-    document.getElementById("previewInfo");
-
-  const clearResultsBtn =
-    document.getElementById("clearResultsBtn");
-
-  const downloadAllBtn =
-    document.getElementById("downloadAllBtn");
-
-  const messageError =
-    document.getElementById("messageError");
-
-  const messageSuccess =
-    document.getElementById("messageSuccess");
-
-  const debugToggle =
-    document.getElementById("debugToggle");
-
-  const debugBox =
-    document.getElementById("debug");
-
-  const historyCard =
-    document.getElementById("historyCard");
-
-  const historyGrid =
-    document.getElementById("historyGrid");
-
-  const clearHistoryBtn =
-    document.getElementById("clearHistoryBtn");
-
-
-  /* ============================================
+  /* ============================================================
      STATE
-  ============================================ */
+  ============================================================ */
 
-  let selectedRatio = "1:1";
+  let generatorRatio = "1:1";
+  let editorRatio = "auto";
 
-  let currentImages = [];
+  let editorImageBase64 = "";
+  let editorImageDataUrl = "";
 
-  let currentPrompt = "";
+  let lastGeneratorImage = "";
 
-  let isGenerating = false;
+  let generatorResults = [];
 
-  let recognition = null;
-
-
-  /* ============================================
-     PROMPT COUNTER
-  ============================================ */
-
-  function updateCharCount() {
-
-    const length = promptInput.value.length;
-
-    charCount.textContent =
-      length + " / 2000";
-
-  }
-
-  promptInput.addEventListener(
-    "input",
-    updateCharCount
-  );
-
-  updateCharCount();
+  const HISTORY_KEY = "bastyon_ai_studio_history";
 
 
-  /* ============================================
-     RATIO
-  ============================================ */
+  /* ============================================================
+     ELEMENTS
+  ============================================================ */
 
-  ratioButtons.forEach(button => {
+  const generatorModeBtn =
+    document.getElementById("generatorModeBtn");
 
-    button.addEventListener("click", () => {
+  const editorModeBtn =
+    document.getElementById("editorModeBtn");
 
-      ratioButtons.forEach(item => {
-        item.classList.remove("selected");
-      });
+  const generatorMode =
+    document.getElementById("generatorMode");
 
-      button.classList.add("selected");
+  const editorMode =
+    document.getElementById("editorMode");
 
-      selectedRatio =
-        button.dataset.ratio;
 
-      selectedRatioText.textContent =
-        selectedRatio;
+  /* ============================================================
+     MODE SWITCH
+  ============================================================ */
 
+  function showMode(mode) {
+
+    const generator =
+      mode === "generator";
+
+    generatorMode.classList.toggle(
+      "active",
+      generator
+    );
+
+    editorMode.classList.toggle(
+      "active",
+      !generator
+    );
+
+    generatorModeBtn.classList.toggle(
+      "active",
+      generator
+    );
+
+    editorModeBtn.classList.toggle(
+      "active",
+      !generator
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
     });
-
-  });
-
-
-  /* ============================================
-     COPIES SYNC
-  ============================================ */
-
-  copiesInput.addEventListener("change", () => {
-
-    copiesBottom.value =
-      copiesInput.value;
-
-  });
-
-  copiesBottom.addEventListener("change", () => {
-
-    copiesInput.value =
-      copiesBottom.value;
-
-  });
-
-
-  /* ============================================
-     MESSAGES
-  ============================================ */
-
-  function showError(message) {
-
-    messageSuccess.style.display = "none";
-
-    messageError.textContent = message;
-
-    messageError.style.display = "block";
-
   }
 
-
-  function showSuccess(message) {
-
-    messageError.style.display = "none";
-
-    messageSuccess.textContent = message;
-
-    messageSuccess.style.display = "block";
-
-  }
-
-
-  function hideMessages() {
-
-    messageError.style.display = "none";
-
-    messageSuccess.style.display = "none";
-
-  }
-
-
-  /* ============================================
-     DEBUG
-  ============================================ */
-
-  function writeDebug(value) {
-
-    if (typeof value !== "string") {
-
-      value =
-        JSON.stringify(
-          value,
-          null,
-          2
-        );
-
-    }
-
-    debugBox.textContent =
-      value;
-
-    console.log(value);
-
-  }
-
-
-  debugToggle.addEventListener(
+  generatorModeBtn.addEventListener(
     "click",
-    () => {
+    () => showMode("generator")
+  );
 
-      if (
-        debugBox.style.display ===
-        "block"
-      ) {
+  editorModeBtn.addEventListener(
+    "click",
+    () => showMode("editor")
+  );
 
-        debugBox.style.display =
-          "none";
+  document
+    .getElementById("openEditorFromGenerator")
+    .addEventListener(
+      "click",
+      () => showMode("editor")
+    );
 
-        debugToggle.textContent =
-          "показать техническую информацию";
+  document
+    .getElementById("editorToGeneratorBtn")
+    .addEventListener(
+      "click",
+      () => showMode("generator")
+    );
 
-      } else {
 
-        debugBox.style.display =
-          "block";
+  /* ============================================================
+     GENERATOR PROMPT
+  ============================================================ */
 
-        debugToggle.textContent =
-          "скрыть техническую информацию";
+  const prompt =
+    document.getElementById("prompt");
 
-      }
+  const promptCounter =
+    document.getElementById("promptCounter");
 
-    }
+  function updatePromptCounter() {
+
+    promptCounter.textContent =
+      `${prompt.value.length} / 4000`;
+  }
+
+  prompt.addEventListener(
+    "input",
+    updatePromptCounter
   );
 
 
-  /* ============================================
-     PROMPT TEMPLATES
-  ============================================ */
+  document
+    .getElementById("clearPromptBtn")
+    .addEventListener(
+      "click",
+      () => {
+        prompt.value = "";
+        updatePromptCounter();
+        prompt.focus();
+      }
+    );
+
+
+  /* ============================================================
+     GENERATOR TEMPLATES
+  ============================================================ */
 
   const templates = {
 
     photorealistic:
-      "Фотореалистичная сцена, естественная кожа и материалы, реалистичное освещение, высокая детализация, realistic photography",
+      "Photorealistic image, extremely detailed natural textures, realistic lighting, professional photography, sharp focus, realistic colors, high-end camera quality",
 
     cinematic:
-      "Кинематографическая сцена, dramatic cinematic lighting, shallow depth of field, realistic textures, movie still, high detail",
+      "Cinematic Hollywood frame, dramatic professional lighting, realistic environment, natural skin and material textures, shallow depth of field, anamorphic look, premium film production",
 
     portrait:
-      "Профессиональный портрет, expressive face, natural skin texture, studio lighting, shallow depth of field, photorealistic",
+      "Professional cinematic portrait, realistic face and skin texture, natural expression, detailed eyes, soft directional lighting, shallow depth of field, premium photography",
 
     product:
-      "Профессиональная предметная фотография, clean composition, studio lighting, realistic materials, premium commercial photography",
+      "Luxury commercial product photography, premium studio lighting, realistic materials, subtle reflections, clean composition, extremely detailed, high-end advertising photography",
 
     anime:
-      "Высококачественная anime illustration, detailed character design, expressive face, beautiful lighting, polished artwork"
-
+      "High quality anime illustration, detailed character design, beautiful lighting, expressive face, cinematic composition, polished professional artwork"
   };
 
 
@@ -1902,517 +1952,162 @@
           const type =
             button.dataset.template;
 
-          const text =
+          const addition =
             templates[type];
 
-          if (!promptInput.value.trim()) {
+          if (!addition) return;
 
-            promptInput.value =
-              text;
+          if (prompt.value.trim()) {
+
+            prompt.value =
+              `${prompt.value.trim()}, ${addition}`;
 
           } else {
 
-            promptInput.value =
-              promptInput.value.trim() +
-              ", " +
-              text;
-
+            prompt.value = addition;
           }
 
-          updateCharCount();
-
-          promptInput.focus();
-
+          updatePromptCounter();
+          prompt.focus();
         }
       );
-
     });
 
 
-  /* ============================================
+  /* ============================================================
      IMPROVE PROMPT
-  ============================================ */
+  ============================================================ */
 
-  improveBtn.addEventListener(
-    "click",
-    () => {
+  document
+    .getElementById("improvePromptBtn")
+    .addEventListener(
+      "click",
+      () => {
 
-      const original =
-        promptInput.value.trim();
+        const value =
+          prompt.value.trim();
 
-      if (!original) {
+        if (!value) {
+          prompt.focus();
+          return;
+        }
 
-        showError(
-          "Сначала напишите, что хотите создать."
-        );
+        prompt.value =
+          `${value}, ultra detailed, photorealistic, cinematic composition, realistic textures, natural lighting, professional photography, sharp focus, high dynamic range`;
 
-        return;
-
+        updatePromptCounter();
       }
-
-      const additions =
-        ", highly detailed, professional composition, realistic lighting, rich textures, sharp subject, natural colors, cinematic depth of field";
-
-      if (
-        !original.toLowerCase().includes(
-          "highly detailed"
-        )
-      ) {
-
-        promptInput.value =
-          original + additions;
-
-      }
-
-      updateCharCount();
-
-      showSuccess(
-        "✨ Prompt улучшен."
-      );
-
-      promptInput.focus();
-
-    }
-  );
+    );
 
 
-  /* ============================================
-     CLEAR PROMPT
-  ============================================ */
+  /* ============================================================
+     VOICE
+  ============================================================ */
 
-  clearPromptBtn.addEventListener(
-    "click",
-    () => {
+  const voiceBtn =
+    document.getElementById("voiceBtn");
 
-      promptInput.value = "";
+  let recognition = null;
 
-      updateCharCount();
+  if (
+    "SpeechRecognition" in window ||
+    "webkitSpeechRecognition" in window
+  ) {
 
-      hideMessages();
-
-      promptInput.focus();
-
-    }
-  );
-
-
-  /* ============================================
-     VOICE INPUT
-  ============================================ */
-
-  const SpeechRecognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-  if (SpeechRecognition) {
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
 
     recognition =
       new SpeechRecognition();
 
     recognition.lang = "ru-RU";
-
+    recognition.continuous = false;
     recognition.interimResults = false;
 
-    recognition.continuous = false;
-
-
     recognition.onstart = () => {
-
-      micBtn.classList.add("active");
-
-      micBtn.innerHTML =
-        "🔴 <span>Слушаю…</span>";
-
+      voiceBtn.textContent = "🔴 Слушаю...";
     };
-
 
     recognition.onend = () => {
-
-      micBtn.classList.remove("active");
-
-      micBtn.innerHTML =
-        "🎤 <span>Голос</span>";
-
+      voiceBtn.textContent = "🎙 Голос";
     };
 
-
-    recognition.onerror = event => {
-
-      micBtn.classList.remove("active");
-
-      micBtn.innerHTML =
-        "🎤 <span>Голос</span>";
-
-      showError(
-        "Ошибка голосового ввода: " +
-        event.error
-      );
-
+    recognition.onerror = () => {
+      voiceBtn.textContent = "🎙 Голос";
     };
-
 
     recognition.onresult = event => {
 
       const text =
         event.results[0][0].transcript;
 
-      if (promptInput.value.trim()) {
+      prompt.value =
+        prompt.value.trim()
+          ? `${prompt.value.trim()} ${text}`
+          : text;
 
-        promptInput.value +=
-          " " + text;
-
-      } else {
-
-        promptInput.value =
-          text;
-
-      }
-
-      updateCharCount();
-
+      updatePromptCounter();
     };
 
-
-    micBtn.addEventListener(
+    voiceBtn.addEventListener(
       "click",
       () => {
 
         try {
-
-          recognition.lang =
-            "ru-RU";
-
           recognition.start();
-
-        } catch (error) {
-
-          console.error(error);
-
-        }
-
+        } catch {}
       }
     );
 
   } else {
 
-    micBtn.disabled = true;
-
-    micBtn.title =
-      "Голосовой ввод не поддерживается этим браузером";
-
-  }
-
-
-  /* ============================================
-     GENERATION
-  ============================================ */
-
-  generateBtn.addEventListener(
-    "click",
-    generateImages
-  );
-
-
-  async function generateImages() {
-
-    if (isGenerating) {
-      return;
-    }
-
-    const prompt =
-      promptInput.value.trim();
-
-    if (!prompt) {
-
-      showError(
-        "Введите описание изображения."
-      );
-
-      promptInput.focus();
-
-      return;
-
-    }
-
-
-    const copies =
-      Number(copiesInput.value) || 1;
-
-
-    isGenerating = true;
-
-    currentPrompt =
-      prompt;
-
-
-    hideMessages();
-
-
-    generateBtn.disabled = true;
-
-    generateBtn.textContent =
-      "⏳ Создание…";
-
-
-    emptyPreview.style.display =
-      "none";
-
-    loading.style.display =
-      "block";
-
-
-    results.style.display =
-      "none";
-
-    clearResultsBtn.style.display =
-      "none";
-
-
-    gallery.innerHTML = "";
-
-    currentImages = [];
-
-
-    previewInfo.textContent =
-      "Генерируем " +
-      copies +
-      (copies === 1
-        ? " изображение"
-        : " изображения") +
-      "…";
-
-
-    writeDebug(
-      "Генерация\n\n" +
-      JSON.stringify(
-        {
-          prompt,
-          model:
-            modelInput.value,
-          ratio:
-            selectedRatio,
-          copies
-        },
-        null,
-        2
-      )
+    voiceBtn.addEventListener(
+      "click",
+      () => {
+        alert(
+          "Голосовой ввод не поддерживается этим браузером."
+        );
+      }
     );
-
-
-    try {
-
-      /*
-       * PixelSter не принимает параметр
-       * количества изображений.
-       *
-       * Поэтому несколько изображений
-       * создаём отдельными параллельными
-       * запросами.
-       */
-
-      const requests = [];
-
-      for (
-        let i = 0;
-        i < copies;
-        i++
-      ) {
-
-        requests.push(
-          generateOne(
-            prompt,
-            selectedRatio,
-            i + 1
-          )
-        );
-
-      }
-
-
-      const responses =
-        await Promise.allSettled(
-          requests
-        );
-
-
-      const successful =
-        responses
-          .filter(
-            item =>
-              item.status ===
-              "fulfilled"
-          )
-          .map(
-            item =>
-              item.value
-          );
-
-
-      const failed =
-        responses
-          .filter(
-            item =>
-              item.status ===
-              "rejected"
-          );
-
-
-      currentImages =
-        successful;
-
-
-      loading.style.display =
-        "none";
-
-
-      if (!successful.length) {
-
-        emptyPreview.style.display =
-          "block";
-
-        previewInfo.textContent =
-          "Генерация не удалась";
-
-        throw new Error(
-          failed[0]?.reason?.message ||
-          "API не вернул ни одного изображения."
-        );
-
-      }
-
-
-      renderGallery(
-        successful
-      );
-
-
-      results.style.display =
-        "block";
-
-
-      clearResultsBtn.style.display =
-        "inline-block";
-
-
-      previewInfo.textContent =
-        successful.length +
-        (
-          successful.length === 1
-            ? " изображение готово"
-            : " изображения готовы"
-        );
-
-
-      if (failed.length) {
-
-        showSuccess(
-          "Готово: " +
-          successful.length +
-          " из " +
-          copies +
-          ". Некоторые запросы не завершились."
-        );
-
-      } else {
-
-        showSuccess(
-          "✨ Изображение успешно создано."
-        );
-
-      }
-
-
-      saveToHistory(
-        successful,
-        prompt,
-        selectedRatio
-      );
-
-
-      writeDebug(
-        "УСПЕШНАЯ ГЕНЕРАЦИЯ\n\n" +
-        JSON.stringify(
-          {
-            model:
-              modelInput.value,
-            ratio:
-              selectedRatio,
-            requested:
-              copies,
-            successful:
-              successful.length,
-            failed:
-              failed.length,
-            images:
-              successful
-          },
-          null,
-          2
-        )
-      );
-
-
-      results.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-
-
-    } catch (error) {
-
-      loading.style.display =
-        "none";
-
-      emptyPreview.style.display =
-        "block";
-
-      previewInfo.textContent =
-        "Ошибка генерации";
-
-
-      showError(
-        "❌ " +
-        error.message
-      );
-
-
-      writeDebug(
-        "ОШИБКА\n\n" +
-        error.message
-      );
-
-    } finally {
-
-      isGenerating = false;
-
-      generateBtn.disabled =
-        false;
-
-      generateBtn.textContent =
-        "✨ Создать изображение";
-
-    }
-
   }
 
 
-  /* ============================================
-     ONE GENERATION
-  ============================================ */
+  /* ============================================================
+     GENERATOR RATIOS
+  ============================================================ */
+
+  document
+    .querySelectorAll("#generatorRatios .ratio")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          document
+            .querySelectorAll("#generatorRatios .ratio")
+            .forEach(item =>
+              item.classList.remove("active")
+            );
+
+          button.classList.add("active");
+
+          generatorRatio =
+            button.dataset.ratio;
+        }
+      );
+    });
+
+
+  /* ============================================================
+     GENERATE IMAGE
+  ============================================================ */
 
   async function generateOne(
-    prompt,
-    ratio,
-    number
+    promptText,
+    ratio
   ) {
-
-    loadingText.textContent =
-      "Изображение " +
-      number +
-      " из " +
-      Number(copiesInput.value) +
-      "…";
-
 
     const response =
       await fetch(
@@ -2425,274 +2120,1269 @@
               "application/json"
           },
 
-          body:
-            JSON.stringify({
-              prompt,
-              ratio
-            })
+          body: JSON.stringify({
+            prompt: promptText,
+            ratio
+          })
         }
       );
 
-
-    const rawText =
+    const text =
       await response.text();
-
 
     let data;
 
-
     try {
-
-      data =
-        JSON.parse(
-          rawText
-        );
-
+      data = JSON.parse(text);
     } catch {
-
       throw new Error(
-        "Сервер вернул не JSON:\n" +
-        rawText.substring(
-          0,
-          500
-        )
+        "Сервер вернул некорректный ответ."
       );
-
     }
 
-
-    if (!response.ok) {
+    if (!response.ok || !data.success) {
 
       throw new Error(
         data.error ||
-        "HTTP " +
-        response.status
+        "Ошибка генерации изображения."
       );
-
     }
-
-
-    if (!data.success) {
-
-      throw new Error(
-        data.error ||
-        "Генерация не удалась."
-      );
-
-    }
-
 
     if (!data.imageUrl) {
 
       throw new Error(
-        "API не вернул imageUrl."
+        "Сервер не вернул изображение."
       );
-
     }
 
-
-    return {
-      imageUrl:
-        data.imageUrl,
-
-      prompt:
-        data.prompt ||
-        prompt,
-
-      ratio:
-        data.ratio ||
-        ratio,
-
-      model:
-        data.model ||
-        "Flux Dev"
-
-    };
-
+    return data;
   }
 
 
-  /* ============================================
-     GALLERY
-  ============================================ */
+  async function generateImages() {
 
-  function renderGallery(
-    images
-  ) {
+    const promptText =
+      prompt.value.trim();
+
+    if (!promptText) {
+
+      showGeneratorError(
+        "Сначала напишите описание изображения."
+      );
+
+      prompt.focus();
+
+      return;
+    }
+
+    const copies =
+      Number(
+        document.getElementById("copies").value
+      );
+
+    const button =
+      document.getElementById("generateBtn");
+
+    button.disabled = true;
+
+    hideGeneratorError();
+
+    showLoading(
+      "Генерируем изображение",
+      "Flux Dev создаёт изображение..."
+    );
+
+    generatorResults = [];
+
+    try {
+
+      /*
+       * Генерируем последовательно.
+       *
+       * Это специально сделано так,
+       * чтобы не отправлять несколько
+       * запросов одновременно и меньше
+       * попадать под fair-use throttling.
+       */
+
+      for (
+        let i = 0;
+        i < copies;
+        i++
+      ) {
+
+        updateLoading(
+          `Генерируем ${i + 1} из ${copies}`,
+          "Flux Dev создаёт изображение..."
+        );
+
+        try {
+
+          const result =
+            await generateOne(
+              promptText,
+              generatorRatio
+            );
+
+          generatorResults.push(result);
+
+        } catch (error) {
+
+          console.error(
+            "Generation error:",
+            error
+          );
+
+          if (
+            generatorResults.length === 0
+          ) {
+            throw error;
+          }
+        }
+      }
+
+      if (!generatorResults.length) {
+
+        throw new Error(
+          "Не удалось получить изображение."
+        );
+      }
+
+      renderGeneratorResults();
+
+      lastGeneratorImage =
+        generatorResults[
+          generatorResults.length - 1
+        ].imageUrl;
+
+      saveHistory(
+        generatorResults
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      showGeneratorError(
+        error.message ||
+        "Ошибка генерации."
+      );
+
+    } finally {
+
+      hideLoading();
+
+      button.disabled = false;
+    }
+  }
+
+
+  document
+    .getElementById("generateBtn")
+    .addEventListener(
+      "click",
+      generateImages
+    );
+
+
+  /* ============================================================
+     GENERATOR RESULTS
+  ============================================================ */
+
+  function renderGeneratorResults() {
+
+    const gallery =
+      document.getElementById(
+        "generatorGallery"
+      );
+
+    const empty =
+      document.getElementById(
+        "generatorEmpty"
+      );
+
+    const downloadAll =
+      document.getElementById(
+        "downloadAllBtn"
+      );
 
     gallery.innerHTML = "";
 
+    empty.style.display = "none";
 
-    images.forEach(
-      (item, index) => {
+    downloadAll.style.display =
+      generatorResults.length
+        ? "block"
+        : "none";
+
+    generatorResults.forEach(
+      (result, index) => {
 
         const card =
-          document.createElement(
-            "div"
-          );
+          document.createElement("div");
 
         card.className =
-          "image-card";
+          "result-card";
 
+        const image =
+          document.createElement("img");
 
-        const img =
-          document.createElement(
-            "img"
-          );
+        image.src =
+          result.imageUrl;
 
-        img.src =
-          item.imageUrl;
+        image.alt =
+          result.prompt || "Generated image";
 
-        img.alt =
-          currentPrompt;
+        const actions =
+          document.createElement("div");
 
-        img.loading =
-          "lazy";
+        actions.className =
+          "result-actions";
 
+        const download =
+          document.createElement("button");
 
-        const footer =
-          document.createElement(
-            "div"
-          );
+        download.className =
+          "small-btn";
 
-        footer.className =
-          "image-card-footer";
+        download.textContent =
+          "↓ Скачать";
 
-
-        const openButton =
-          document.createElement(
-            "button"
-          );
-
-        openButton.className =
-          "image-action";
-
-        openButton.textContent =
-          "Открыть";
-
-
-        openButton.addEventListener(
+        download.addEventListener(
           "click",
-          () => {
-
-            window.open(
-              item.imageUrl,
-              "_blank"
-            );
-
-          }
-        );
-
-
-        const downloadButton =
-          document.createElement(
-            "button"
-          );
-
-        downloadButton.className =
-          "image-action";
-
-        downloadButton.textContent =
-          "Скачать";
-
-
-        downloadButton.addEventListener(
-          "click",
-          () => {
-
+          () =>
             downloadImage(
-              item.imageUrl,
-              "bastyon-ai-" +
-              Date.now() +
-              "-" +
-              (index + 1) +
-              ".jpg"
+              result.imageUrl,
+              `bastyon-ai-${index + 1}.jpg`
+            )
+        );
+
+        const edit =
+          document.createElement("button");
+
+        edit.className =
+          "small-btn";
+
+        edit.textContent =
+          "🪄 Редактировать";
+
+        edit.addEventListener(
+          "click",
+          () => {
+
+            loadImageIntoEditor(
+              result.imageUrl
             );
 
+            showMode("editor");
           }
         );
 
+        actions.appendChild(download);
+        actions.appendChild(edit);
 
-        const copyButton =
-          document.createElement(
-            "button"
-          );
+        card.appendChild(image);
+        card.appendChild(actions);
 
-        copyButton.className =
-          "image-action";
-
-        copyButton.textContent =
-          "Prompt";
-
-
-        copyButton.addEventListener(
-          "click",
-          async () => {
-
-            try {
-
-              await navigator.clipboard.writeText(
-                item.prompt ||
-                currentPrompt
-              );
-
-              copyButton.textContent =
-                "Скопировано";
-
-              setTimeout(() => {
-
-                copyButton.textContent =
-                  "Prompt";
-
-              }, 1200);
-
-            } catch {
-
-              showError(
-                "Не удалось скопировать prompt."
-              );
-
-            }
-
-          }
-        );
-
-
-        footer.appendChild(
-          openButton
-        );
-
-        footer.appendChild(
-          downloadButton
-        );
-
-        footer.appendChild(
-          copyButton
-        );
-
-
-        card.appendChild(
-          img
-        );
-
-        card.appendChild(
-          footer
-        );
-
-
-        gallery.appendChild(
-          card
-        );
-
+        gallery.appendChild(card);
       }
     );
-
   }
 
 
-  /* ============================================
+  document
+    .getElementById("downloadAllBtn")
+    .addEventListener(
+      "click",
+      async () => {
+
+        for (
+          let i = 0;
+          i < generatorResults.length;
+          i++
+        ) {
+
+          await downloadImage(
+            generatorResults[i].imageUrl,
+            `bastyon-ai-${i + 1}.jpg`
+          );
+
+          await new Promise(
+            resolve =>
+              setTimeout(resolve, 400)
+          );
+        }
+      }
+    );
+
+
+  /* ============================================================
+     EDITOR PROMPT
+  ============================================================ */
+
+  const editPrompt =
+    document.getElementById(
+      "editPrompt"
+    );
+
+  const editPromptCounter =
+    document.getElementById(
+      "editPromptCounter"
+    );
+
+  function updateEditCounter() {
+
+    editPromptCounter.textContent =
+      `${editPrompt.value.length} / 4000`;
+  }
+
+  editPrompt.addEventListener(
+    "input",
+    updateEditCounter
+  );
+
+
+  document
+    .getElementById("clearEditPromptBtn")
+    .addEventListener(
+      "click",
+      () => {
+
+        editPrompt.value = "";
+
+        updateEditCounter();
+
+        editPrompt.focus();
+      }
+    );
+
+
+  document
+    .getElementById("copyEditPromptBtn")
+    .addEventListener(
+      "click",
+      async () => {
+
+        if (!editPrompt.value) return;
+
+        try {
+
+          await navigator.clipboard.writeText(
+            editPrompt.value
+          );
+
+        } catch {}
+      }
+    );
+
+
+  /* ============================================================
+     QUICK EDIT ACTIONS
+  ============================================================ */
+
+  const quickEditPrompts = {
+
+    background:
+      "Replace the background with a beautiful cinematic environment. Keep the main subject, face, body, pose and identity unchanged. Make the new background realistic and naturally integrated with the subject.",
+
+    lighting:
+      "Improve the lighting dramatically. Add beautiful cinematic professional lighting, realistic shadows, natural highlights and subtle depth while preserving the subject and composition.",
+
+    style:
+      "Transform the visual style into premium cinematic photorealism. Preserve the identity, pose, proportions and important details of the subject.",
+
+    clothes:
+      "Change the subject's clothing to stylish modern premium clothing. Preserve the person's face, identity, body proportions, pose and environment.",
+
+    quality:
+      "Increase realism and fine detail. Improve skin, hair, fabric, materials, lighting and textures while keeping the original composition and identity unchanged.",
+
+    cinematic:
+      "Turn this image into a cinematic Hollywood-quality frame. Preserve the subject and composition while adding professional lighting, realistic depth, detailed textures and premium color grading."
+  };
+
+
+  document
+    .querySelectorAll(".quick-action")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const type =
+            button.dataset.edit;
+
+          const text =
+            quickEditPrompts[type];
+
+          if (!text) return;
+
+          if (editPrompt.value.trim()) {
+
+            editPrompt.value =
+              `${editPrompt.value.trim()}, ${text}`;
+
+          } else {
+
+            editPrompt.value = text;
+          }
+
+          updateEditCounter();
+
+          editPrompt.focus();
+        }
+      );
+    });
+
+
+  /* ============================================================
+     EDITOR RATIOS
+  ============================================================ */
+
+  document
+    .querySelectorAll("#editorRatios .ratio")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          document
+            .querySelectorAll("#editorRatios .ratio")
+            .forEach(item =>
+              item.classList.remove("active")
+            );
+
+          button.classList.add("active");
+
+          editorRatio =
+            button.dataset.ratio;
+        }
+      );
+    });
+
+
+  /* ============================================================
+     FILE UPLOAD
+  ============================================================ */
+
+  const editorFile =
+    document.getElementById(
+      "editorFile"
+    );
+
+  const uploadZone =
+    document.getElementById(
+      "uploadZone"
+    );
+
+  const editorSource =
+    document.getElementById(
+      "editorSource"
+    );
+
+  const sourceImage =
+    document.getElementById(
+      "sourceImage"
+    );
+
+  const editButton =
+    document.getElementById(
+      "editBtn"
+    );
+
+
+  document
+    .getElementById("chooseImageBtn")
+    .addEventListener(
+      "click",
+      () => editorFile.click()
+    );
+
+
+  document
+    .getElementById("changeImageBtn")
+    .addEventListener(
+      "click",
+      () => editorFile.click()
+    );
+
+
+  editorFile.addEventListener(
+    "change",
+    event => {
+
+      const file =
+        event.target.files[0];
+
+      if (file) {
+        readEditorFile(file);
+      }
+    }
+  );
+
+
+  uploadZone.addEventListener(
+    "dragover",
+    event => {
+
+      event.preventDefault();
+
+      uploadZone.classList.add(
+        "dragover"
+      );
+    }
+  );
+
+
+  uploadZone.addEventListener(
+    "dragleave",
+    () => {
+
+      uploadZone.classList.remove(
+        "dragover"
+      );
+    }
+  );
+
+
+  uploadZone.addEventListener(
+    "drop",
+    event => {
+
+      event.preventDefault();
+
+      uploadZone.classList.remove(
+        "dragover"
+      );
+
+      const file =
+        event.dataTransfer.files[0];
+
+      if (!file) return;
+
+      if (
+        ![
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ].includes(file.type)
+      ) {
+
+        showEditorError(
+          "Поддерживаются JPG, PNG и WebP."
+        );
+
+        return;
+      }
+
+      readEditorFile(file);
+    }
+  );
+
+
+  async function readEditorFile(file) {
+
+    hideEditorError();
+
+    if (file.size > 3.5 * 1024 * 1024) {
+
+      showEditorError(
+        "Размер изображения должен быть не больше 3.5 MB."
+      );
+
+      return;
+    }
+
+    const reader =
+      new FileReader();
+
+    reader.onload = () => {
+
+      const dataUrl =
+        reader.result;
+
+      editorImageDataUrl =
+        dataUrl;
+
+      editorImageBase64 =
+        dataUrl.split(",")[1];
+
+      sourceImage.src =
+        dataUrl;
+
+      document
+        .getElementById(
+          "compareOriginal"
+        )
+        .src = dataUrl;
+
+      uploadZone.style.display =
+        "none";
+
+      editorSource.classList.add(
+        "visible"
+      );
+
+      editButton.disabled =
+        false;
+
+      hideEditorResult();
+    };
+
+    reader.onerror = () => {
+
+      showEditorError(
+        "Не удалось прочитать изображение."
+      );
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+
+  /* ============================================================
+     LOAD URL IMAGE INTO EDITOR
+  ============================================================ */
+
+  async function loadImageIntoEditor(url) {
+
+    try {
+
+      showLoading(
+        "Подготавливаем изображение",
+        "Загружаем результат в AI Editor..."
+      );
+
+      const response =
+        await fetch(url);
+
+      const blob =
+        await response.blob();
+
+      if (
+        blob.size >
+        3.5 * 1024 * 1024
+      ) {
+
+        throw new Error(
+          "Изображение слишком большое для редактора."
+        );
+      }
+
+      const reader =
+        new FileReader();
+
+      await new Promise(
+        (resolve, reject) => {
+
+          reader.onload =
+            resolve;
+
+          reader.onerror =
+            reject;
+
+          reader.readAsDataURL(blob);
+        }
+      );
+
+      editorImageDataUrl =
+        reader.result;
+
+      editorImageBase64 =
+        reader.result.split(",")[1];
+
+      sourceImage.src =
+        reader.result;
+
+      document
+        .getElementById(
+          "compareOriginal"
+        )
+        .src = reader.result;
+
+      uploadZone.style.display =
+        "none";
+
+      editorSource.classList.add(
+        "visible"
+      );
+
+      editButton.disabled =
+        false;
+
+      hideEditorResult();
+
+    } catch (error) {
+
+      console.error(error);
+
+      showEditorError(
+        "Не удалось загрузить изображение для редактирования."
+      );
+
+    } finally {
+
+      hideLoading();
+    }
+  }
+
+
+  /* ============================================================
+     REMOVE IMAGE
+  ============================================================ */
+
+  document
+    .getElementById("removeImageBtn")
+    .addEventListener(
+      "click",
+      resetEditor
+    );
+
+
+  document
+    .getElementById("resetEditorBtn")
+    .addEventListener(
+      "click",
+      resetEditor
+    );
+
+
+  function resetEditor() {
+
+    editorImageBase64 = "";
+    editorImageDataUrl = "";
+
+    sourceImage.src = "";
+
+    editorFile.value = "";
+
+    uploadZone.style.display =
+      "flex";
+
+    editorSource.classList.remove(
+      "visible"
+    );
+
+    editButton.disabled =
+      true;
+
+    hideEditorResult();
+
+    editPrompt.value = "";
+
+    updateEditCounter();
+
+    hideEditorError();
+  }
+
+
+  /* ============================================================
+     USE GENERATOR IMAGE
+  ============================================================ */
+
+  document
+    .getElementById(
+      "useGeneratorImageBtn"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        if (!lastGeneratorImage) {
+
+          showEditorError(
+            "Сначала создайте изображение в генераторе."
+          );
+
+          return;
+        }
+
+        loadImageIntoEditor(
+          lastGeneratorImage
+        );
+      }
+    );
+
+
+  /* ============================================================
+     EDIT IMAGE
+  ============================================================ */
+
+  editButton.addEventListener(
+    "click",
+    editImage
+  );
+
+
+  async function editImage() {
+
+    if (!editorImageBase64) {
+
+      showEditorError(
+        "Сначала загрузите изображение."
+      );
+
+      return;
+    }
+
+    const instruction =
+      editPrompt.value.trim();
+
+    if (!instruction) {
+
+      showEditorError(
+        "Напишите, что нужно изменить."
+      );
+
+      editPrompt.focus();
+
+      return;
+    }
+
+    editButton.disabled =
+      true;
+
+    hideEditorError();
+
+    showLoading(
+      "Редактируем изображение",
+      "Flux Kontext Dev применяет изменения..."
+    );
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/edit",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+
+              prompt:
+                instruction,
+
+              imageBase64:
+                editorImageBase64,
+
+              ratio:
+                editorRatio,
+
+              model:
+                document.getElementById(
+                  "editorModel"
+                ).value
+            })
+          }
+        );
+
+      const text =
+        await response.text();
+
+      let data;
+
+      try {
+
+        data =
+          JSON.parse(text);
+
+      } catch {
+
+        throw new Error(
+          "Сервер редактора вернул некорректный ответ."
+        );
+      }
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+
+        throw new Error(
+          data.error ||
+          "Ошибка редактирования."
+        );
+      }
+
+      if (!data.imageUrl) {
+
+        throw new Error(
+          "Редактор не вернул изображение."
+        );
+      }
+
+      showEditorResult(
+        data.imageUrl
+      );
+
+      saveHistory([
+        {
+          imageUrl:
+            data.imageUrl,
+
+          prompt:
+            instruction,
+
+          ratio:
+            editorRatio,
+
+          mode:
+            "editor",
+
+          createdAt:
+            Date.now()
+        }
+      ]);
+
+    } catch (error) {
+
+      console.error(
+        "Editor error:",
+        error
+      );
+
+      showEditorError(
+        error.message ||
+        "Ошибка редактирования."
+      );
+
+    } finally {
+
+      hideLoading();
+
+      editButton.disabled =
+        false;
+    }
+  }
+
+
+  /* ============================================================
+     EDIT RESULT
+  ============================================================ */
+
+  function showEditorResult(url) {
+
+    const result =
+      document.getElementById(
+        "editorResult"
+      );
+
+    const resultImage =
+      document.getElementById(
+        "editorResultImage"
+      );
+
+    const compareResult =
+      document.getElementById(
+        "compareResult"
+      );
+
+    const placeholder =
+      document.getElementById(
+        "compareResultPlaceholder"
+      );
+
+    resultImage.src =
+      url;
+
+    compareResult.src =
+      url;
+
+    compareResult.style.display =
+      "block";
+
+    placeholder.style.display =
+      "none";
+
+    result.classList.add(
+      "visible"
+    );
+
+    document
+      .getElementById(
+        "editorCompare"
+      )
+      .classList.add(
+        "visible"
+      );
+  }
+
+
+  function hideEditorResult() {
+
+    document
+      .getElementById(
+        "editorResult"
+      )
+      .classList.remove(
+        "visible"
+      );
+
+    document
+      .getElementById(
+        "editorCompare"
+      )
+      .classList.remove(
+        "visible"
+      );
+
+    document
+      .getElementById(
+        "compareResult"
+      ).style.display =
+        "none";
+
+    document
+      .getElementById(
+        "compareResultPlaceholder"
+      ).style.display =
+        "grid";
+  }
+
+
+  /* ============================================================
+     EDIT RESULT DOWNLOAD
+  ============================================================ */
+
+  document
+    .getElementById(
+      "downloadEditedBtn"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        const image =
+          document.getElementById(
+            "editorResultImage"
+          );
+
+        if (!image.src) return;
+
+        downloadImage(
+          image.src,
+          "bastyon-ai-edited.jpg"
+        );
+      }
+    );
+
+
+  /* ============================================================
+     SEND EDITED TO GENERATOR
+  ============================================================ */
+
+  document
+    .getElementById(
+      "sendEditedToGeneratorBtn"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        const image =
+          document.getElementById(
+            "editorResultImage"
+          );
+
+        if (!image.src) return;
+
+        lastGeneratorImage =
+          image.src;
+
+        showMode("generator");
+
+        loadImageIntoEditor(
+          image.src
+        );
+      }
+    );
+
+
+  /* ============================================================
+     GENERATOR HISTORY
+  ============================================================ */
+
+  function getHistory() {
+
+    try {
+
+      return JSON.parse(
+        localStorage.getItem(
+          HISTORY_KEY
+        ) || "[]"
+      );
+
+    } catch {
+
+      return [];
+    }
+  }
+
+
+  function saveHistory(results) {
+
+    try {
+
+      const current =
+        getHistory();
+
+      const items =
+        results.map(item => ({
+          imageUrl:
+            item.imageUrl,
+
+          prompt:
+            item.prompt || "",
+
+          ratio:
+            item.ratio || "1:1",
+
+          mode:
+            item.mode || "generator",
+
+          createdAt:
+            item.createdAt ||
+            Date.now()
+        }));
+
+      const merged =
+        [...items, ...current];
+
+      const unique = [];
+
+      const seen =
+        new Set();
+
+      for (const item of merged) {
+
+        if (
+          !item.imageUrl ||
+          seen.has(item.imageUrl)
+        ) {
+          continue;
+        }
+
+        seen.add(
+          item.imageUrl
+        );
+
+        unique.push(item);
+      }
+
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify(
+          unique.slice(0, 30)
+        )
+      );
+
+      renderHistory();
+
+    } catch (error) {
+
+      console.warn(
+        "History error:",
+        error
+      );
+    }
+  }
+
+
+  function renderHistory() {
+
+    const grid =
+      document.getElementById(
+        "historyGrid"
+      );
+
+    const empty =
+      document.getElementById(
+        "historyEmpty"
+      );
+
+    const history =
+      getHistory();
+
+    grid.innerHTML = "";
+
+    if (!history.length) {
+
+      empty.style.display =
+        "block";
+
+      return;
+    }
+
+    empty.style.display =
+      "none";
+
+    history.forEach(item => {
+
+      const card =
+        document.createElement(
+          "div"
+        );
+
+      card.className =
+        "history-item";
+
+      const image =
+        document.createElement(
+          "img"
+        );
+
+      image.src =
+        item.imageUrl;
+
+      image.loading =
+        "lazy";
+
+      image.addEventListener(
+        "click",
+        () => {
+
+          loadImageIntoEditor(
+            item.imageUrl
+          );
+
+          showMode("editor");
+        }
+      );
+
+      card.appendChild(image);
+
+      grid.appendChild(card);
+    });
+  }
+
+
+  document
+    .getElementById(
+      "clearHistoryBtn"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        localStorage.removeItem(
+          HISTORY_KEY
+        );
+
+        renderHistory();
+      }
+    );
+
+
+  /* ============================================================
      DOWNLOAD
-  ============================================ */
+  ============================================================ */
 
   async function downloadImage(
     url,
@@ -2704,33 +3394,17 @@
       const response =
         await fetch(url);
 
-      if (!response.ok) {
-
-        throw new Error(
-          "HTTP " +
-          response.status
-        );
-
-      }
-
-
       const blob =
         await response.blob();
 
-
-      const blobUrl =
-        URL.createObjectURL(
-          blob
-        );
-
+      const objectUrl =
+        URL.createObjectURL(blob);
 
       const link =
-        document.createElement(
-          "a"
-        );
+        document.createElement("a");
 
       link.href =
-        blobUrl;
+        objectUrl;
 
       link.download =
         filename;
@@ -2743,359 +3417,192 @@
 
       link.remove();
 
-
-      setTimeout(() => {
-
-        URL.revokeObjectURL(
-          blobUrl
-        );
-
-      }, 1000);
-
+      setTimeout(
+        () =>
+          URL.revokeObjectURL(
+            objectUrl
+          ),
+        1000
+      );
 
     } catch {
-
-      /*
-       * Если браузер блокирует
-       * cross-origin download,
-       * открываем оригинальный файл.
-       */
 
       window.open(
         url,
         "_blank"
       );
-
     }
-
   }
 
 
-  downloadAllBtn.addEventListener(
-    "click",
-    async () => {
+  /* ============================================================
+     ERRORS
+  ============================================================ */
 
-      if (!currentImages.length) {
-        return;
-      }
-
-
-      for (
-        let i = 0;
-        i < currentImages.length;
-        i++
-      ) {
-
-        await downloadImage(
-          currentImages[i].imageUrl,
-          "bastyon-ai-" +
-          Date.now() +
-          "-" +
-          (i + 1) +
-          ".jpg"
-        );
-
-      }
-
-    }
-  );
-
-
-  /* ============================================
-     CLEAR RESULTS
-  ============================================ */
-
-  clearResultsBtn.addEventListener(
-    "click",
-    () => {
-
-      currentImages = [];
-
-      gallery.innerHTML = "";
-
-      results.style.display =
-        "none";
-
-      clearResultsBtn.style.display =
-        "none";
-
-      emptyPreview.style.display =
-        "block";
-
-      previewInfo.textContent =
-        "Здесь появится созданное изображение";
-
-      hideMessages();
-
-    }
-  );
-
-
-  /* ============================================
-     HISTORY
-  ============================================ */
-
-  function getHistory() {
-
-    try {
-
-      return JSON.parse(
-        localStorage.getItem(
-          "bastyon_ai_history"
-        ) || "[]"
-      );
-
-    } catch {
-
-      return [];
-
-    }
-
-  }
-
-
-  function saveToHistory(
-    images,
-    prompt,
-    ratio
+  function showGeneratorError(
+    message
   ) {
 
-    const history =
-      getHistory();
+    const box =
+      document.getElementById(
+        "generatorError"
+      );
 
+    box.textContent =
+      message;
 
-    images.forEach(
-      image => {
-
-        history.unshift({
-          imageUrl:
-            image.imageUrl,
-
-          prompt:
-            prompt,
-
-          ratio:
-            ratio,
-
-          date:
-            Date.now()
-        });
-
-      }
+    box.classList.add(
+      "visible"
     );
-
-
-    const limited =
-      history.slice(
-        0,
-        12
-      );
-
-
-    try {
-
-      localStorage.setItem(
-        "bastyon_ai_history",
-        JSON.stringify(
-          limited
-        )
-      );
-
-    } catch {
-
-      /*
-       * Некоторые CDN изображения
-       * могут иметь большой URL.
-       * Если localStorage переполнен,
-       * просто не сохраняем историю.
-       */
-
-    }
-
-
-    renderHistory();
-
   }
 
 
-  function renderHistory() {
+  function hideGeneratorError() {
 
-    const history =
-      getHistory();
-
-
-    if (!history.length) {
-
-      historyCard.style.display =
-        "none";
-
-      return;
-
-    }
-
-
-    historyCard.style.display =
-      "block";
-
-
-    historyGrid.innerHTML =
-      "";
-
-
-    history.forEach(
-      item => {
-
-        const element =
-          document.createElement(
-            "div"
-          );
-
-        element.className =
-          "history-item";
-
-
-        const image =
-          document.createElement(
-            "img"
-          );
-
-        image.src =
-          item.imageUrl;
-
-        image.alt =
-          item.prompt;
-
-
-        image.addEventListener(
-          "click",
-          () => {
-
-            promptInput.value =
-              item.prompt;
-
-            updateCharCount();
-
-
-            const ratioButton =
-              document.querySelector(
-                `.ratio-btn[data-ratio="${item.ratio}"]`
-              );
-
-
-            if (ratioButton) {
-
-              ratioButtons.forEach(
-                btn =>
-                  btn.classList.remove(
-                    "selected"
-                  )
-              );
-
-              ratioButton.classList.add(
-                "selected"
-              );
-
-              selectedRatio =
-                item.ratio;
-
-              selectedRatioText.textContent =
-                item.ratio;
-
-            }
-
-
-            window.scrollTo({
-              top: 0,
-              behavior: "smooth"
-            });
-
-          }
-        );
-
-
-        const info =
-          document.createElement(
-            "div"
-          );
-
-        info.className =
-          "history-item-info";
-
-        info.textContent =
-          item.prompt;
-
-
-        element.appendChild(
-          image
-        );
-
-        element.appendChild(
-          info
-        );
-
-
-        historyGrid.appendChild(
-          element
-        );
-
-      }
-    );
-
+    document
+      .getElementById(
+        "generatorError"
+      )
+      .classList.remove(
+        "visible"
+      );
   }
 
 
-  clearHistoryBtn.addEventListener(
-    "click",
-    () => {
+  function showEditorError(
+    message
+  ) {
 
-      localStorage.removeItem(
-        "bastyon_ai_history"
+    const box =
+      document.getElementById(
+        "editorError"
       );
 
-      renderHistory();
+    box.textContent =
+      message;
 
-    }
-  );
+    box.classList.add(
+      "visible"
+    );
+  }
 
 
-  renderHistory();
+  function hideEditorError() {
+
+    document
+      .getElementById(
+        "editorError"
+      )
+      .classList.remove(
+        "visible"
+      );
+  }
 
 
-  /* ============================================
+  /* ============================================================
+     LOADING
+  ============================================================ */
+
+  const loading =
+    document.getElementById(
+      "loading"
+    );
+
+  const loadingTitle =
+    document.getElementById(
+      "loadingTitle"
+    );
+
+  const loadingText =
+    document.getElementById(
+      "loadingText"
+    );
+
+
+  function showLoading(
+    title,
+    text
+  ) {
+
+    loadingTitle.textContent =
+      title;
+
+    loadingText.textContent =
+      text;
+
+    loading.classList.add(
+      "visible"
+    );
+  }
+
+
+  function updateLoading(
+    title,
+    text
+  ) {
+
+    loadingTitle.textContent =
+      title;
+
+    loadingText.textContent =
+      text;
+  }
+
+
+  function hideLoading() {
+
+    loading.classList.remove(
+      "visible"
+    );
+  }
+
+
+  /* ============================================================
      KEYBOARD SHORTCUT
-  ============================================ */
+  ============================================================ */
 
-  promptInput.addEventListener(
+  document.addEventListener(
     "keydown",
     event => {
 
       if (
         (event.ctrlKey ||
-         event.metaKey) &&
+          event.metaKey) &&
         event.key === "Enter"
       ) {
 
         event.preventDefault();
 
-        generateImages();
+        if (
+          generatorMode.classList.contains(
+            "active"
+          )
+        ) {
 
+          generateImages();
+
+        } else {
+
+          if (
+            !editButton.disabled
+          ) {
+            editImage();
+          }
+        }
       }
-
     }
   );
 
 
-  /* ============================================
-     INITIAL
-  ============================================ */
+  /* ============================================================
+     INIT
+  ============================================================ */
 
-  writeDebug(
-    "Bastyon AI Image Generator\n" +
-    "Backend: /api/generate\n" +
-    "Provider: PixelSter\n" +
-    "Model: Flux Dev\n" +
-    "Ready."
-  );
+  updatePromptCounter();
+
+  updateEditCounter();
+
+  renderHistory();
 
 </script>
 
