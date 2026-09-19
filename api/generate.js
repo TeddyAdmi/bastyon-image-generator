@@ -1,9 +1,8 @@
 // api/generate.js
-// Gemini 3.1 Flash Image
 // Bastyon AI Image Generator
+// Gemini 3.1 Flash Image
 
 export default async function handler(req, res) {
-  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -30,7 +29,6 @@ export default async function handler(req, res) {
     }
 
     const body = req.body || {};
-
     const prompt = String(body.prompt || "").trim();
 
     if (!prompt) {
@@ -40,42 +38,46 @@ export default async function handler(req, res) {
       });
     }
 
-    // ---------------------------------------------------------
+    // --------------------------------------------------
     // MODEL
-    // ---------------------------------------------------------
+    // --------------------------------------------------
 
-    // Любое имя модели от старого интерфейса
-    // сейчас направляем на Gemini 3.1 Flash Image.
     const model = "gemini-3.1-flash-image";
 
-    // ---------------------------------------------------------
-    // ASPECT RATIO
-    // ---------------------------------------------------------
+    // --------------------------------------------------
+    // SIZE
+    // --------------------------------------------------
 
-    const requestedWidth = Number(body.width) || 1024;
-    const requestedHeight = Number(body.height) || 1024;
+    const width = Number(body.width) || 1024;
+    const height = Number(body.height) || 1024;
+
+    // --------------------------------------------------
+    // ASPECT RATIO
+    // --------------------------------------------------
 
     function getAspectRatio(width, height) {
       const ratio = width / height;
 
-      const ratios = [
-        { value: "1:1", ratio: 1 },
-        { value: "16:9", ratio: 16 / 9 },
-        { value: "9:16", ratio: 9 / 16 },
-        { value: "4:3", ratio: 4 / 3 },
-        { value: "3:4", ratio: 3 / 4 },
-        { value: "4:5", ratio: 4 / 5 },
-        { value: "5:4", ratio: 5 / 4 },
-        { value: "3:2", ratio: 3 / 2 },
-        { value: "2:3", ratio: 2 / 3 },
-        { value: "21:9", ratio: 21 / 9 }
+      const available = [
+        { name: "1:1", value: 1 },
+        { name: "16:9", value: 16 / 9 },
+        { name: "9:16", value: 9 / 16 },
+        { name: "4:3", value: 4 / 3 },
+        { name: "3:4", value: 3 / 4 },
+        { name: "4:5", value: 4 / 5 },
+        { name: "5:4", value: 5 / 4 },
+        { name: "3:2", value: 3 / 2 },
+        { name: "2:3", value: 2 / 3 },
+        { name: "21:9", value: 21 / 9 }
       ];
 
-      let closest = ratios[0];
-      let difference = Math.abs(ratio - closest.ratio);
+      let closest = available[0];
+      let difference = Math.abs(ratio - closest.value);
 
-      for (const item of ratios) {
-        const currentDifference = Math.abs(ratio - item.ratio);
+      for (const item of available) {
+        const currentDifference = Math.abs(
+          ratio - item.value
+        );
 
         if (currentDifference < difference) {
           closest = item;
@@ -83,54 +85,67 @@ export default async function handler(req, res) {
         }
       }
 
-      return closest.value;
+      return closest.name;
     }
 
-    const aspectRatio = getAspectRatio(
-      requestedWidth,
-      requestedHeight
-    );
+    const aspectRatio = getAspectRatio(width, height);
 
-    // ---------------------------------------------------------
+    // --------------------------------------------------
     // QUALITY
-    // ---------------------------------------------------------
+    // --------------------------------------------------
 
-    const quality = String(body.quality || "medium").toLowerCase();
+    const quality = String(
+      body.quality || "medium"
+    ).toLowerCase();
 
     let imageSize = "1K";
 
     if (quality === "low") {
-      imageSize = "512";
-    } else if (quality === "high") {
-      imageSize = "2K";
-    } else {
+      imageSize = "512px";
+    }
+
+    if (quality === "medium") {
       imageSize = "1K";
     }
 
-    // ---------------------------------------------------------
-    // GEMINI REQUEST
-    // ---------------------------------------------------------
+    if (quality === "high") {
+      imageSize = "2K";
+    }
+
+    // --------------------------------------------------
+    // GEMINI INTERACTIONS API
+    // --------------------------------------------------
 
     const url =
       "https://generativelanguage.googleapis.com/v1beta/interactions";
 
     const requestBody = {
-      model,
+      model: model,
+
       input: prompt,
+
       response_format: {
         type: "image",
-        mime_type: "image/png",
+
+        // Gemini currently expects JPEG here
+        mime_type: "image/jpeg",
+
         aspect_ratio: aspectRatio,
+
         image_size: imageSize
       }
     };
 
-    console.log("Gemini request:", {
-      model,
-      aspectRatio,
-      imageSize,
-      prompt
-    });
+    console.log("=================================");
+    console.log("GEMINI REQUEST");
+    console.log("model:", model);
+    console.log("aspectRatio:", aspectRatio);
+    console.log("imageSize:", imageSize);
+    console.log("quality:", quality);
+    console.log("width:", width);
+    console.log("height:", height);
+    console.log("prompt:", prompt);
+    console.log("=================================");
 
     const response = await fetch(url, {
       method: "POST",
@@ -143,10 +158,6 @@ export default async function handler(req, res) {
       body: JSON.stringify(requestBody)
     });
 
-    // ---------------------------------------------------------
-    // READ RESPONSE SAFELY
-    // ---------------------------------------------------------
-
     const responseText = await response.text();
 
     console.log(
@@ -155,15 +166,19 @@ export default async function handler(req, res) {
     );
 
     console.log(
-      "Gemini raw response:",
-      responseText.substring(0, 3000)
+      "Gemini response:",
+      responseText.substring(0, 5000)
     );
+
+    // --------------------------------------------------
+    // JSON
+    // --------------------------------------------------
 
     let data;
 
     try {
       data = JSON.parse(responseText);
-    } catch (parseError) {
+    } catch (error) {
       return res.status(502).json({
         success: false,
         error: "Gemini вернул не JSON",
@@ -172,9 +187,9 @@ export default async function handler(req, res) {
       });
     }
 
-    // ---------------------------------------------------------
-    // GEMINI ERROR
-    // ---------------------------------------------------------
+    // --------------------------------------------------
+    // API ERROR
+    // --------------------------------------------------
 
     if (!response.ok) {
       const message =
@@ -189,29 +204,34 @@ export default async function handler(req, res) {
       });
     }
 
-    // ---------------------------------------------------------
-    // FIND IMAGE
-    // ---------------------------------------------------------
+    // --------------------------------------------------
+    // IMAGE
+    // --------------------------------------------------
 
     let imageData = null;
-    let mimeType = "image/png";
+    let mimeType = "image/jpeg";
 
-    // Новый Interactions API
+    // Основной формат Interactions API
     if (
-      data &&
-      data.output_image &&
-      data.output_image.data
+      data?.output_image?.data
     ) {
-      imageData = data.output_image.data;
+      imageData =
+        data.output_image.data;
 
       mimeType =
         data.output_image.mime_type ||
         data.output_image.mimeType ||
-        "image/png";
+        "image/jpeg";
     }
 
-    // Дополнительный вариант структуры
-    if (!imageData && Array.isArray(data.steps)) {
+    // --------------------------------------------------
+    // FALLBACK: steps
+    // --------------------------------------------------
+
+    if (
+      !imageData &&
+      Array.isArray(data?.steps)
+    ) {
       for (const step of data.steps) {
         if (!Array.isArray(step.content)) {
           continue;
@@ -228,7 +248,7 @@ export default async function handler(req, res) {
             mimeType =
               content.mime_type ||
               content.mimeType ||
-              "image/png";
+              "image/jpeg";
 
             break;
           }
@@ -240,11 +260,16 @@ export default async function handler(req, res) {
       }
     }
 
-    // ---------------------------------------------------------
+    // --------------------------------------------------
     // NO IMAGE
-    // ---------------------------------------------------------
+    // --------------------------------------------------
 
     if (!imageData) {
+      console.error(
+        "Gemini не вернул изображение:",
+        JSON.stringify(data).substring(0, 5000)
+      );
+
       return res.status(502).json({
         success: false,
         error: "Gemini не вернул изображение",
@@ -252,23 +277,31 @@ export default async function handler(req, res) {
       });
     }
 
-    // ---------------------------------------------------------
+    // --------------------------------------------------
     // SUCCESS
-    // ---------------------------------------------------------
+    // --------------------------------------------------
+
+    console.log("IMAGE RECEIVED");
+    console.log("mime:", mimeType);
+    console.log(
+      "base64 length:",
+      imageData.length
+    );
 
     return res.status(200).json({
       success: true,
 
-      model,
+      model: model,
 
-      width: requestedWidth,
-      height: requestedHeight,
+      width: width,
 
-      aspectRatio,
+      height: height,
 
-      imageSize,
+      aspectRatio: aspectRatio,
 
-      quality,
+      imageSize: imageSize,
+
+      quality: quality,
 
       image: {
         mime: mimeType,
