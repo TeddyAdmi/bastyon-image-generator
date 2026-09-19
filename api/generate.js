@@ -50,10 +50,13 @@ export default async function handler(req, res) {
             });
         }
 
-        const model = String(body?.model || 'openai/gpt-image-2');
+        // Заменили тяжелую gpt-image-2 на стабильную быстрый Flux
+        const model = String(body?.model || 'black-forest-labs/flux.2-flex');
         const size = String(body?.size || '1024x1024');
         const quality = String(body?.quality || 'high');
         const transparent = body?.transparent === true;
+
+        console.log(`MODEL SELECTED: ${model}`);
 
         const allowedModels = [
             'openai/gpt-image-2',
@@ -167,6 +170,12 @@ High visual quality.
                 data?.error ||
                 responseText ||
                 `HTTP ${response.status}`;
+
+            console.error('POLLINATIONS ERROR:', JSON.stringify({
+                success: false,
+                error: errorMessage,
+                status: response.status
+            }));
 
             return res.status(502).json({
                 error: `Image provider error: ${errorMessage}`
