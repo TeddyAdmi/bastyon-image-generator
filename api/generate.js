@@ -1,14 +1,4 @@
 export default async function handler(req, res) {
-  res.setHeader(
-    "Content-Type",
-    "application/json; charset=utf-8"
-  );
-
-  res.setHeader(
-    "Cache-Control",
-    "no-store"
-  );
-
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
@@ -17,136 +7,86 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = req.body || {};
+    const {
+      prompt,
+      ratio = "1:1"
+    } = req.body || {};
 
-    const prompt =
-      String(body.prompt || "").trim();
-
-    if (!prompt) {
+    if (!prompt || !prompt.trim()) {
       return res.status(400).json({
         success: false,
         error: "Введите описание изображения"
       });
     }
 
-    const width =
-      Number(body.width) || 1024;
-
-    const height =
-      Number(body.height) || 1024;
-
-    let steps = 20;
-
-    if (body.quality === "low") {
-      steps = 15;
-    }
-
-    if (body.quality === "high") {
-      steps = 30;
-    }
+    console.log("PixelSter request:", {
+      prompt,
+      ratio
+    });
 
     const response = await fetch(
-      "https://aihorde.net/api/v2/generate/async",
+      "https://ahm7xmakki.com/api/tti",
       {
         method: "POST",
-
         headers: {
-          "Content-Type": "application/json",
-          "apikey": "0000000000",
-          "Client-Agent":
-            "bastyon-image-generator:1.0"
+          "Content-Type": "application/json"
         },
-
         body: JSON.stringify({
-          prompt: prompt,
-
-          models: [
-            "SDXL 1.0"
-          ],
-
-          params: {
-            width: width,
-            height: height,
-            steps: steps,
-            cfg_scale: 7,
-            sampler_name: "k_euler_a",
-            n: 1
-          },
-
-          r2: true,
-
-          nsfw: false
+          prompt: prompt.trim(),
+          ratio
         })
       }
     );
 
-    const text =
-      await response.text();
+    const text = await response.text();
+
+    console.log("PixelSter status:", response.status);
+    console.log("PixelSter response:", text);
 
     let data;
 
     try {
-      data =
-        JSON.parse(text);
-    }
-
-    catch {
+      data = JSON.parse(text);
+    } catch {
       return res.status(502).json({
         success: false,
-        error:
-          "AI Horde вернул не JSON",
-        details:
-          text.slice(0, 500)
+        error: "PixelSter вернул не JSON",
+        status: response.status,
+        response: text.substring(0, 1000)
       });
     }
 
     if (!response.ok) {
-      return res.status(
-        response.status
-      ).json({
+      return res.status(response.status).json({
         success: false,
-
-        error:
-          data.message ||
-          data.error ||
-          "Ошибка AI Horde",
-
+        error: data.error || "Ошибка PixelSter",
         details: data
       });
     }
 
-    if (!data.id) {
+    if (!data.imageUrl) {
       return res.status(502).json({
         success: false,
-
-        error:
-          "AI Horde не вернул ID задачи",
-
-        details: data
+        error: "PixelSter не вернул imageUrl",
+        response: data
       });
     }
 
     return res.status(200).json({
       success: true,
-      pending: true,
-      id: data.id
+      imageUrl: data.imageUrl,
+      prompt: data.prompt || prompt,
+      ratio: data.ratio || ratio,
+      provider: "PixelSter",
+      model: "Flux Dev"
     });
 
-  }
-
-  catch (error) {
-
-    console.error(
-      "AI HORDE ERROR:",
-      error
-    );
+  } catch (error) {
+    console.error("PixelSter error:", error);
 
     return res.status(500).json({
       success: false,
-
-      error:
-        error.message ||
-        "Ошибка сервера"
+      error: error.message || "Ошибка генерации"
     });
   }
 }
