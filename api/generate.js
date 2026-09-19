@@ -1,325 +1,571 @@
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+
+    /*
+    ============================================
+    CORS
+    ============================================
+    */
+
     res.setHeader(
-        'Access-Control-Allow-Headers',
-        'Content-Type, Authorization'
+        "Access-Control-Allow-Origin",
+        "*"
     );
 
-    // ============================================
-    // CORS PREFLIGHT
-    // ============================================
+    res.setHeader(
+        "Access-Control-Allow-Methods",
+        "POST, OPTIONS"
+    );
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+    res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization"
+    );
+
+
+    if (req.method === "OPTIONS") {
+
+        return res
+            .status(200)
+            .end();
+
     }
 
-    // ============================================
-    // ONLY POST
-    // ============================================
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({
-            error: 'Method not allowed'
-        });
+    if (req.method !== "POST") {
+
+        return res
+            .status(405)
+            .json({
+                error: "Method not allowed"
+            });
+
     }
+
 
     try {
-        // ============================================
-        // POLLINATIONS KEY
-        // ============================================
 
-        const apiKey = process.env.POLLINATIONS_KEY;
+        /*
+        ========================================
+        API KEY
+        ========================================
+        */
+
+        const apiKey =
+            process.env.POLLINATIONS_KEY;
+
 
         if (!apiKey) {
-            return res.status(500).json({
-                error:
-                    'POLLINATIONS_KEY is missing in Vercel Environment Variables'
-            });
+
+            return res
+                .status(500)
+                .json({
+                    error:
+                        "POLLINATIONS_KEY не найден в Vercel Environment Variables"
+                });
+
         }
 
-        // ============================================
-        // READ REQUEST
-        // ============================================
 
-        let body = req.body;
+        /*
+        ========================================
+        REQUEST BODY
+        ========================================
+        */
 
-        if (typeof body === 'string') {
+        let body =
+            req.body;
+
+
+        if (
+            typeof body ===
+            "string"
+        ) {
+
             try {
-                body = JSON.parse(body);
+
+                body =
+                    JSON.parse(
+                        body
+                    );
+
             } catch {
+
                 body = {};
+
             }
+
         }
 
-        const userPrompt = String(
-            body?.prompt ||
-            body?.text ||
-            body?.parts?.[0]?.text ||
-            ''
-        ).trim();
 
-        console.log('USER PROMPT:', userPrompt);
+        /*
+        ========================================
+        PROMPT
+        ========================================
+        */
+
+        const userPrompt =
+            String(
+                body?.prompt ||
+                ""
+            ).trim();
+
 
         if (!userPrompt) {
-            return res.status(400).json({
-                error: 'Введите описание изображения'
-            });
+
+            return res
+                .status(400)
+                .json({
+                    error:
+                        "Введите описание изображения"
+                });
+
         }
 
-        // ============================================
-        // DIRECT PROMPT
-        //
-        // НЕ переводим запрос через другой AI.
-        // GPT Image 2 получает исходный запрос.
-        // ============================================
+
+        /*
+        ========================================
+        MODELS
+        ========================================
+        */
+
+        /*
+        Здесь интерфейс использует короткие
+        названия.
+
+        Реальные модели отправляются
+        в Pollinations.
+        */
+
+        const models = {
+
+            flux: {
+                id:
+                    "black-forest-labs/flux.1-schnell",
+
+                name:
+                    "FLUX.1 Schnell"
+            },
+
+            zimage: {
+                id:
+                    "tongyi-mai/z-image-turbo",
+
+                name:
+                    "Z-Image Turbo"
+            },
+
+            dreamshaper: {
+                id:
+                    "lykon/dreamshaper-8-lcm",
+
+                name:
+                    "DreamShaper 8"
+            }
+
+        };
+
+
+        const requestedModel =
+            String(
+                body?.model ||
+                "flux"
+            );
+
+
+        const selected =
+            models[
+                requestedModel
+            ] ||
+            models.flux;
+
+
+        /*
+        ========================================
+        QUALITY
+        ========================================
+        */
+
+        const allowedQuality = [
+            "low",
+            "medium",
+            "high"
+        ];
+
+
+        const quality =
+            allowedQuality.includes(
+                body?.quality
+            )
+                ? body.quality
+                : "medium";
+
+
+        /*
+        ========================================
+        DIMENSIONS
+        ========================================
+        */
+
+        let width =
+            Number(
+                body?.width
+            ) || 1024;
+
+
+        let height =
+            Number(
+                body?.height
+            ) || 1024;
+
+
+        /*
+        Безопасные границы.
+
+        Не разрешаем случайно отправить
+        огромный размер и получить
+        неожиданный расход.
+        */
+
+        width =
+            Math.max(
+                256,
+                Math.min(
+                    1536,
+                    width
+                )
+            );
+
+
+        height =
+            Math.max(
+                256,
+                Math.min(
+                    1536,
+                    height
+                )
+            );
+
+
+        /*
+        Большинство image-моделей
+        лучше работают с размерами,
+        кратными 16.
+        */
+
+        width =
+            Math.round(
+                width / 16
+            ) * 16;
+
+
+        height =
+            Math.round(
+                height / 16
+            ) * 16;
+
+
+        /*
+        ========================================
+        PROMPT
+        ========================================
+        */
 
         const finalPrompt = `
 ${userPrompt}
 
 Create exactly the scene described by the user.
 
-The user's requested subject, action, objects,
-colors, clothing, location and relationships
-must be preserved exactly.
+Preserve the requested:
 
-COMPOSITION:
-
-The main subject must be clearly visible
-and must be the primary focus of the image.
-
-If the main subject is a person or animal,
-show the face and body clearly whenever
-the requested scene allows it.
-
-Important clothing and important objects
-must remain clearly visible.
-
-Secondary objects must NOT cover the main subject.
-
-Do not hide the main subject behind an object.
+- subject
+- action
+- objects
+- location
+- colors
+- clothing
+- composition
+- relationships between objects
 
 Do not replace the main subject.
 
-Do not change the action.
+Do not change the requested action.
 
-Do not change the location.
+Do not add unnecessary people.
 
-Do not add additional people.
+Do not add unnecessary animals.
 
-Do not add additional animals.
-
-Do not add additional vehicles.
-
-Do not add unnecessary landmarks.
-
-Do not invent objects that were not requested.
+Do not add unnecessary vehicles.
 
 Do not add logos or brands unless requested.
 
-Do not add text or captions.
+Do not add captions.
 
 Do not add watermarks.
 
-Use a natural medium shot when appropriate.
+Keep the main subject clearly visible.
 
-Photorealistic photography.
-Realistic anatomy.
-Realistic proportions.
-Realistic materials.
-Realistic textures.
-Natural lighting.
-Natural shadows.
-Natural colors.
-Detailed subject.
-Sharp focus on the main subject.
-Cinematic but realistic composition.
-High visual quality.
+Use realistic proportions.
+
+Use realistic materials.
+
+Use detailed textures.
+
+Use natural lighting.
+
+Use natural shadows.
+
+Use realistic colors.
+
+Create a visually strong composition.
+
+High quality image generation.
 `.trim();
 
+
         console.log(
-            'FINAL PROMPT:',
-            finalPrompt
+            "MODEL:",
+            selected.id
         );
 
-        // ============================================
-        // OFFICIAL POLLINATIONS API
-        // ============================================
+        console.log(
+            "SIZE:",
+            width,
+            "x",
+            height
+        );
 
-        const apiUrl =
-            'https://gen.pollinations.ai/v1/images/generations';
+        console.log(
+            "QUALITY:",
+            quality
+        );
 
-        // ============================================
-        // REQUEST BODY
-        // ============================================
+        console.log(
+            "PROMPT:",
+            userPrompt
+        );
 
-        const requestBody = {
-            model: 'openai/gpt-image-2',
 
-            prompt: finalPrompt,
+        /*
+        ========================================
+        POLLINATIONS IMAGE API
+        ========================================
+        */
 
-            size: '1024x1024',
-
-            quality: 'high',
-
-            n: 1,
-
-            response_format: 'b64_json'
-        };
-
-        // ============================================
-        // GENERATE IMAGE
-        // ============================================
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-
-            headers: {
-                'Authorization':
-                    `Bearer ${apiKey}`,
-
-                'Content-Type':
-                    'application/json'
-            },
-
-            body: JSON.stringify(requestBody)
-        });
-
-        // ============================================
-        // READ RESPONSE
-        // ============================================
-
-        const responseText =
-            await response.text();
-
-        let data;
-
-        try {
-            data = JSON.parse(responseText);
-        } catch {
-            data = null;
-        }
-
-        // ============================================
-        // PROVIDER ERROR
-        // ============================================
-
-        if (!response.ok) {
-
-            console.error(
-                'POLLINATIONS ERROR:',
-                responseText
+        const endpoint =
+            "https://gen.pollinations.ai/image/" +
+            encodeURIComponent(
+                finalPrompt
             );
 
-            return res.status(502).json({
-                error:
-                    `Image provider error: ${
-                        data?.error?.message ||
-                        responseText ||
-                        response.status
-                    }`
-            });
-        }
 
-        // ============================================
-        // GET IMAGE
-        // ============================================
+        /*
+        ========================================
+        QUERY PARAMETERS
+        ========================================
+        */
 
-        const image =
-            data?.data?.[0];
+        const params =
+            new URLSearchParams();
 
-        if (!image) {
 
-            console.error(
-                'NO IMAGE DATA:',
-                data
-            );
+        params.set(
+            "model",
+            selected.id
+        );
 
-            return res.status(502).json({
-                error:
-                    'Image provider returned no image'
-            });
-        }
 
-        // ============================================
-        // BASE64
-        // ============================================
+        params.set(
+            "width",
+            String(width)
+        );
 
-        let base64Data =
-            image.b64_json;
 
-        // ============================================
-        // FALLBACK IF PROVIDER RETURNS URL
-        // ============================================
+        params.set(
+            "height",
+            String(height)
+        );
 
-        if (!base64Data && image.url) {
 
-            const imageResponse =
-                await fetch(image.url);
+        params.set(
+            "quality",
+            quality
+        );
 
-            if (!imageResponse.ok) {
-                return res.status(502).json({
-                    error:
-                        `Could not download generated image: ${imageResponse.status}`
-                });
-            }
 
-            const arrayBuffer =
-                await imageResponse.arrayBuffer();
+        /*
+        ========================================
+        REQUEST
+        ========================================
+        */
 
-            base64Data =
-                Buffer.from(arrayBuffer)
-                    .toString('base64');
-        }
-
-        if (!base64Data) {
-            return res.status(502).json({
-                error:
-                    'Generated image data is empty'
-            });
-        }
-
-        // ============================================
-        // RETURN TO INDEX.HTML
-        // ============================================
-
-        return res.status(200).json({
-
-            prompt: userPrompt,
-
-            model:
-                'openai/gpt-image-2',
-
-            candidates: [
+        const response =
+            await fetch(
+                endpoint +
+                "?" +
+                params.toString(),
                 {
-                    content: {
-                        parts: [
-                            {
-                                inline_data: {
-                                    mime_type:
-                                        'image/png',
+                    method: "GET",
 
-                                    data:
-                                        base64Data
-                                }
-                            }
-                        ]
+                    headers: {
+
+                        Authorization:
+                            `Bearer ${apiKey}`,
+
+                        Accept:
+                            "image/*"
+
                     }
+
                 }
-            ]
-        });
+            );
+
+
+        /*
+        ========================================
+        PROVIDER ERROR
+        ========================================
+        */
+
+        if (
+            !response.ok
+        ) {
+
+            const errorText =
+                await response.text();
+
+
+            console.error(
+                "POLLINATIONS ERROR:",
+                response.status,
+                errorText
+            );
+
+
+            return res
+                .status(502)
+                .json({
+
+                    error:
+                        "Модель временно недоступна. Попробуйте другую модель или другое качество."
+
+                });
+
+        }
+
+
+        /*
+        ========================================
+        IMAGE DATA
+        ========================================
+        */
+
+        const arrayBuffer =
+            await response
+                .arrayBuffer();
+
+
+        if (
+            !arrayBuffer ||
+            arrayBuffer.byteLength === 0
+        ) {
+
+            return res
+                .status(502)
+                .json({
+
+                    error:
+                        "Провайдер вернул пустое изображение"
+
+                });
+
+        }
+
+
+        /*
+        ========================================
+        MIME TYPE
+        ========================================
+        */
+
+        const mime =
+            response.headers
+                .get(
+                    "content-type"
+                ) ||
+            "image/png";
+
+
+        /*
+        ========================================
+        BASE64
+        ========================================
+        */
+
+        const base64 =
+            Buffer
+                .from(
+                    arrayBuffer
+                )
+                .toString(
+                    "base64"
+                );
+
+
+        /*
+        ========================================
+        RESPONSE
+        ========================================
+        */
+
+        return res
+            .status(200)
+            .json({
+
+                success:
+                    true,
+
+                model:
+                    selected.id,
+
+                modelName:
+                    selected.name,
+
+                width,
+
+                height,
+
+                quality,
+
+                image: {
+
+                    mime,
+
+                    data:
+                        base64
+
+                }
+
+            });
+
 
     } catch (error) {
 
         console.error(
-            'GENERATION ERROR:',
+            "GENERATION ERROR:",
             error
         );
 
-        return res.status(500).json({
-            error:
-                error?.message ||
-                'Internal Server Error'
-        });
+
+        return res
+            .status(500)
+            .json({
+
+                error:
+                    error?.message ||
+                    "Внутренняя ошибка сервера"
+
+            });
+
     }
+
 }
