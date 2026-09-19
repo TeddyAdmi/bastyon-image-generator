@@ -2,110 +2,176 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bastyon Image Generator</title>
+    
+    <!-- Подключение официального SDK Bastyon -->
+    <script src="https://bastyon.com/js/lib/apps/sdk.js"></script>
+
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background: #f4f4f9; color: #333; }
-        input[type="text"], button { width: 100%; padding: 12px; margin-top: 10px; font-size: 16px; box-sizing: border-box; }
-        button { background: #4F46E5; color: white; border: none; cursor: pointer; border-radius: 6px; }
-        button:hover { background: #4338CA; }
-        #result { margin-top: 20px; text-align: center; }
-        img { max-width: 100%; border-radius: 8px; margin-top: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .hidden { display: none; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .app { width: 100%; max-width: 480px; padding: 20px; }
+        .title { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 6px; }
+        .subtitle { text-align: center; color: #9ca3af; margin-bottom: 20px; font-size: 13px; }
+        .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        textarea {
+            width: 100%;
+            height: 90px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            font-size: 14px;
+            resize: none;
+        }
+        textarea:focus { outline: none; border-color: #f97316; }
+        .btn {
+            border: 0;
+            border-radius: 12px;
+            padding: 14px;
+            background: #f97316;
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .btn:hover { background: #ea580c; }
+        .btn:disabled { background: #4b5563; cursor: not-allowed; }
+        .result { margin-top: 20px; text-align: center; display: none; }
+        .result img { max-width: 100%; border-radius: 12px; margin-top: 10px; border: 1px solid #374151; }
+        .status { margin-top: 15px; text-align: center; color: #6ee7b7; font-size: 13px; min-height: 20px; }
     </style>
 </head>
 <body>
 
-    <h2>Bastyon Image Generator</h2>
-    
-    <p>Введите текстовый запрос для генерации изображения:</p>
-    <input type="text" id="promptInput" placeholder="Например: Футуристический пейзаж в киберпанк стиле...">
+<div class="app">
+    <div class="title">AI Generator</div>
+    <div class="subtitle">Генерация изображений с защитой от таймаутов</div>
 
-    <button id="generateBtn" onclick="generateImage()">Сгенерировать</button>
-
-    <div id="loading" class="hidden">Генерация изображения, подождите...</div>
-
-    <div id="result" class="hidden">
-        <h3>Результат:</h3>
-        <img id="outputImage" src="" alt="Generated Image">
-        <button id="downloadBtn" style="background: #10B981; margin-top: 15px;" onclick="downloadImage()">Скачать на компьютер</button>
+    <div class="input-group">
+        <textarea id="promptInput" placeholder="Введите промпт для генерации изображения...">A futuristic cyberpunk city with neon lights, highly detailed, 4k</textarea>
+        <button id="generateBtn" class="btn" onclick="startGeneration()">Сгенерировать</button>
     </div>
 
-    <script>
-        let currentImageUrl = "";
+    <div id="resultContainer" class="result">
+        <p style="font-size: 14px; color: #9ca3af; margin: 0;">Результат:</p>
+        <img id="resultImage" src="" alt="Generated Image">
+    </div>
 
-        async function generateImage() {
-            const prompt = document.getElementById('promptInput').value.trim();
+    <div id="status" class="status">Инициализация SDK...</div>
+</div>
+
+<script>
+let sdk = null;
+
+// Инициализация Bastyon SDK
+async function initBastyon() {
+    try {
+        if (typeof BastyonSdk !== 'undefined') {
+            sdk = new BastyonSdk();
+            await sdk.init();
+            sdk.emit("loaded");
+            document.getElementById("status").textContent = "Bastyon подключён";
+        }
+    } catch (e) {
+        document.getElementById("status").textContent = "Автономный режим";
+    }
+}
+
+// Функция запроса с автоматическим повтором (решает проблему 524 таймаутов)
+async function fetchWithRetry(url, options = {}, retries = 3, delay = 3000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const controller = new AbortController();
+            // Выделяем 120 секунд на попытку для тяжелых нейросетей
+            const timeoutId = setTimeout(() => controller.abort(), 120000);
             
-            if (!prompt) {
-                return alert('Введите текстовый запрос!');
+            options.signal = controller.signal;
+            const response = await fetch(url, options);
+            clearTimeout(timeoutId);
+
+            // Если поймали ошибку шлюза/таймаута Cloudflare (524, 504, 502), пробуем снова
+            if (response.status === 524 || response.status === 504 || response.status === 502) {
+                throw new Error(`Server gateway/timeout error: ${response.status}`);
             }
 
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('result').classList.add('hidden');
-            document.getElementById('generateBtn').disabled = true;
+            return response;
+        } catch (err) {
+            console.warn(`Попытка ${i + 1} из ${retries} не удалась:`, err.message);
+            if (i === retries - 1) throw err; // Исчерпали все попытки
+            
+            document.getElementById("status").textContent = `⚠️ Сервер думает... Повтор попытки (${i + 2}/${retries})...`;
+            // Ожидание перед повтором (увеличивается с каждой попыткой)
+            await new Promise(resolve => setTimeout(resolve, delay * Math.pow(1.5, i)));
+        }
+    }
+}
 
-            try {
-                let parts = [{ text: prompt }];
+// Запуск процесса генерации
+async function startGeneration() {
+    const promptText = document.getElementById("promptInput").value.trim();
+    if (!promptText) {
+        alert("Введите текст промпта!");
+        return;
+    }
 
-                const response = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ parts: parts })
-                });
+    const btn = document.getElementById("generateBtn");
+    const statusEl = document.getElementById("status");
+    const resultContainer = document.getElementById("resultContainer");
+    const resultImage = document.getElementById("resultImage");
 
-                const data = await response.json();
-                console.log("Полный ответ от API:", data);
+    btn.disabled = true;
+    resultContainer.style.display = "none";
+    statusEl.textContent = "⏳ Отправка запроса на генерацию (до 2 минут)...";
 
-                if (!response.ok) {
-                    const errorMsg = data.error?.message || data.error || JSON.stringify(data);
-                    alert('Ошибка сервера: ' + errorMsg);
-                    return;
-                }
-                
-                const candidatePart = data.candidates?.[0]?.content?.parts?.find(p => p.inline_data);
-                
-                if (candidatePart && candidatePart.inline_data) {
-                    const mimeType = candidatePart.inline_data.mime_type || 'image/png';
-                    currentImageUrl = `data:${mimeType};base64,${candidatePart.inline_data.data}`;
-                    
-                    document.getElementById('outputImage').src = currentImageUrl;
-                    document.getElementById('result').classList.remove('hidden');
-                } else {
-                    const textResponse = data.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
-                    if (textResponse) {
-                        alert('Модель ответила текстом вместо картинки: ' + textResponse);
-                    } else {
-                        alert('Ответ получен, но в нем нет изображения. Проверьте консоль (F12) -> вкладка Console.');
-                    }
-                }
-            } catch (error) {
-                console.error('Fetch Exception:', error);
-                alert('Произошла сетевая ошибка: ' + error.message);
-            } finally {
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('generateBtn').disabled = false;
-            }
+    try {
+        // Запрос к вашему API на Vercel с поддержкой ретриев
+        const response = await fetchWithRetry('https://bastyon-image-generator.vercel.app/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: promptText })
+        });
+
+        const data = await response.json();
+        console.log("Полный ответ от API:", data);
+
+        if (data.error) {
+            throw new Error(data.error);
         }
 
-        async function downloadImage() {
-            if (!currentImageUrl) return;
-            try {
-                const response = await fetch(currentImageUrl);
-                const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.download = `bastyon-image-${Date.now()}.png`;
-                document.body.appendChild(link);
-                link.click();
-                
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(blobUrl);
-            } catch (e) {
-                window.open(currentImageUrl, '_blank');
-            }
+        // Предполагаем, что API возвращает ссылку на картинку в поле url или image
+        const imageUrl = data.url || data.image || data.output;
+        if (!imageUrl) {
+            throw new Error("API не вернуло ссылку на изображение.");
         }
-    </script>
+
+        resultImage.src = imageUrl;
+        resultContainer.style.display = "block";
+        statusEl.textContent = "✅ Изображение успешно сгенерировано!";
+
+    } catch (err) {
+        console.error("Критическая ошибка генерации:", err);
+        statusEl.textContent = "❌ Ошибка: " + err.message;
+        alert("Не удалось дождаться ответа от сервера (возможно, ошибка 524). Попробуйте еще раз позже.");
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+window.onload = initBastyon;
+</script>
+
 </body>
 </html>
