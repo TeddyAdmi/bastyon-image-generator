@@ -62,6 +62,7 @@
     body {
       margin: 0;
       min-height: 100vh;
+
       background:
         radial-gradient(
           circle at 80% 0%,
@@ -69,7 +70,9 @@
           transparent 30%
         ),
         var(--bg);
+
       color: var(--text);
+
       font-family:
         "Manrope",
         Inter,
@@ -77,6 +80,7 @@
         BlinkMacSystemFont,
         "Segoe UI",
         sans-serif;
+
       -webkit-font-smoothing: antialiased;
     }
 
@@ -99,9 +103,10 @@
       display: none !important;
     }
 
+
     /* =========================================================
        APP
-    ========================================================= */
+    ========================================================== */
 
     .app {
       width: min(1500px, calc(100% - 40px));
@@ -109,15 +114,17 @@
       padding: 24px 0 50px;
     }
 
+
     /* =========================================================
        HEADER
-    ========================================================= */
+    ========================================================== */
 
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 20px;
+
       margin-bottom: 22px;
     }
 
@@ -130,12 +137,14 @@
     .brand-logo {
       width: 48px;
       height: 48px;
-      border-radius: 15px;
 
       display: grid;
       place-items: center;
 
+      border-radius: 15px;
+
       color: white;
+
       font-size: 20px;
       font-weight: 800;
 
@@ -155,12 +164,15 @@
       font-size: 19px;
       line-height: 1.2;
       font-weight: 800;
+
       letter-spacing: -0.04em;
     }
 
     .brand-sub {
       margin-top: 3px;
+
       color: var(--text-soft);
+
       font-size: 11px;
       font-weight: 600;
     }
@@ -184,6 +196,7 @@
       background: rgba(255, 255, 255, 0.8);
 
       color: var(--text-soft);
+
       font-size: 12px;
       font-weight: 600;
     }
@@ -191,14 +204,19 @@
     .online-dot {
       width: 7px;
       height: 7px;
+
       border-radius: 50%;
+
       background: #22c55e;
-      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.11);
+
+      box-shadow:
+        0 0 0 4px rgba(34, 197, 94, 0.11);
     }
+
 
     /* =========================================================
        MODE NAV
-    ========================================================= */
+    ========================================================== */
 
     .mode-switch {
       width: fit-content;
@@ -246,30 +264,41 @@
     .mode-button.active {
       background: var(--text);
       color: white;
-      box-shadow: 0 5px 14px rgba(23, 19, 31, 0.12);
+
+      box-shadow:
+        0 5px 14px rgba(23, 19, 31, 0.12);
     }
+
 
     /* =========================================================
        MAIN WORKSPACE
-    ========================================================= */
+    ========================================================== */
 
     .workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(360px, 0.7fr);
+
+      grid-template-columns:
+        minmax(0, 1.5fr)
+        minmax(360px, 0.7fr);
+
       gap: 18px;
+
       align-items: stretch;
     }
 
     .panel {
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
+
       background: rgba(255, 255, 255, 0.94);
+
       box-shadow: var(--shadow);
     }
 
+
     /* =========================================================
        CANVAS
-    ========================================================= */
+    ========================================================== */
 
     .canvas-panel {
       min-height: 690px;
@@ -294,6 +323,7 @@
     .canvas-title {
       font-size: 14px;
       font-weight: 800;
+
       letter-spacing: -0.02em;
     }
 
@@ -331,7 +361,9 @@
 
     .small-button:hover {
       border-color: var(--border-purple);
+
       color: var(--purple);
+
       background: var(--surface-soft);
     }
 
@@ -352,29 +384,56 @@
         );
     }
 
+    /*
+      ВАЖНО:
+
+      Рабочее пространство теперь растягивается
+      под весь доступный блок.
+    */
+
     .canvas {
       width: 100%;
       height: 100%;
+
       min-height: 560px;
 
       display: flex;
       align-items: center;
       justify-content: center;
 
-      border: 1px solid #e6e1eb;
-      border-radius: 22px;
+      position: relative;
 
       overflow: hidden;
+
+      border: 1px solid #e6e1eb;
+      border-radius: 22px;
 
       background-color: #fafafa;
 
       background-image:
-        linear-gradient(45deg, #f1eff4 25%, transparent 25%),
-        linear-gradient(-45deg, #f1eff4 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #f1eff4 75%),
-        linear-gradient(-45deg, transparent 75%, #f1eff4 75%);
+        linear-gradient(
+          45deg,
+          #f1eff4 25%,
+          transparent 25%
+        ),
+        linear-gradient(
+          -45deg,
+          #f1eff4 25%,
+          transparent 25%
+        ),
+        linear-gradient(
+          45deg,
+          transparent 75%,
+          #f1eff4 75%
+        ),
+        linear-gradient(
+          -45deg,
+          transparent 75%,
+          #f1eff4 75%
+        );
 
       background-size: 28px 28px;
+
       background-position:
         0 0,
         0 14px,
@@ -409,6 +468,7 @@
     .empty-title {
       font-size: 22px;
       font-weight: 800;
+
       letter-spacing: -0.04em;
     }
 
@@ -421,31 +481,64 @@
       line-height: 1.6;
     }
 
+
+    /*
+      ГАЛЕРЕЯ
+
+      Теперь одна картинка занимает всё рабочее пространство.
+    */
+
     .gallery {
+      position: absolute;
+
+      inset: 0;
+
       width: 100%;
       height: 100%;
 
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
 
-      padding: 10px;
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr;
 
-      overflow: auto;
+      gap: 0;
+
+      padding: 0;
+
+      overflow: hidden;
     }
+
+
+    /*
+      Контейнер изображения теперь занимает
+      весь периметр canvas.
+    */
 
     .gallery-item {
       position: relative;
 
+      width: 100%;
+      height: 100%;
+
+      min-height: 0;
+
       overflow: hidden;
 
-      border: 1px solid var(--border);
-      border-radius: 17px;
+      border: 0;
+      border-radius: 20px;
 
-      background: white;
+      background: #f7f7f8;
 
-      box-shadow: var(--shadow-sm);
+      box-shadow: none;
     }
+
+
+    /*
+      Изображение максимально заполняет
+      рабочее пространство без искажения.
+
+      contain = ничего не обрезаем.
+    */
 
     .gallery-item img {
       width: 100%;
@@ -454,14 +547,17 @@
       display: block;
 
       object-fit: contain;
+      object-position: center;
 
       background: #f7f7f8;
     }
 
+
     .image-toolbar {
       position: absolute;
-      right: 10px;
-      bottom: 10px;
+
+      right: 12px;
+      bottom: 12px;
 
       display: flex;
       gap: 6px;
@@ -473,7 +569,9 @@
 
       padding: 8px 10px;
 
-      background: rgba(24, 19, 31, 0.84);
+      background:
+        rgba(24, 19, 31, 0.84);
+
       color: white;
 
       font-size: 11px;
@@ -492,9 +590,10 @@
       border-top: 1px solid var(--border);
     }
 
+
     /* =========================================================
        CONTROL PANEL
-    ========================================================= */
+    ========================================================== */
 
     .controls {
       display: flex;
@@ -513,13 +612,15 @@
 
       font-size: 12px;
       font-weight: 800;
+
       text-transform: uppercase;
       letter-spacing: 0.07em;
     }
 
+
     /* =========================================================
        PROMPT
-    ========================================================= */
+    ========================================================== */
 
     .prompt-box {
       position: relative;
@@ -556,6 +657,7 @@
 
     .prompt:focus {
       border-color: var(--border-purple);
+
       background: white;
 
       box-shadow:
@@ -564,6 +666,7 @@
 
     .prompt-bottom {
       position: absolute;
+
       left: 10px;
       right: 10px;
       bottom: 9px;
@@ -593,19 +696,23 @@
 
     .tool-button:hover {
       color: var(--purple);
+
       border-color: var(--border-purple);
+
       background: var(--surface-purple);
     }
 
     .counter {
       color: var(--text-light);
+
       font-size: 10px;
       font-weight: 600;
     }
 
+
     /* =========================================================
        CHIPS
-    ========================================================= */
+    ========================================================== */
 
     .chips {
       display: flex;
@@ -615,7 +722,6 @@
 
     .chip {
       border: 1px solid var(--border);
-
       border-radius: 999px;
 
       padding: 7px 10px;
@@ -634,17 +740,22 @@
 
     .chip:hover {
       border-color: var(--border-purple);
+
       background: var(--surface-purple);
+
       color: var(--purple);
     }
 
+
     /* =========================================================
        SELECTS
-    ========================================================= */
+    ========================================================== */
 
     .settings-grid {
       display: grid;
+
       grid-template-columns: 1fr 1fr;
+
       gap: 9px;
     }
 
@@ -657,6 +768,7 @@
 
       font-size: 10px;
       font-weight: 800;
+
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
@@ -680,16 +792,22 @@
 
     select:focus {
       border-color: var(--border-purple);
-      box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.07);
+
+      box-shadow:
+        0 0 0 4px rgba(124, 58, 237, 0.07);
     }
+
 
     /* =========================================================
        RATIOS
-    ========================================================= */
+    ========================================================== */
 
     .ratio-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+
+      grid-template-columns:
+        repeat(4, 1fr);
+
       gap: 7px;
     }
 
@@ -719,9 +837,10 @@
       color: var(--purple);
     }
 
+
     /* =========================================================
        GENERATE BUTTON
-    ========================================================= */
+    ========================================================== */
 
     .generate-button {
       width: 100%;
@@ -729,6 +848,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+
       gap: 9px;
 
       margin-top: 14px;
@@ -750,7 +870,8 @@
       font-size: 13px;
       font-weight: 800;
 
-      box-shadow: var(--shadow-purple);
+      box-shadow:
+        var(--shadow-purple);
 
       transition:
         transform 0.2s ease,
@@ -771,13 +892,16 @@
 
     .generate-button:disabled {
       cursor: not-allowed;
+
       opacity: 0.55;
+
       transform: none;
     }
 
+
     /* =========================================================
        ERROR
-    ========================================================= */
+    ========================================================== */
 
     .error {
       display: none;
@@ -799,9 +923,10 @@
       display: block;
     }
 
+
     /* =========================================================
        HISTORY
-    ========================================================= */
+    ========================================================== */
 
     .history-panel {
       margin-top: 18px;
@@ -831,7 +956,10 @@
 
     .history-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
+
+      grid-template-columns:
+        repeat(7, minmax(0, 1fr));
+
       gap: 9px;
     }
 
@@ -852,11 +980,14 @@
 
     .history-item:hover {
       transform: translateY(-2px);
-      border-color: var(--border-purple);
+
+      border-color:
+        var(--border-purple);
     }
 
     .history-item img {
       width: 100%;
+
       aspect-ratio: 1 / 1;
 
       display: block;
@@ -872,18 +1003,26 @@
       color: var(--text-soft);
 
       font-size: 9px;
+
       white-space: nowrap;
+
       overflow: hidden;
+
       text-overflow: ellipsis;
     }
 
+
     /* =========================================================
        EDITOR
-    ========================================================= */
+    ========================================================== */
 
     .editor-layout {
       display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+
+      grid-template-columns:
+        minmax(0, 0.9fr)
+        minmax(0, 1.1fr);
+
       gap: 18px;
     }
 
@@ -895,6 +1034,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+
       gap: 15px;
 
       margin-bottom: 16px;
@@ -903,6 +1043,7 @@
     .editor-title {
       font-size: 18px;
       font-weight: 800;
+
       letter-spacing: -0.04em;
     }
 
@@ -940,7 +1081,9 @@
 
     .upload-zone.dragover {
       border-color: var(--purple);
-      background: var(--surface-purple);
+
+      background:
+        var(--surface-purple);
     }
 
     .upload-placeholder {
@@ -963,6 +1106,7 @@
       border-radius: 17px;
 
       background: var(--surface-purple);
+
       color: var(--purple);
 
       font-size: 24px;
@@ -995,6 +1139,7 @@
     .editor-buttons {
       display: flex;
       flex-wrap: wrap;
+
       gap: 7px;
 
       margin-top: 11px;
@@ -1008,6 +1153,7 @@
       padding: 9px 12px;
 
       background: white;
+
       color: var(--text-soft);
 
       font-size: 11px;
@@ -1016,7 +1162,9 @@
 
     .secondary-button:hover {
       border-color: var(--border-purple);
+
       background: var(--surface-purple);
+
       color: var(--purple);
     }
 
@@ -1051,7 +1199,9 @@
 
     .compare-grid {
       display: grid;
+
       grid-template-columns: 1fr 1fr;
+
       gap: 10px;
     }
 
@@ -1067,6 +1217,7 @@
       overflow: hidden;
 
       border: 1px solid var(--border);
+
       border-radius: 16px;
 
       background:
@@ -1079,15 +1230,18 @@
 
     .compare-label {
       position: absolute;
+
       top: 9px;
       left: 9px;
+
       z-index: 2;
 
       padding: 5px 8px;
 
       border-radius: 7px;
 
-      background: rgba(255,255,255,.85);
+      background:
+        rgba(255, 255, 255, 0.85);
 
       color: var(--text-soft);
 
@@ -1106,22 +1260,27 @@
       object-fit: contain;
     }
 
+
     /* =========================================================
        LOADING
-    ========================================================= */
+    ========================================================== */
 
     .loading {
       position: fixed;
+
       inset: 0;
+
       z-index: 1000;
 
       display: none;
+
       align-items: center;
       justify-content: center;
 
       padding: 20px;
 
-      background: rgba(250, 249, 253, 0.78);
+      background:
+        rgba(250, 249, 253, 0.78);
 
       backdrop-filter: blur(12px);
     }
@@ -1136,6 +1295,7 @@
       padding: 28px;
 
       border: 1px solid var(--border);
+
       border-radius: 21px;
 
       background: white;
@@ -1153,11 +1313,14 @@
       margin: 0 auto 15px;
 
       border: 3px solid #eee9f4;
-      border-top-color: var(--purple);
+
+      border-top-color:
+        var(--purple);
 
       border-radius: 50%;
 
-      animation: spin 0.8s linear infinite;
+      animation:
+        spin 0.8s linear infinite;
     }
 
     @keyframes spin {
@@ -1179,11 +1342,13 @@
       font-size: 11px;
     }
 
+
     /* =========================================================
        RESPONSIVE
-    ========================================================= */
+    ========================================================== */
 
     @media (max-width: 1100px) {
+
       .workspace {
         grid-template-columns: 1fr;
       }
@@ -1193,23 +1358,36 @@
       }
 
       .history-grid {
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns:
+          repeat(6, 1fr);
       }
+
     }
 
+
     @media (max-width: 800px) {
+
       .editor-layout {
         grid-template-columns: 1fr;
       }
 
       .history-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns:
+          repeat(4, 1fr);
       }
+
     }
 
+
     @media (max-width: 600px) {
+
       .app {
-        width: min(100% - 20px, 1500px);
+        width:
+          min(
+            100% - 20px,
+            1500px
+          );
+
         padding-top: 14px;
       }
 
@@ -1240,8 +1418,12 @@
 
       .mode-button {
         flex: 1;
+
         min-width: 0;
-        padding: 10px 8px;
+
+        padding:
+          10px 8px;
+
         font-size: 11px;
       }
 
@@ -1251,6 +1433,7 @@
 
       .canvas {
         min-height: 390px;
+
         border-radius: 17px;
       }
 
@@ -1275,7 +1458,8 @@
       }
 
       .history-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns:
+          repeat(3, 1fr);
       }
 
       .control-card,
@@ -1283,13 +1467,17 @@
       .history-panel {
         padding: 15px;
       }
+
     }
+
   </style>
 </head>
+
 
 <body>
 
 <div class="app">
+
 
   <!-- =======================================================
        HEADER
@@ -1304,6 +1492,7 @@
       </div>
 
       <div>
+
         <div class="brand-name">
           Bastyon Mya Studio
         </div>
@@ -1311,15 +1500,20 @@
         <div class="brand-sub">
           AI Image Generator &amp; Mya Editor
         </div>
+
       </div>
 
     </div>
 
+
     <div class="header-right">
 
       <div class="online-status">
+
         <span class="online-dot"></span>
+
         Online
+
       </div>
 
     </div>
@@ -1340,6 +1534,7 @@
     >
       ✨ Генератор
     </button>
+
 
     <button
       class="mode-button"
@@ -1381,6 +1576,7 @@
 
           </div>
 
+
           <div class="canvas-actions">
 
             <button
@@ -1398,7 +1594,10 @@
 
         <div class="canvas-area">
 
-          <div class="canvas" id="generatorStage">
+          <div
+            class="canvas"
+            id="generatorStage"
+          >
 
             <div
               class="empty-state"
@@ -1461,6 +1660,7 @@
             Что создать?
           </div>
 
+
           <div class="prompt-box">
 
             <textarea
@@ -1484,6 +1684,7 @@
                   🎙
                 </button>
 
+
                 <button
                   class="tool-button"
                   id="improvePromptBtn"
@@ -1491,6 +1692,7 @@
                 >
                   ✨ Улучшить
                 </button>
+
 
                 <button
                   class="tool-button"
@@ -1501,6 +1703,7 @@
                 </button>
 
               </div>
+
 
               <div
                 class="counter"
@@ -1524,6 +1727,7 @@
             Быстрые идеи
           </div>
 
+
           <div class="chips">
 
             <button
@@ -1534,6 +1738,7 @@
               👤 Портрет
             </button>
 
+
             <button
               class="chip"
               data-template="A cute fluffy orange cat in a beautiful modern apartment, photorealistic, cinematic lighting, highly detailed fur, premium photography"
@@ -1542,6 +1747,7 @@
               🐈 Животное
             </button>
 
+
             <button
               class="chip"
               data-template="A futuristic city at night, cinematic atmosphere, neon reflections, realistic architecture, dramatic lighting, ultra detailed"
@@ -1549,6 +1755,7 @@
             >
               🌃 Футуризм
             </button>
+
 
             <button
               class="chip"
@@ -1580,6 +1787,7 @@
                 Модель
               </label>
 
+
               <select id="model">
 
                 <option value="flux-dev">
@@ -1596,6 +1804,7 @@
               <label for="copies">
                 Количество
               </label>
+
 
               <select id="copies">
 
@@ -1643,6 +1852,7 @@
               1:1
             </button>
 
+
             <button
               class="ratio-button"
               data-ratio="16:9"
@@ -1651,6 +1861,7 @@
               16:9
             </button>
 
+
             <button
               class="ratio-button"
               data-ratio="9:16"
@@ -1658,6 +1869,7 @@
             >
               9:16
             </button>
+
 
             <button
               class="ratio-button"
@@ -1710,6 +1922,7 @@
           </div>
 
         </div>
+
 
         <button
           class="small-button"
@@ -1770,6 +1983,7 @@
 
           </div>
 
+
           <button
             class="secondary-button"
             id="resetEditorBtn"
@@ -1797,14 +2011,17 @@
               🖼
             </div>
 
+
             <div class="upload-title">
               Загрузите изображение
             </div>
+
 
             <div class="upload-text">
               Перетащите изображение сюда
               или выберите файл с устройства.
             </div>
+
 
             <button
               class="secondary-button"
@@ -1844,6 +2061,7 @@
             Заменить
           </button>
 
+
           <button
             class="secondary-button hidden"
             id="removeImageBtn"
@@ -1851,6 +2069,7 @@
           >
             Удалить
           </button>
+
 
           <button
             class="secondary-button hidden"
@@ -1900,6 +2119,7 @@
               Очистить
             </button>
 
+
             <button
               class="tool-button"
               id="copyEditPromptBtn"
@@ -1909,6 +2129,7 @@
             </button>
 
           </div>
+
 
           <div
             class="counter"
@@ -1940,6 +2161,7 @@
             Убрать фон
           </button>
 
+
           <button
             class="chip"
             data-edit="Make the lighting cinematic and natural while preserving the subject and composition"
@@ -1948,6 +2170,7 @@
             Киносвет
           </button>
 
+
           <button
             class="chip"
             data-edit="Improve realism, details and textures while preserving the original subject"
@@ -1955,6 +2178,7 @@
           >
             Улучшить детали
           </button>
+
 
           <button
             class="chip"
@@ -1980,6 +2204,7 @@
               Формат
             </label>
 
+
             <div
               class="ratio-grid"
               id="editorRatios"
@@ -1993,6 +2218,7 @@
                 Auto
               </button>
 
+
               <button
                 class="ratio-button"
                 data-ratio="1:1"
@@ -2001,6 +2227,7 @@
                 1:1
               </button>
 
+
               <button
                 class="ratio-button"
                 data-ratio="16:9"
@@ -2008,6 +2235,7 @@
               >
                 16:9
               </button>
+
 
               <button
                 class="ratio-button"
@@ -2027,6 +2255,7 @@
             <label for="editorModel">
               Модель
             </label>
+
 
             <select id="editorModel">
 
@@ -2081,12 +2310,12 @@
 
         <div class="compare-grid">
 
-
           <div class="compare-box">
 
             <div class="compare-label">
               Оригинал
             </div>
+
 
             <div
               class="empty-text"
@@ -2104,12 +2333,14 @@
               Mya Editor
             </div>
 
+
             <div
               class="empty-text"
               id="compareResultPlaceholder"
             >
               Результат появится здесь
             </div>
+
 
             <img
               id="editorResultImage"
@@ -2131,6 +2362,7 @@
           >
             ↓ Скачать
           </button>
+
 
           <button
             class="secondary-button hidden"
@@ -2164,12 +2396,14 @@
 
     <div class="spinner"></div>
 
+
     <div
       class="loading-title"
       id="loadingTitle"
     >
       Создаём изображение
     </div>
+
 
     <div
       class="loading-text"
@@ -2199,8 +2433,17 @@
   };
 
 
-  const qa = (selector, root = document) => {
-    return [...root.querySelectorAll(selector)];
+  const qa = (
+    selector,
+    root = document
+  ) => {
+
+    return [
+      ...root.querySelectorAll(
+        selector
+      )
+    ];
+
   };
 
 
@@ -2223,9 +2466,13 @@
      ERROR
   ========================================================== */
 
-  function showError(element, message) {
+  function showError(
+    element,
+    message
+  ) {
 
-    element.textContent = message || "";
+    element.textContent =
+      message || "";
 
     element.classList.toggle(
       "show",
@@ -2245,14 +2492,18 @@
     text = "Подождите немного…"
   ) {
 
-    $("loadingTitle").textContent = title;
+    $("loadingTitle")
+      .textContent = title;
 
-    $("loadingText").textContent = text;
+    $("loadingText")
+      .textContent = text;
 
-    $("loading").classList.toggle(
-      "show",
-      visible
-    );
+    $("loading")
+      .classList
+      .toggle(
+        "show",
+        visible
+      );
 
   }
 
@@ -2263,10 +2514,12 @@
 
   function updateCounters() {
 
-    $("promptCounter").textContent =
+    $("promptCounter")
+      .textContent =
       `${$("prompt").value.length} / 2000`;
 
-    $("editPromptCounter").textContent =
+    $("editPromptCounter")
+      .textContent =
       `${$("editPrompt").value.length} / 1200`;
 
   }
@@ -2314,36 +2567,58 @@
       const response =
         await fetch(url);
 
+
       if (!response.ok) {
-        throw new Error("Download failed");
+        throw new Error(
+          "Download failed"
+        );
       }
+
 
       const blob =
         await response.blob();
 
+
       const objectUrl =
         URL.createObjectURL(blob);
 
+
       const link =
-        document.createElement("a");
+        document.createElement(
+          "a"
+        );
 
-      link.href = objectUrl;
 
-      link.download = filename;
+      link.href =
+        objectUrl;
 
-      document.body.appendChild(link);
+
+      link.download =
+        filename;
+
+
+      document.body.appendChild(
+        link
+      );
+
 
       link.click();
 
+
       link.remove();
 
-      setTimeout(() => {
 
-        URL.revokeObjectURL(
-          objectUrl
-        );
+      setTimeout(
+        () => {
 
-      }, 1000);
+          URL.revokeObjectURL(
+            objectUrl
+          );
+
+        },
+        1000
+      );
+
 
     } catch {
 
@@ -2367,41 +2642,55 @@
     lastImages =
       urls.filter(Boolean);
 
+
     const empty =
       $("generatorEmpty");
 
+
     const gallery =
       $("generatorGallery");
+
 
     empty.classList.toggle(
       "hidden",
       lastImages.length > 0
     );
 
+
     gallery.classList.toggle(
       "hidden",
       lastImages.length === 0
     );
 
-    $("downloadAllBtn").classList.toggle(
-      "hidden",
-      lastImages.length === 0
-    );
 
-    $("openEditorFromGenerator").classList.toggle(
-      "hidden",
-      lastImages.length === 0
-    );
+    $("downloadAllBtn")
+      .classList
+      .toggle(
+        "hidden",
+        lastImages.length === 0
+      );
 
 
-    gallery.innerHTML = "";
+    $("openEditorFromGenerator")
+      .classList
+      .toggle(
+        "hidden",
+        lastImages.length === 0
+      );
+
+
+    gallery.innerHTML =
+      "";
 
 
     lastImages.forEach(
       (url, index) => {
 
         const item =
-          document.createElement("div");
+          document.createElement(
+            "div"
+          );
+
 
         item.className =
           "gallery-item";
@@ -2441,7 +2730,8 @@
           .querySelector(
             '[data-action="download"]'
           )
-          .onclick = () => {
+          .onclick =
+          () => {
 
             downloadImage(
               url,
@@ -2455,14 +2745,19 @@
           .querySelector(
             '[data-action="editor"]'
           )
-          .onclick = () => {
+          .onclick =
+          () => {
 
-            openEditorWithUrl(url);
+            openEditorWithUrl(
+              url
+            );
 
           };
 
 
-        gallery.appendChild(item);
+        gallery.appendChild(
+          item
+        );
 
       }
     );
@@ -2522,7 +2817,8 @@
 
     const unique = [];
 
-    const seen = new Set();
+    const seen =
+      new Set();
 
 
     for (
@@ -2533,12 +2829,20 @@
         !item.url ||
         seen.has(item.url)
       ) {
+
         continue;
+
       }
 
-      seen.add(item.url);
 
-      unique.push(item);
+      seen.add(
+        item.url
+      );
+
+
+      unique.push(
+        item
+      );
 
     }
 
@@ -2546,7 +2850,10 @@
     localStorage.setItem(
       HISTORY_KEY,
       JSON.stringify(
-        unique.slice(0, 20)
+        unique.slice(
+          0,
+          20
+        )
       )
     );
 
@@ -2566,20 +2873,26 @@
       $("historyGrid");
 
 
-    grid.innerHTML = "";
+    grid.innerHTML =
+      "";
 
 
-    $("historyEmpty").classList.toggle(
-      "hidden",
-      history.length > 0
-    );
+    $("historyEmpty")
+      .classList
+      .toggle(
+        "hidden",
+        history.length > 0
+      );
 
 
     history.forEach(
       (item) => {
 
         const element =
-          document.createElement("div");
+          document.createElement(
+            "div"
+          );
+
 
         element.className =
           "history-item";
@@ -2594,33 +2907,44 @@
 
           <div class="history-caption">
             ${escapeHtml(
-              item.prompt || "Изображение"
+              item.prompt ||
+              "Изображение"
             )}
           </div>
 
         `;
 
 
-        element.onclick = () => {
+        element.onclick =
+          () => {
 
-          $("prompt").value =
-            item.prompt || "";
-
-          updateCounters();
-
-          renderGallery([
-            item.url
-          ]);
-
-          window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-          });
-
-        };
+            $("prompt").value =
+              item.prompt || "";
 
 
-        grid.appendChild(element);
+            updateCounters();
+
+
+            renderGallery([
+              item.url
+            ]);
+
+
+            window.scrollTo({
+
+              top: 0,
+
+              behavior:
+                "smooth"
+
+            });
+
+          };
+
+
+        grid.appendChild(
+          element
+        );
 
       }
     );
@@ -2647,6 +2971,7 @@
         "Введите описание изображения."
       );
 
+
       $("prompt").focus();
 
       return;
@@ -2666,8 +2991,8 @@
       );
 
 
-    $("generateBtn").disabled =
-      true;
+    $("generateBtn")
+      .disabled = true;
 
 
     setLoading(
@@ -2702,11 +3027,14 @@
             "/api/generate",
             {
 
-              method: "POST",
+              method:
+                "POST",
 
               headers: {
+
                 "Content-Type":
                   "application/json"
+
               },
 
               body:
@@ -2736,7 +3064,9 @@
         try {
 
           data =
-            JSON.parse(text);
+            JSON.parse(
+              text
+            );
 
         } catch {
 
@@ -2789,16 +3119,19 @@
       showError(
         $("generatorError"),
         error.message ||
-          "Ошибка генерации изображения."
+        "Ошибка генерации изображения."
       );
 
 
     } finally {
 
-      setLoading(false);
+      setLoading(
+        false
+      );
 
-      $("generateBtn").disabled =
-        false;
+
+      $("generateBtn")
+        .disabled = false;
 
     }
 
@@ -2881,7 +3214,9 @@
     if (
       !text
         .toLowerCase()
-        .includes("photorealistic")
+        .includes(
+          "photorealistic"
+        )
     ) {
 
       textarea.value =
@@ -2941,54 +3276,73 @@
     $("editorSource").src =
       "";
 
+
     $("editorSource")
       .classList
-      .add("hidden");
+      .add(
+        "hidden"
+      );
 
 
     $("uploadPlaceholder")
       .classList
-      .remove("hidden");
+      .remove(
+        "hidden"
+      );
 
 
     $("changeImageBtn")
       .classList
-      .add("hidden");
+      .add(
+        "hidden"
+      );
 
 
     $("removeImageBtn")
       .classList
-      .add("hidden");
+      .add(
+        "hidden"
+      );
 
 
     $("useGeneratorImageBtn")
       .classList
-      .add("hidden");
+      .add(
+        "hidden"
+      );
 
 
     $("compareOriginal")
       .innerHTML =
-        "Изображение ещё не загружено";
+      "Изображение ещё не загружено";
 
 
     $("editorResultImage")
       .classList
-      .add("hidden");
+      .add(
+        "hidden"
+      );
 
 
     $("compareResultPlaceholder")
       .classList
-      .remove("hidden");
+      .remove(
+        "hidden"
+      );
 
 
     $("downloadEditedBtn")
       .classList
-      .add("hidden");
+      .add(
+        "hidden"
+      );
 
 
     $("sendEditedToGeneratorBtn")
       .classList
-      .add("hidden");
+      .add(
+        "hidden"
+      );
 
 
     $("editPrompt").value =
@@ -3024,6 +3378,7 @@
 
     }
 
+
     return dataUrl;
 
   }
@@ -3039,7 +3394,9 @@
   ) {
 
     editorImageBase64 =
-      extractBase64(dataUrl);
+      extractBase64(
+        dataUrl
+      );
 
 
     editorImageUrl =
@@ -3052,22 +3409,30 @@
 
     $("editorSource")
       .classList
-      .remove("hidden");
+      .remove(
+        "hidden"
+      );
 
 
     $("uploadPlaceholder")
       .classList
-      .add("hidden");
+      .add(
+        "hidden"
+      );
 
 
     $("changeImageBtn")
       .classList
-      .remove("hidden");
+      .remove(
+        "hidden"
+      );
 
 
     $("removeImageBtn")
       .classList
-      .remove("hidden");
+      .remove(
+        "hidden"
+      );
 
 
     $("useGeneratorImageBtn")
@@ -3118,7 +3483,9 @@
     try {
 
       const response =
-        await fetch(url);
+        await fetch(
+          url
+        );
 
 
       if (!response.ok) {
@@ -3136,16 +3503,20 @@
 
       const dataUrl =
         await new Promise(
-          (resolve, reject) => {
+          (
+            resolve,
+            reject
+          ) => {
 
             const reader =
               new FileReader();
 
 
             reader.onload =
-              () => resolve(
-                reader.result
-              );
+              () =>
+                resolve(
+                  reader.result
+                );
 
 
             reader.onerror =
@@ -3168,13 +3539,6 @@
 
     } catch {
 
-      /*
-       * Если удалённый сервер
-       * запрещает CORS,
-       * всё равно показываем
-       * изображение.
-       */
-
       editorImageUrl =
         url;
 
@@ -3185,27 +3549,37 @@
 
       $("editorSource")
         .classList
-        .remove("hidden");
+        .remove(
+          "hidden"
+        );
 
 
       $("uploadPlaceholder")
         .classList
-        .add("hidden");
+        .add(
+          "hidden"
+        );
 
 
       $("changeImageBtn")
         .classList
-        .remove("hidden");
+        .remove(
+          "hidden"
+        );
 
 
       $("removeImageBtn")
         .classList
-        .remove("hidden");
+        .remove(
+          "hidden"
+        );
 
 
       $("useGeneratorImageBtn")
         .classList
-        .remove("hidden");
+        .remove(
+          "hidden"
+        );
 
 
       $("compareOriginal")
@@ -3224,7 +3598,9 @@
 
     } finally {
 
-      setLoading(false);
+      setLoading(
+        false
+      );
 
     }
 
@@ -3240,16 +3616,20 @@
   ) {
 
     return new Promise(
-      (resolve, reject) => {
+      (
+        resolve,
+        reject
+      ) => {
 
         const reader =
           new FileReader();
 
 
         reader.onload =
-          () => resolve(
-            reader.result
-          );
+          () =>
+            resolve(
+              reader.result
+            );
 
 
         reader.onerror =
@@ -3281,6 +3661,7 @@
         "Сначала загрузите изображение."
       );
 
+
       return;
 
     }
@@ -3299,6 +3680,7 @@
         "Опишите, что нужно изменить."
       );
 
+
       $("editPrompt").focus();
 
       return;
@@ -3312,8 +3694,8 @@
     );
 
 
-    $("editBtn").disabled =
-      true;
+    $("editBtn")
+      .disabled = true;
 
 
     setLoading(
@@ -3330,11 +3712,14 @@
           "/api/edit",
           {
 
-            method: "POST",
+            method:
+              "POST",
 
             headers: {
+
               "Content-Type":
                 "application/json"
+
             },
 
             body:
@@ -3367,7 +3752,9 @@
       try {
 
         data =
-          JSON.parse(text);
+          JSON.parse(
+            text
+          );
 
       } catch {
 
@@ -3401,22 +3788,30 @@
 
       $("editorResultImage")
         .classList
-        .remove("hidden");
+        .remove(
+          "hidden"
+        );
 
 
       $("compareResultPlaceholder")
         .classList
-        .add("hidden");
+        .add(
+          "hidden"
+        );
 
 
       $("downloadEditedBtn")
         .classList
-        .remove("hidden");
+        .remove(
+          "hidden"
+        );
 
 
       $("sendEditedToGeneratorBtn")
         .classList
-        .remove("hidden");
+        .remove(
+          "hidden"
+        );
 
 
       $("downloadEditedBtn").onclick =
@@ -3436,11 +3831,14 @@
           $("prompt").value =
             prompt;
 
+
           updateCounters();
+
 
           renderGallery([
             resultUrl
           ]);
+
 
           switchMode(
             "generator"
@@ -3460,16 +3858,19 @@
       showError(
         $("editorError"),
         error.message ||
-          "Ошибка редактирования."
+        "Ошибка редактирования."
       );
 
 
     } finally {
 
-      setLoading(false);
+      setLoading(
+        false
+      );
 
-      $("editBtn").disabled =
-        false;
+
+      $("editBtn")
+        .disabled = false;
 
     }
 
@@ -3483,18 +3884,20 @@
   $("generatorModeBtn")
     .addEventListener(
       "click",
-      () => switchMode(
-        "generator"
-      )
+      () =>
+        switchMode(
+          "generator"
+        )
     );
 
 
   $("editorModeBtn")
     .addEventListener(
       "click",
-      () => switchMode(
-        "editor"
-      )
+      () =>
+        switchMode(
+          "editor"
+        )
     );
 
 
@@ -3544,7 +3947,9 @@
      TEMPLATES
   ========================================================== */
 
-  qa("[data-template]")
+  qa(
+    "[data-template]"
+  )
     .forEach(
       (button) => {
 
@@ -3555,7 +3960,9 @@
             $("prompt").value =
               button.dataset.template;
 
+
             updateCounters();
+
 
             $("prompt").focus();
 
@@ -3570,7 +3977,9 @@
      EDIT TEMPLATES
   ========================================================== */
 
-  qa("[data-edit]")
+  qa(
+    "[data-edit]"
+  )
     .forEach(
       (button) => {
 
@@ -3581,7 +3990,9 @@
             $("editPrompt").value =
               button.dataset.edit;
 
+
             updateCounters();
+
 
             $("editPrompt").focus();
 
@@ -3608,6 +4019,7 @@
 
             generatorRatio =
               button.dataset.ratio;
+
 
             selectRatio(
               $("generatorRatios"),
@@ -3637,6 +4049,7 @@
 
             editorRatio =
               button.dataset.ratio;
+
 
             selectRatio(
               $("editorRatios"),
@@ -3712,6 +4125,7 @@
           HISTORY_KEY
         );
 
+
         renderHistory();
 
       }
@@ -3775,6 +4189,7 @@
             $("editorError"),
             "Выберите изображение."
           );
+
 
           return;
 
@@ -3904,6 +4319,7 @@
 
             event.preventDefault();
 
+
             uploadZone.classList.add(
               "dragover"
             );
@@ -3927,6 +4343,7 @@
           (event) => {
 
             event.preventDefault();
+
 
             uploadZone.classList.remove(
               "dragover"
@@ -4023,6 +4440,7 @@
 
             recognition.start();
 
+
             $("voiceBtn").textContent =
               "🔴";
 
@@ -4101,7 +4519,9 @@
         if (
           !$("generatorMode")
             .classList
-            .contains("hidden")
+            .contains(
+              "hidden"
+            )
         ) {
 
           generateImages();
