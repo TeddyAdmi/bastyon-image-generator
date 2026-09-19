@@ -42,27 +42,28 @@ export default async function handler(req, res) {
             });
         }
 
-        // Усиливаем промпт, чтобы нейросеть следовала именно ему, а не придумывала своё
-        const strictPrompt = `
-Strictly follow this user description: "${userPrompt}". 
-Do not add random elements. Make the main subject precise, highly detailed, realistic, clear focus, high quality.
-`.trim();
+        // Формируем детальный промпт на английском/русском с акцентом на всех участников сцены
+        const detailedPrompt = `${userPrompt}, full shot, wide angle, all mentioned subjects clearly visible together in the frame, high quality`;
 
         const width = 1024;
         const height = 1024;
-        const seed = Math.floor(Math.random() * 10000000);
+        const seed = Math.floor(Math.random() * 999999999);
         
-        // Кодируем усиленный промпт для URL
-        const encodedPrompt = encodeURIComponent(strictPrompt);
+        const encodedPrompt = encodeURIComponent(detailedPrompt);
         
-        // Запрос к публичному API Pollinations с жестким контролем
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=false`;
+        // Используем параметры для уменьшения эффекта «отсебятины»
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=false&model=flux`;
 
-        console.log(`STRICT FREE GENERATION URL: ${imageUrl}`);
+        console.log(`FIXED FREE URL: ${imageUrl}`);
 
         const imageResponse = await fetch(imageUrl);
 
         if (!imageResponse.ok) {
+            if (imageResponse.status === 429) {
+                return res.status(429).json({
+                    error: 'Слишком много запросов (ошибка 429). Подождите 1 минуту.'
+                });
+            }
             throw new Error(`Failed to generate image from public API: ${imageResponse.status}`);
         }
 
@@ -97,7 +98,7 @@ Do not add random elements. Make the main subject precise, highly detailed, real
         });
 
     } catch (error) {
-        console.error('STRICT GENERATION ERROR:', error);
+        console.error('GENERATION ERROR:', error);
         return res.status(500).json({
             error: error?.message || 'Internal Server Error'
         });
