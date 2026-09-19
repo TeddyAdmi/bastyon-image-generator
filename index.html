@@ -2,754 +2,192 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#09090b">
   <title>Bastyon AI Image Generator</title>
-
-  <!-- PUTER.JS -->
-  <script src="https://js.puter.com/v2/"></script>
 
   <style>
     * {
       box-sizing: border-box;
     }
 
-    html,
     body {
       margin: 0;
-      padding: 0;
-      min-height: 100%;
-      background: #090b10;
+      background: #09090b;
       color: #fff;
-      font-family:
-        Inter,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Arial,
-        sans-serif;
-    }
-
-    body {
-      min-height: 100vh;
-    }
-
-    button,
-    textarea,
-    select,
-    input {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
+      font-family: Arial, sans-serif;
     }
 
     .app {
       width: 100%;
-      max-width: 1180px;
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 18px;
+      padding: 24px;
     }
 
-    /* HEADER */
-
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 18px;
+    header {
+      margin-bottom: 24px;
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 11px;
-    }
-
-    .brand-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      background:
-        linear-gradient(
-          135deg,
-          #735cff,
-          #b24cff
-        );
-
-      font-size: 15px;
-      font-weight: 900;
-
-      box-shadow:
-        0 10px 35px
-        rgba(120, 80, 255, 0.28);
-    }
-
-    .brand-title {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.4px;
-    }
-
-    .brand-subtitle {
-      margin-top: 3px;
-      color: #777f90;
-      font-size: 11px;
-    }
-
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-
-      padding: 8px 12px;
-
-      border-radius: 999px;
-
-      background: #141720;
-      border: 1px solid #222733;
-
-      color: #aeb5c5;
-      font-size: 11px;
-      white-space: nowrap;
-    }
-
-    .status-dot {
-      width: 7px;
-      height: 7px;
-
-      border-radius: 50%;
-
-      background: #39d98a;
-
-      box-shadow:
-        0 0 10px
-        rgba(57, 217, 138, 0.75);
-    }
-
-    /* LAYOUT */
-
-    .main {
-      display: grid;
-
-      grid-template-columns:
-        minmax(0, 1.35fr)
-        minmax(330px, 0.65fr);
-
-      gap: 18px;
-    }
-
-    .panel {
-      background: #11141b;
-      border: 1px solid #20242f;
-      border-radius: 20px;
-      overflow: hidden;
-    }
-
-    /* PREVIEW */
-
-    .preview {
-      min-height: 650px;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      padding: 18px;
-    }
-
-    .preview-inner {
-      position: relative;
-
-      width: 100%;
-      min-height: 610px;
-
-      border-radius: 17px;
-
-      overflow: hidden;
-
-      background:
-        radial-gradient(
-          circle at 50% 40%,
-          #1b1f2a 0%,
-          #0b0e14 70%
-        );
-
-      border: 1px solid #242935;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .preview-placeholder {
-      padding: 30px;
-      text-align: center;
-      color: #747c8d;
-    }
-
-    .preview-icon {
-      width: 70px;
-      height: 70px;
-
-      margin: 0 auto 15px;
-
-      border-radius: 20px;
-
-      background: #181c25;
-      border: 1px solid #282e3a;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
+    h1 {
+      margin: 0 0 8px;
       font-size: 30px;
     }
 
-    .preview-title {
-      color: #d0d5df;
-      font-size: 17px;
-      font-weight: 750;
-      margin-bottom: 7px;
+    .subtitle {
+      color: #999;
+      font-size: 14px;
     }
 
-    .preview-text {
-      max-width: 390px;
-
-      margin: 0 auto;
-
-      color: #747c8d;
-
-      line-height: 1.55;
-
-      font-size: 13px;
-    }
-
-    #resultImage {
-      display: none;
-
-      max-width: 100%;
-      max-height: 610px;
-
-      width: auto;
-      height: auto;
-
-      object-fit: contain;
-
-      border-radius: 13px;
-    }
-
-    /* LOADING */
-
-    .preview-loading {
-      display: none;
-
-      position: absolute;
-
-      inset: 0;
-
-      z-index: 5;
-
-      background:
-        rgba(6, 8, 12, 0.84);
-
-      backdrop-filter: blur(8px);
-
-      align-items: center;
-      justify-content: center;
-
-      flex-direction: column;
-
-      gap: 14px;
-    }
-
-    .spinner {
-      width: 42px;
-      height: 42px;
-
-      border-radius: 50%;
-
-      border: 3px solid #292e39;
-
-      border-top-color: #8c6cff;
-
-      animation:
-        spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .loading-title {
-      font-size: 15px;
-      font-weight: 700;
-    }
-
-    .loading-info {
-      max-width: 340px;
-
-      text-align: center;
-
-      color: #858d9d;
-
-      font-size: 11px;
-      line-height: 1.5;
-    }
-
-    /* CONTROLS */
-
-    .controls {
-      padding: 18px;
-    }
-
-    .section {
+    .card {
+      background: #111114;
+      border: 1px solid #27272a;
+      border-radius: 18px;
+      padding: 20px;
       margin-bottom: 18px;
     }
 
-    .section:last-child {
-      margin-bottom: 0;
-    }
-
-    .section-title {
-      margin-bottom: 9px;
-
-      color: #969eaf;
-
-      font-size: 11px;
-      font-weight: 700;
-
-      text-transform: uppercase;
-
-      letter-spacing: 0.7px;
-    }
-
-    /* PROMPT */
-
-    .prompt-wrap {
-      position: relative;
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #bbb;
     }
 
     textarea {
       width: 100%;
-
-      min-height: 125px;
-
+      min-height: 130px;
       resize: vertical;
-
-      padding: 14px 52px 14px 14px;
-
-      border-radius: 14px;
-
-      border: 1px solid #292e3a;
-
-      outline: none;
-
-      background: #0d1016;
-
+      background: #09090b;
+      border: 1px solid #303035;
+      border-radius: 12px;
       color: #fff;
-
-      font-size: 14px;
-
+      padding: 15px;
+      font-size: 16px;
       line-height: 1.5;
-
-      transition: 0.2s;
+      outline: none;
     }
 
     textarea:focus {
-      border-color: #705df3;
-
-      box-shadow:
-        0 0 0 3px
-        rgba(112, 93, 243, 0.12);
+      border-color: #666;
     }
 
-    textarea::placeholder {
-      color: #5d6574;
-    }
-
-    .mic-button {
-      position: absolute;
-
-      right: 10px;
-      top: 10px;
-
-      width: 35px;
-      height: 35px;
-
-      border-radius: 10px;
-
-      border: 1px solid #292e3a;
-
-      background: #171b24;
-
-      color: #b9c0cc;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .mic-button.recording {
-      background: #46202a;
-      border-color: #873847;
-      color: #ff8195;
-    }
-
-    .mic-status {
-      min-height: 16px;
-
-      margin-top: 6px;
-
-      color: #737b8b;
-
-      font-size: 10px;
-    }
-
-    /* MODELS */
-
-    .models {
+    .controls {
       display: grid;
-
-      grid-template-columns:
-        repeat(2, minmax(0, 1fr));
-
-      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 16px;
     }
 
-    .model-card {
-      min-height: 60px;
-
-      padding: 10px;
-
-      text-align: left;
-
-      border-radius: 12px;
-
-      border: 1px solid #292e3a;
-
-      background: #0d1016;
-
-      color: #aeb5c2;
-
-      transition: 0.2s;
-    }
-
-    .model-card:hover {
-      border-color: #444b5b;
-    }
-
-    .model-card.active {
-      border-color: #705df3;
-
-      background:
-        rgba(112, 93, 243, 0.12);
-
-      color: #fff;
-
-      box-shadow:
-        inset 0 0 0 1px
-        rgba(112, 93, 243, 0.15);
-    }
-
-    .model-name {
-      font-size: 13px;
-      font-weight: 750;
-    }
-
-    .model-description {
-      margin-top: 4px;
-
-      color: #717989;
-
-      font-size: 10px;
-    }
-
-    .model-card.active
-    .model-description {
-      color: #a69ddb;
-    }
-
-    /* OPTIONS */
-
-    .options-grid {
-      display: grid;
-
-      grid-template-columns:
-        repeat(3, minmax(0, 1fr));
-
-      gap: 7px;
-    }
-
-    .option-button {
-      min-height: 40px;
-
-      padding: 7px;
-
-      border-radius: 10px;
-
-      border: 1px solid #292e3a;
-
-      background: #0d1016;
-
-      color: #aeb5c2;
-
-      transition: 0.2s;
-    }
-
-    .option-button:hover {
-      border-color: #444b5b;
-    }
-
-    .option-button.active {
-      border-color: #705df3;
-
-      background:
-        rgba(112, 93, 243, 0.12);
-
-      color: #fff;
-    }
-
-    .option-button.disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    /* GENERATE */
-
-    .generate-button {
+    select {
       width: 100%;
-
-      min-height: 53px;
-
-      border: 0;
-
-      border-radius: 14px;
-
-      background:
-        linear-gradient(
-          135deg,
-          #705df3,
-          #a450e8
-        );
-
+      background: #09090b;
+      border: 1px solid #303035;
       color: #fff;
-
-      font-size: 15px;
-
-      font-weight: 800;
-
-      box-shadow:
-        0 12px 32px
-        rgba(112, 93, 243, 0.25);
-
-      transition: 0.2s;
-    }
-
-    .generate-button:hover {
-      transform: translateY(-1px);
-
-      box-shadow:
-        0 16px 38px
-        rgba(112, 93, 243, 0.32);
-    }
-
-    .generate-button:disabled {
-      opacity: 0.55;
-      cursor: wait;
-      transform: none;
-    }
-
-    /* BOTTOM */
-
-    .bottom-row {
-      display: grid;
-
-      grid-template-columns:
-        1fr
-        auto;
-
-      gap: 8px;
-
-      margin-top: 8px;
-    }
-
-    .language-select {
-      min-height: 40px;
-
-      padding: 0 10px;
-
       border-radius: 10px;
-
-      border: 1px solid #292e3a;
-
-      background: #0d1016;
-
-      color: #aeb5c2;
-
+      padding: 13px;
+      font-size: 15px;
       outline: none;
     }
 
-    .download-button {
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 15px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #generateBtn {
+      width: 100%;
+      margin-top: 18px;
+      background: #fff;
+      color: #000;
+    }
+
+    #generateBtn:disabled {
+      opacity: .5;
+      cursor: wait;
+    }
+
+    .status {
       display: none;
-
-      min-height: 40px;
-
-      padding: 0 15px;
-
-      align-items: center;
-      justify-content: center;
-
+      margin-top: 15px;
+      padding: 12px;
       border-radius: 10px;
-
-      border: 1px solid #292e3a;
-
-      background: #171b24;
-
-      color: #fff;
-
-      text-decoration: none;
-
-      font-size: 11px;
-
-      font-weight: 700;
-    }
-
-    .download-button:hover {
-      background: #202531;
-    }
-
-    /* NOTICE */
-
-    .notice {
-      margin-top: 10px;
-
-      padding: 10px 12px;
-
-      border-radius: 11px;
-
-      background: #151820;
-
-      border: 1px solid #222733;
-
-      color: #737b8b;
-
-      line-height: 1.5;
-
-      font-size: 10px;
+      background: #18181b;
+      color: #bbb;
+      font-size: 14px;
+      white-space: pre-wrap;
     }
 
     .error {
       display: none;
-
-      margin-top: 10px;
-
-      padding: 10px 12px;
-
-      border-radius: 11px;
-
-      background: #29151b;
-
-      border: 1px solid #542832;
-
-      color: #ff9aaa;
-
-      line-height: 1.5;
-
-      font-size: 11px;
-
-      word-break: break-word;
+      margin-top: 15px;
+      padding: 14px;
+      border-radius: 10px;
+      background: #351515;
+      border: 1px solid #6b2525;
+      color: #ffb4b4;
+      white-space: pre-wrap;
     }
 
-    /* MOBILE */
-
-    @media (max-width: 850px) {
-
-      .main {
-        grid-template-columns: 1fr;
-      }
-
-      .preview {
-        min-height: auto;
-      }
-
-      .preview-inner {
-        min-height: 470px;
-      }
-
-      #resultImage {
-        max-height: 450px;
-      }
+    .result {
+      display: none;
     }
 
-    @media (max-width: 520px) {
+    .result img {
+      display: block;
+      width: 100%;
+      max-height: 800px;
+      object-fit: contain;
+      border-radius: 14px;
+      background: #050505;
+    }
 
+    .result-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .result-actions a,
+    .result-actions button {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      background: #202024;
+      color: #fff;
+      padding: 13px;
+      border-radius: 10px;
+      border: 1px solid #303035;
+    }
+
+    .debug {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 10px;
+      background: #050505;
+      border: 1px solid #222;
+      color: #888;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    @media (max-width: 650px) {
       .app {
-        padding: 10px;
+        padding: 14px;
       }
 
-      .header {
-        margin-bottom: 12px;
-      }
-
-      .brand-title {
-        font-size: 15px;
-      }
-
-      .brand-subtitle {
-        font-size: 9px;
-      }
-
-      .status {
-        padding: 7px 9px;
-        font-size: 9px;
-      }
-
-      .brand-icon {
-        width: 40px;
-        height: 40px;
-      }
-
-      .panel {
-        border-radius: 16px;
-      }
-
-      .preview {
-        padding: 9px;
-      }
-
-      .preview-inner {
-        min-height: 350px;
-      }
-
-      #resultImage {
-        max-height: 340px;
+      h1 {
+        font-size: 25px;
       }
 
       .controls {
-        padding: 13px;
-      }
-
-      .models {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .options-grid {
-        grid-template-columns:
-          repeat(3, 1fr);
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -757,1440 +195,284 @@
 
 <body>
 
-  <div class="app">
+<div class="app">
 
-    <!-- HEADER -->
+  <header>
+    <h1>AI Image Generator</h1>
+    <div class="subtitle">
+      Bastyon · PixelSter · Flux Dev
+    </div>
+  </header>
 
-    <header class="header">
+  <div class="card">
 
-      <div class="brand">
+    <label for="prompt">Описание изображения</label>
 
-        <div class="brand-icon">
-          AI
-        </div>
+    <textarea
+      id="prompt"
+      placeholder="Например: маленький рыжий кот сидит на улице Нью-Йорка, кинематографический свет, фотореализм"
+    ></textarea>
 
-        <div>
+    <div class="controls">
 
-          <div class="brand-title">
-            Bastyon AI Image Generator
-          </div>
+      <div>
+        <label for="ratio">Формат</label>
 
-          <div class="brand-subtitle">
-            AI image generation & editing
-          </div>
-
-        </div>
-
+        <select id="ratio">
+          <option value="1:1">1:1 — квадрат</option>
+          <option value="16:9">16:9 — горизонтальный</option>
+          <option value="9:16">9:16 — вертикальный</option>
+          <option value="4:3">4:3</option>
+          <option value="3:4">3:4</option>
+          <option value="2:1">2:1</option>
+          <option value="1:2">1:2</option>
+          <option value="3:2">3:2</option>
+          <option value="2:3">2:3</option>
+          <option value="4:5">4:5</option>
+          <option value="5:4">5:4</option>
+        </select>
       </div>
 
-      <div class="status">
+      <div>
+        <label>Модель</label>
 
-        <span class="status-dot"></span>
-
-        <span id="statusText">
-          Готов
-        </span>
-
+        <select disabled>
+          <option>Flux Dev</option>
+        </select>
       </div>
 
-    </header>
+    </div>
 
+    <button id="generateBtn">
+      ✨ Создать изображение
+    </button>
 
-    <!-- MAIN -->
+    <div id="status" class="status"></div>
 
-    <main class="main">
-
-      <!-- PREVIEW -->
-
-      <section class="panel preview">
-
-        <div class="preview-inner">
-
-          <div
-            class="preview-placeholder"
-            id="previewPlaceholder"
-          >
-
-            <div class="preview-icon">
-              ✨
-            </div>
-
-            <div class="preview-title">
-              Создай изображение
-            </div>
-
-            <div class="preview-text">
-              Опиши изображение, персонажа,
-              сцену или идею — выбранная
-              AI-модель создаст результат.
-            </div>
-
-          </div>
-
-
-          <img
-            id="resultImage"
-            alt="Generated image"
-          >
-
-
-          <div
-            class="preview-loading"
-            id="previewLoading"
-          >
-
-            <div class="spinner"></div>
-
-            <div
-              class="loading-title"
-              id="loadingTitle"
-            >
-              Генерация...
-            </div>
-
-            <div
-              class="loading-info"
-              id="loadingInfo"
-            >
-              Отправляем запрос в Puter AI.
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- CONTROLS -->
-
-      <section class="panel controls">
-
-        <!-- PROMPT -->
-
-        <div class="section">
-
-          <div class="section-title">
-            Описание
-          </div>
-
-          <div class="prompt-wrap">
-
-            <textarea
-              id="prompt"
-              placeholder="Например: маленький рыжий кот сидит на улице Нью-Йорка, кинематографичный свет, фотореализм..."
-            ></textarea>
-
-            <button
-              class="mic-button"
-              id="micButton"
-              type="button"
-              title="Голосовой ввод"
-            >
-              🎙
-            </button>
-
-          </div>
-
-          <div
-            class="mic-status"
-            id="micStatus"
-          ></div>
-
-        </div>
-
-
-        <!-- MODELS -->
-
-        <div class="section">
-
-          <div class="section-title">
-            Модель
-          </div>
-
-          <div class="models">
-
-            <button
-              class="model-card active"
-              data-model="openai/gpt-image-2"
-              type="button"
-            >
-
-              <div class="model-name">
-                GPT Image 2
-              </div>
-
-              <div class="model-description">
-                Качество + детали
-              </div>
-
-            </button>
-
-
-            <button
-              class="model-card"
-              data-model="bytedance-seed/seedream-4.0"
-              type="button"
-            >
-
-              <div class="model-name">
-                Seedream 4.0
-              </div>
-
-              <div class="model-description">
-                ByteDance
-              </div>
-
-            </button>
-
-
-            <button
-              class="model-card"
-              data-model="x-ai/grok-imagine-image"
-              type="button"
-            >
-
-              <div class="model-name">
-                Grok Imagine
-              </div>
-
-              <div class="model-description">
-                Быстрая генерация
-              </div>
-
-            </button>
-
-
-            <button
-              class="model-card"
-              data-model="google/gemini-3-pro-image-preview"
-              type="button"
-            >
-
-              <div class="model-name">
-                Nano Banana Pro
-              </div>
-
-              <div class="model-description">
-                Референсы + детали
-              </div>
-
-            </button>
-
-
-            <button
-              class="model-card"
-              data-model="black-forest-labs/flux-2-klein-4b"
-              type="button"
-            >
-
-              <div class="model-name">
-                FLUX.2 Klein
-              </div>
-
-              <div class="model-description">
-                Быстрая
-              </div>
-
-            </button>
-
-
-            <button
-              class="model-card"
-              data-model="qwen/qwen-image-2.0"
-              type="button"
-            >
-
-              <div class="model-name">
-                Qwen Image 2.0
-              </div>
-
-              <div class="model-description">
-                Текст + детали
-              </div>
-
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <!-- RATIO -->
-
-        <div class="section">
-
-          <div class="section-title">
-            Формат
-          </div>
-
-          <div
-            class="options-grid"
-            id="ratioOptions"
-          >
-
-            <button
-              class="option-button active"
-              data-ratio="1:1"
-              type="button"
-            >
-              1:1
-            </button>
-
-            <button
-              class="option-button"
-              data-ratio="16:9"
-              type="button"
-            >
-              16:9
-            </button>
-
-            <button
-              class="option-button"
-              data-ratio="9:16"
-              type="button"
-            >
-              9:16
-            </button>
-
-            <button
-              class="option-button"
-              data-ratio="4:3"
-              type="button"
-            >
-              4:3
-            </button>
-
-            <button
-              class="option-button"
-              data-ratio="3:4"
-              type="button"
-            >
-              3:4
-            </button>
-
-            <button
-              class="option-button"
-              data-ratio="4:5"
-              type="button"
-            >
-              4:5
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <!-- SIZE -->
-
-        <div class="section">
-
-          <div class="section-title">
-            Размер
-          </div>
-
-          <div
-            class="options-grid"
-            id="sizeOptions"
-          >
-
-            <button
-              class="option-button"
-              data-size="768"
-              type="button"
-            >
-              768
-            </button>
-
-            <button
-              class="option-button active"
-              data-size="1024"
-              type="button"
-            >
-              1024
-            </button>
-
-            <button
-              class="option-button"
-              data-size="1536"
-              type="button"
-            >
-              1536
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <!-- QUALITY -->
-
-        <div class="section">
-
-          <div class="section-title">
-            Качество
-          </div>
-
-          <div
-            class="options-grid"
-            id="qualityOptions"
-          >
-
-            <button
-              class="option-button"
-              data-quality="low"
-              type="button"
-            >
-              Быстро
-            </button>
-
-            <button
-              class="option-button active"
-              data-quality="medium"
-              type="button"
-            >
-              Среднее
-            </button>
-
-            <button
-              class="option-button"
-              data-quality="high"
-              type="button"
-            >
-              Высокое
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <!-- GENERATE -->
-
-        <div class="section">
-
-          <button
-            class="generate-button"
-            id="generateButton"
-            type="button"
-          >
-            ✨ Создать изображение
-          </button>
-
-
-          <div class="bottom-row">
-
-            <select
-              class="language-select"
-              id="language"
-            >
-
-              <option value="ru">
-                Русский
-              </option>
-
-              <option value="en">
-                English
-              </option>
-
-            </select>
-
-
-            <a
-              class="download-button"
-              id="downloadButton"
-              download="bastyon-ai-image.png"
-            >
-              Скачать
-            </a>
-
-          </div>
-
-
-          <div class="notice">
-            Генерация выполняется через Puter AI.
-            API-ключ и собственный сервер для
-            генерации не требуются.
-          </div>
-
-
-          <div
-            class="error"
-            id="errorBox"
-          ></div>
-
-        </div>
-
-      </section>
-
-    </main>
+    <div id="error" class="error"></div>
 
   </div>
 
+  <div id="result" class="card result">
 
-  <script>
+    <h2>Результат</h2>
 
-    /* =========================================================
-       STATE
-    ========================================================= */
+    <img id="resultImage" src="" alt="Generated image">
 
-    let selectedModel =
-      "openai/gpt-image-2";
+    <div class="result-actions">
 
-    let selectedRatio =
-      "1:1";
+      <a
+        id="openImage"
+        href="#"
+        target="_blank"
+        rel="noopener"
+      >
+        Открыть
+      </a>
 
-    let selectedSize =
-      1024;
+      <a
+        id="downloadImage"
+        href="#"
+        download="generated-image.jpg"
+      >
+        Скачать
+      </a>
 
-    let selectedQuality =
-      "medium";
+    </div>
 
-    let isGenerating =
-      false;
+  </div>
 
-    let recognition =
-      null;
+  <div id="debug" class="debug">
+Готов к тесту.
+  </div>
 
-    let isRecording =
-      false;
+</div>
 
+<script>
+  const promptInput = document.getElementById("prompt");
+  const ratioInput = document.getElementById("ratio");
+  const generateBtn = document.getElementById("generateBtn");
 
-    /* =========================================================
-       ELEMENTS
-    ========================================================= */
+  const statusBox = document.getElementById("status");
+  const errorBox = document.getElementById("error");
 
-    const promptInput =
-      document.getElementById(
-        "prompt"
-      );
+  const resultBox = document.getElementById("result");
+  const resultImage = document.getElementById("resultImage");
 
-    const generateButton =
-      document.getElementById(
-        "generateButton"
-      );
+  const openImage = document.getElementById("openImage");
+  const downloadImage = document.getElementById("downloadImage");
 
-    const resultImage =
-      document.getElementById(
-        "resultImage"
-      );
+  const debugBox = document.getElementById("debug");
 
-    const previewPlaceholder =
-      document.getElementById(
-        "previewPlaceholder"
-      );
+  function showStatus(text) {
+    statusBox.style.display = "block";
+    statusBox.textContent = text;
+  }
 
-    const previewLoading =
-      document.getElementById(
-        "previewLoading"
-      );
+  function hideStatus() {
+    statusBox.style.display = "none";
+  }
 
-    const loadingTitle =
-      document.getElementById(
-        "loadingTitle"
-      );
+  function showError(text) {
+    errorBox.style.display = "block";
+    errorBox.textContent = text;
+  }
 
-    const loadingInfo =
-      document.getElementById(
-        "loadingInfo"
-      );
+  function hideError() {
+    errorBox.style.display = "none";
+    errorBox.textContent = "";
+  }
 
-    const statusText =
-      document.getElementById(
-        "statusText"
-      );
+  function debug(text) {
+    debugBox.textContent = text;
+    console.log(text);
+  }
 
-    const errorBox =
-      document.getElementById(
-        "errorBox"
-      );
+  generateBtn.addEventListener("click", async () => {
 
-    const downloadButton =
-      document.getElementById(
-        "downloadButton"
-      );
+    const prompt = promptInput.value.trim();
+    const ratio = ratioInput.value;
 
-    const micButton =
-      document.getElementById(
-        "micButton"
-      );
+    hideError();
 
-    const micStatus =
-      document.getElementById(
-        "micStatus"
-      );
+    resultBox.style.display = "none";
 
-
-    /* =========================================================
-       HELPERS
-    ========================================================= */
-
-    function setStatus(
-      text
-    ) {
-
-      statusText.textContent =
-        text;
-
+    if (!prompt) {
+      showError("Введите описание изображения.");
+      return;
     }
 
+    generateBtn.disabled = true;
 
-    function showError(
-      message
-    ) {
+    showStatus("⏳ Генерация изображения...");
 
-      errorBox.textContent =
-        message;
-
-      errorBox.style.display =
-        "block";
-
-    }
-
-
-    function hideError() {
-
-      errorBox.textContent =
-        "";
-
-      errorBox.style.display =
-        "none";
-
-    }
-
-
-    function showLoading(
-      title,
-      info
-    ) {
-
-      previewLoading.style.display =
-        "flex";
-
-      loadingTitle.textContent =
-        title;
-
-      loadingInfo.textContent =
-        info;
-
-      generateButton.disabled =
-        true;
-
-      setStatus(
-        "Генерация"
-      );
-
-    }
-
-
-    function hideLoading() {
-
-      previewLoading.style.display =
-        "none";
-
-      generateButton.disabled =
-        false;
-
-    }
-
-
-    function getDimensions(
-      ratio,
-      size
-    ) {
-
-      const parts =
-        ratio.split(":");
-
-      const rw =
-        Number(parts[0]);
-
-      const rh =
-        Number(parts[1]);
-
-      if (
-        !rw ||
-        !rh
-      ) {
-
-        return {
-          width: size,
-          height: size
-        };
-
-      }
-
-      let width;
-      let height;
-
-      if (
-        rw >= rh
-      ) {
-
-        width =
-          size;
-
-        height =
-          Math.round(
-            size * rh / rw
-          );
-
-      } else {
-
-        height =
-          size;
-
-        width =
-          Math.round(
-            size * rw / rh
-          );
-
-      }
-
-      return {
-        width,
-        height
-      };
-
-    }
-
-
-    /*
-      Puter returns an image element.
-
-      This function converts it to
-      something we can display/download.
-    */
-
-    async function imageElementToUrl(
-      image
-    ) {
-
-      if (
-        typeof image ===
-        "string"
-      ) {
-
-        return image;
-
-      }
-
-      if (
-        image &&
-        image.src
-      ) {
-
-        return image.src;
-
-      }
-
-      if (
-        image &&
-        image.url
-      ) {
-
-        return image.url;
-
-      }
-
-      if (
-        image &&
-        image.data
-      ) {
-
-        return (
-          "data:image/png;base64," +
-          image.data
-        );
-
-      }
-
-      throw new Error(
-        "Puter вернул изображение в неизвестном формате."
-      );
-
-    }
-
-
-    /* =========================================================
-       MODEL BUTTONS
-    ========================================================= */
-
-    document
-      .querySelectorAll(
-        ".model-card"
-      )
-      .forEach(
-        button => {
-
-          button.addEventListener(
-            "click",
-            () => {
-
-              document
-                .querySelectorAll(
-                  ".model-card"
-                )
-                .forEach(
-                  item => {
-
-                    item.classList.remove(
-                      "active"
-                    );
-
-                  }
-                );
-
-              button.classList.add(
-                "active"
-              );
-
-              selectedModel =
-                button.dataset.model;
-
-              setStatus(
-                button
-                  .querySelector(
-                    ".model-name"
-                  )
-                  .textContent
-              );
-
-            }
-          );
-
-        }
-      );
-
-
-    /* =========================================================
-       RATIO BUTTONS
-    ========================================================= */
-
-    document
-      .querySelectorAll(
-        "#ratioOptions .option-button"
-      )
-      .forEach(
-        button => {
-
-          button.addEventListener(
-            "click",
-            () => {
-
-              document
-                .querySelectorAll(
-                  "#ratioOptions .option-button"
-                )
-                .forEach(
-                  item => {
-
-                    item.classList.remove(
-                      "active"
-                    );
-
-                  }
-                );
-
-              button.classList.add(
-                "active"
-              );
-
-              selectedRatio =
-                button.dataset.ratio;
-
-            }
-          );
-
-        }
-      );
-
-
-    /* =========================================================
-       SIZE BUTTONS
-    ========================================================= */
-
-    document
-      .querySelectorAll(
-        "#sizeOptions .option-button"
-      )
-      .forEach(
-        button => {
-
-          button.addEventListener(
-            "click",
-            () => {
-
-              document
-                .querySelectorAll(
-                  "#sizeOptions .option-button"
-                )
-                .forEach(
-                  item => {
-
-                    item.classList.remove(
-                      "active"
-                    );
-
-                  }
-                );
-
-              button.classList.add(
-                "active"
-              );
-
-              selectedSize =
-                Number(
-                  button.dataset.size
-                );
-
-            }
-          );
-
-        }
-      );
-
-
-    /* =========================================================
-       QUALITY BUTTONS
-    ========================================================= */
-
-    document
-      .querySelectorAll(
-        "#qualityOptions .option-button"
-      )
-      .forEach(
-        button => {
-
-          button.addEventListener(
-            "click",
-            () => {
-
-              document
-                .querySelectorAll(
-                  "#qualityOptions .option-button"
-                )
-                .forEach(
-                  item => {
-
-                    item.classList.remove(
-                      "active"
-                    );
-
-                  }
-                );
-
-              button.classList.add(
-                "active"
-              );
-
-              selectedQuality =
-                button.dataset.quality;
-
-            }
-          );
-
-        }
-      );
-
-
-    /* =========================================================
-       GENERATE
-    ========================================================= */
-
-    async function generateImage() {
-
-      if (
-        isGenerating
-      ) {
-
-        return;
-
-      }
-
-
-      const prompt =
-        promptInput.value.trim();
-
-
-      if (
-        !prompt
-      ) {
-
-        showError(
-          "Введите описание изображения."
-        );
-
-        promptInput.focus();
-
-        return;
-
-      }
-
-
-      if (
-        typeof puter ===
-        "undefined"
-      ) {
-
-        showError(
-          "Puter.js ещё не загрузился. Обновите страницу."
-        );
-
-        return;
-
-      }
-
-
-      isGenerating =
-        true;
-
-      hideError();
-
-
-      resultImage.style.display =
-        "none";
-
-      previewPlaceholder.style.display =
-        "flex";
-
-      downloadButton.style.display =
-        "none";
-
-
-      const dimensions =
-        getDimensions(
-          selectedRatio,
-          selectedSize
-        );
-
-
-      console.log(
-        "Puter generation:",
+    debug(
+      "Отправляем запрос:\n\n" +
+      JSON.stringify(
         {
           prompt,
-          model:
-            selectedModel,
-          ratio:
-            selectedRatio,
-          width:
-            dimensions.width,
-          height:
-            dimensions.height,
-          quality:
-            selectedQuality
-        }
+          ratio
+        },
+        null,
+        2
+      )
+    );
+
+    try {
+
+      const response = await fetch("/api/generate", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          prompt,
+          ratio
+        })
+      });
+
+      const rawText = await response.text();
+
+      debug(
+        "HTTP статус: " +
+        response.status +
+        "\n\nОтвет сервера:\n\n" +
+        rawText
       );
 
-
-      showLoading(
-        "Создаём изображение...",
-        "Модель: " +
-          selectedModel
-      );
-
+      let data;
 
       try {
+        data = JSON.parse(rawText);
+      } catch (e) {
 
-        /*
-          IMPORTANT
-
-          Puter accepts model and quality
-          directly through txt2img().
-        */
-
-        const options = {
-
-          model:
-            selectedModel,
-
-          quality:
-            selectedQuality
-
-        };
-
-
-        /*
-          Ask Puter to generate.
-        */
-
-        const image =
-          await puter.ai.txt2img(
-            prompt,
-            options
-          );
-
-
-        console.log(
-          "Полный ответ Puter:",
-          image
+        throw new Error(
+          "Сервер вернул не JSON.\n\n" +
+          rawText.substring(0, 1000)
         );
-
-
-        loadingTitle.textContent =
-          "Получаем изображение...";
-
-
-        loadingInfo.textContent =
-          "Почти готово.";
-
-
-        const imageUrl =
-          await imageElementToUrl(
-            image
-          );
-
-
-        if (
-          !imageUrl
-        ) {
-
-          throw new Error(
-            "Puter не вернул URL изображения."
-          );
-
-        }
-
-
-        /*
-          Show result.
-        */
-
-        resultImage.onload =
-          () => {
-
-            previewPlaceholder.style.display =
-              "none";
-
-            resultImage.style.display =
-              "block";
-
-            hideLoading();
-
-            setStatus(
-              "Готово"
-            );
-
-          };
-
-
-        resultImage.onerror =
-          () => {
-
-            hideLoading();
-
-            setStatus(
-              "Ошибка"
-            );
-
-            showError(
-              "Изображение получено, но браузер не смог его открыть."
-            );
-
-          };
-
-
-        resultImage.src =
-          imageUrl;
-
-
-        /*
-          Download
-        */
-
-        downloadButton.href =
-          imageUrl;
-
-        downloadButton.download =
-          "bastyon-ai-" +
-          Date.now() +
-          ".png";
-
-        downloadButton.style.display =
-          "flex";
-
-
-      } catch (
-        error
-      ) {
-
-        console.error(
-          "Puter generation error:",
-          error
-        );
-
-
-        hideLoading();
-
-        setStatus(
-          "Ошибка"
-        );
-
-
-        let message =
-          "Ошибка генерации.";
-
-
-        if (
-          error &&
-          error.message
-        ) {
-
-          message =
-            error.message;
-
-        }
-
-
-        showError(
-          message
-        );
-
-      } finally {
-
-        isGenerating =
-          false;
 
       }
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.error ||
+          "Ошибка API. HTTP " + response.status
+        );
+
+      }
+
+      if (!data.success) {
+
+        throw new Error(
+          data.error ||
+          "Генерация не удалась."
+        );
+
+      }
+
+      if (!data.imageUrl) {
+
+        throw new Error(
+          "API ответил успешно, но imageUrl отсутствует."
+        );
+
+      }
+
+      resultImage.src = data.imageUrl;
+
+      openImage.href = data.imageUrl;
+
+      downloadImage.href = data.imageUrl;
+
+      resultBox.style.display = "block";
+
+      showStatus(
+        "✅ Изображение готово!\n" +
+        "Модель: " +
+        (data.model || "Flux Dev") +
+        "\nФормат: " +
+        (data.ratio || ratio)
+      );
+
+      debug(
+        "УСПЕХ\n\n" +
+        "Модель: " +
+        (data.model || "Flux Dev") +
+        "\n\n" +
+        "Image URL:\n" +
+        data.imageUrl
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      showError(
+        "❌ Ошибка генерации\n\n" +
+        error.message
+      );
+
+      showStatus(
+        "Генерация завершилась ошибкой."
+      );
+
+      debug(
+        "ОШИБКА:\n\n" +
+        error.message
+      );
+
+    } finally {
+
+      generateBtn.disabled = false;
 
     }
 
+  });
 
-    generateButton.addEventListener(
-      "click",
-      generateImage
-    );
-
-
-    /* =========================================================
-       CTRL + ENTER
-    ========================================================= */
-
-    promptInput.addEventListener(
-      "keydown",
-      event => {
-
-        if (
-          event.key ===
-            "Enter" &&
-          (
-            event.ctrlKey ||
-            event.metaKey
-          )
-        ) {
-
-          event.preventDefault();
-
-          generateImage();
-
-        }
-
-      }
-    );
-
-
-    /* =========================================================
-       SPEECH RECOGNITION
-    ========================================================= */
-
-    function setupSpeechRecognition() {
-
-      const SpeechRecognition =
-        window.SpeechRecognition ||
-        window.webkitSpeechRecognition;
-
-
-      if (
-        !SpeechRecognition
-      ) {
-
-        micStatus.textContent =
-          "Голосовой ввод лучше работает в Chrome или Edge.";
-
-        return;
-
-      }
-
-
-      recognition =
-        new SpeechRecognition();
-
-
-      recognition.continuous =
-        false;
-
-      recognition.interimResults =
-        true;
-
-      recognition.lang =
-        "ru-RU";
-
-
-      recognition.onstart =
-        () => {
-
-          isRecording =
-            true;
-
-          micButton.classList.add(
-            "recording"
-          );
-
-          micStatus.textContent =
-            "Слушаю...";
-
-        };
-
-
-      recognition.onresult =
-        event => {
-
-          let transcript =
-            "";
-
-          for (
-            let i =
-              event.resultIndex;
-
-            i <
-              event.results.length;
-
-            i++
-          ) {
-
-            transcript +=
-              event
-                .results[i][0]
-                .transcript;
-
-          }
-
-
-          if (
-            transcript
-          ) {
-
-            promptInput.value =
-              transcript;
-
-          }
-
-        };
-
-
-      recognition.onerror =
-        event => {
-
-          console.error(
-            "Speech recognition:",
-            event.error
-          );
-
-          micStatus.textContent =
-            "Не удалось распознать речь.";
-
-        };
-
-
-      recognition.onend =
-        () => {
-
-          isRecording =
-            false;
-
-          micButton.classList.remove(
-            "recording"
-          );
-
-          if (
-            micStatus.textContent ===
-            "Слушаю..."
-          ) {
-
-            micStatus.textContent =
-              "";
-
-          }
-
-        };
-
-    }
-
-
-    setupSpeechRecognition();
-
-
-    /* =========================================================
-       MICROPHONE
-    ========================================================= */
-
-    micButton.addEventListener(
-      "click",
-      () => {
-
-        if (
-          !recognition
-        ) {
-
-          micStatus.textContent =
-            "Используйте Chrome или Edge.";
-
-          return;
-
-        }
-
-
-        if (
-          isRecording
-        ) {
-
-          recognition.stop();
-
-          return;
-
-        }
-
-
-        const language =
-          document.getElementById(
-            "language"
-          ).value;
-
-
-        recognition.lang =
-          language === "en"
-            ? "en-US"
-            : "ru-RU";
-
-
-        try {
-
-          recognition.start();
-
-        } catch (
-          error
-        ) {
-
-          console.error(
-            error
-          );
-
-        }
-
-      }
-    );
-
-
-    /* =========================================================
-       START
-    ========================================================= */
-
-    setStatus(
-      "Puter готов"
-    );
-
-  </script>
+</script>
 
 </body>
 </html>
