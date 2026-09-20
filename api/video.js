@@ -94,6 +94,37 @@ function normalizeAlibabaError(data, fallback) {
   return String(message);
 }
 
+function getLtxBaseUrl() {
+  return String(process.env.LTX_SERVER_URL || "").replace(/\\/$/, "");
+}
+
+async function ltxRequest(path, options = {}) {
+  const base = getLtxBaseUrl();
+  if (!base) throw new Error("LTX_SERVER_URL is not configured.");
+
+  const response = await fetch(base + path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("LTX server вернул не JSON.");
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.error || "Ошибка LTX GPU сервера.");
+  }
+
+  return data;
+}
+
 async function getTask(taskId) {
   const response = await fetch(
     getAlibabaBaseUrl() + "/api/v1/tasks/" + encodeURIComponent(taskId),
@@ -138,6 +169,21 @@ export default async function handler(req, res) {
         return res.status(400).json({
           success: false,
           error: "Не указан taskId."
+        });
+      }
+
+      if (taskId.startsWith("ltx:")) {
+        const ltxJobId = taskId.slice(4);
+        const data = await ltxRequest("/jobs/" + encodeURIComponent(ltxJobId));
+
+        return res.status(200).json({
+          success: data.success !== false,
+          status: data.status || "RUNNING",
+          done: Boolean(data.done),
+          videoUrl: data.videoUrl || "",
+          error: data.error || "",
+          provider: "LTX-Video",
+          model: "ltxv-2b-0.9.8-distilled"
         });
       }
 
@@ -220,6 +266,35 @@ export default async function handler(req, res) {
       return res.status(413).json({
         success: false,
         error: "Изображение слишком большое для Vercel API."
+      });
+    }
+
+    // If LTX_SERVER_URL is configured, use the GPU backend first.
+    // Alibaba remains as a fallback without changing the frontend API.
+    if (getLtxBaseUrl()) {
+      const ltxData = await ltxRequest("/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          imageBase64,
+          prompt
+        })
+      });
+
+      if (!ltxData.success || !ltxData.jobId) {
+        return res.status(502).json({
+          success: false,
+          error: ltxData.error || "LTX GPU сервер не запустил задачу."
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        done: false,
+        taskId: "ltx:" + ltxData.jobId,
+        status: ltxData.status || "queued",
+        provider: "LTX-Video",
+        model: "ltxv-2b-0.9.8-distilled",
+        duration: ltxData.duration || 5
       });
     }
 
