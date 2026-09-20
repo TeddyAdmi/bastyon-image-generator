@@ -5193,8 +5193,22 @@ ${cinematicEnhancement}`;
 
   async function animateEditorImage() {
 
-    if (!editorImageBase64) {
-      showError($("editorError"), "Сначала загрузите изображение.");
+    // For video we use the image currently visible in the editor.
+    // After editing this is the edited result; for a fresh upload it is the source image.
+    const resultImage = $("editorResultImage");
+    const sourceImage = $("editorSource");
+
+    let videoImage =
+      resultImage &&
+      !resultImage.classList.contains("hidden") &&
+      resultImage.src
+        ? resultImage.src
+        : sourceImage && sourceImage.src
+          ? sourceImage.src
+          : "";
+
+    if (!videoImage) {
+      showError($("editorError"), "Сначала загрузите или отредактируйте изображение.");
       return;
     }
 
@@ -5219,7 +5233,7 @@ ${cinematicEnhancement}`;
         },
         body: JSON.stringify({
           prompt,
-          imageBase64: editorImageBase64,
+          imageBase64: videoImage,
           ratio: editorRatio,
           duration: 5,
           resolution: "720P"
