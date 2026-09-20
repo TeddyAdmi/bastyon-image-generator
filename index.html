@@ -5233,10 +5233,19 @@ ${cinematicEnhancement}`;
         "Saravutw/WAN2.2_I2V_LIGHTNING_4-8step_custom"
       );
 
-      const imageInput = await window.MiyaGradio.handle_file(videoImage);
+      // Gradio JS Client expects predict(api_name, inputs).
+      // A data URL is converted to Blob first; handle_file() then uploads it correctly.
+      let imageFile;
+      if (videoImage.startsWith("data:")) {
+        const response = await fetch(videoImage);
+        const blob = await response.blob();
+        imageFile = window.MiyaGradio.handle_file(blob);
+      } else {
+        imageFile = window.MiyaGradio.handle_file(videoImage);
+      }
 
-      const result = await client.predict(
-        imageInput,
+      const result = await client.predict("/generate_video", [
+        imageFile,
         null,
         prompt,
         4,
@@ -5251,9 +5260,8 @@ ${cinematicEnhancement}`;
         6,
         16,
         false,
-        true,
-        { api_name: "/generate_video" }
-      );
+        true
+      ]);
 
       const output = result?.data?.[0] || result?.[0];
       const videoUrl =
@@ -5290,7 +5298,6 @@ ${cinematicEnhancement}`;
       $("animateEditedBtn").disabled = false;
     }
   }
-
   $("animateEditedBtn")
     .addEventListener(
       "click",
