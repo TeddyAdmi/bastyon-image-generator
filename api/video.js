@@ -1,15 +1,13 @@
-import { put } from "@vercel/blob";
-
 function parseImageData(imageBase64) {
   const value = String(imageBase64 || "");
-  const match = value.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
+  const match = value.match(/^data:(image\\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
 
   if (!match) {
     throw new Error("Изображение должно быть передано в формате data:image/...;base64,...");
   }
 
   const mimeType = match[1].toLowerCase();
-  const base64 = match[2].replace(/\s/g, "");
+  const base64 = match[2].replace(/\\s/g, "");
 
   const extensionMap = {
     "image/png": "png",
@@ -62,19 +60,19 @@ export default async function handler(req, res) {
       });
     }
 
-    if (String(imageBase64).length > 8_000_000) {
+    const source = String(imageBase64).trim();
+
+    if (source.length > 8_000_000) {
       return res.status(413).json({
         success: false,
         error: "Исходное изображение слишком большое. Уменьшите его и попробуйте снова."
       });
     }
 
-    const source = String(imageBase64).trim();
-
-    // The editor may already hold a public image URL (for example from PixelSter).
-    // Wan 2.7 accepts an image URL directly, so use it without re-uploading.
     let imageUrl = source;
 
+    // Wan 2.7 requires a URL. Existing public image URLs can be passed directly.
+    // Data URLs are uploaded to Vercel Blob first.
     if (source.startsWith("data:image/")) {
       const { mimeType, extension, buffer } = parseImageData(source);
 
@@ -84,6 +82,8 @@ export default async function handler(req, res) {
           error: "Не удалось прочитать исходное изображение."
         });
       }
+
+      const { put } = await import("@vercel/blob");
 
       const blob = await put(
         `miya-video-input/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`,
@@ -108,31 +108,43 @@ export default async function handler(req, res) {
       Math.max(2, Number(duration) || 5)
     );
 
-    const safeResolution =
-      resolution === "1080P" ? "1080P" : "720P";
+    const safeResolution = resolution === "1080P" ? "1080P" : "720P";
 
-    const response = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/run`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "alibaba/wan-2.7-i2v",
-          input: {
-            image: imageUrl,
-            prompt: String(prompt).trim(),
-            negative_prompt:
-              "blurry, distorted face, extra limbs, deformed body, flicker, jitter, unstable background",
-            duration: safeDuration,
-            resolution: safeResolution,
-            watermark: false
-          }
-        })
-      }
-    );
+    const cloudflareUrl =
+      `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/run`;
+
+    console.log("Wan 2.7 request:", {
+      imageType: source.startsWith("data:image/") ? "blob" : "url",
+      imageUrlHost: (() => {
+        try {
+          return new URL(imageUrl).host;
+        } catch {
+          return "invalid-url";
+        }
+      })(),
+      duration: safeDuration,
+      resolution: safeResolution
+    });
+
+    const response = await fetch(cloudflareUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "alibaba/wan-2.7-i2v",
+        input: {
+          image: imageUrl,
+          prompt: String(prompt).trim(),
+          negative_prompt:
+            "blurry, distorted face, extra limbs, deformed body, flicker, jitter, unstable background",
+          duration: safeDuration,
+          resolution: safeResolution,
+          watermark: false
+        }
+      })
+    });
 
     const text = await response.text();
 
@@ -140,6 +152,8 @@ export default async function handler(req, res) {
     try {
       data = JSON.parse(text);
     } catch {
+      console.error("Cloudflare non-JSON response:", response.status, text.slice(0, 1000));
+
       return res.status(502).json({
         success: false,
         error: "Cloudflare вернул не JSON.",
@@ -164,6 +178,12 @@ export default async function handler(req, res) {
           "Cloudflare сейчас перегружен. Попробуйте ещё раз через несколько минут.";
       }
 
+      console.error("Cloudflare Wan 2.7 error:", {
+        status: response.status,
+        code,
+        message
+      });
+
       return res.status(response.status || 502).json({
         success: false,
         error: userMessage,
@@ -174,10 +194,11 @@ export default async function handler(req, res) {
     const videoUrl = data?.result?.video;
 
     if (!videoUrl) {
+      console.error("Cloudflare response without video:", data);
+
       return res.status(502).json({
         success: false,
-        error: "Cloudflare завершил запрос, но не вернул ссылку на видео.",
-        response: data
+        error: "Cloudflare завершил запрос, но не вернул ссылку на видео."
       });
     }
 
