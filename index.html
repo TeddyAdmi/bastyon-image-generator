@@ -1395,6 +1395,8 @@
     .seo-content{max-width:1100px;margin:26px auto 0;padding:26px 28px;border:1px solid var(--border);border-radius:var(--radius-lg);background:rgba(255,255,255,.94);box-shadow:var(--shadow);line-height:1.7;color:var(--text-soft)}
     .seo-content h1,.seo-content h2{color:var(--text);letter-spacing:-.03em}.seo-content h1{font-size:28px;margin:0 0 10px}.seo-content h2{font-size:18px;margin:22px 0 8px}.seo-content p{margin:8px 0}.seo-content ul{padding-left:22px}.seo-faq details{border-top:1px solid var(--border);padding:12px 0}.seo-faq summary{cursor:pointer;color:var(--text);font-weight:700}
   </style>
+  <script src="https://js.puter.com/v2/"></script>
+
 </head>
 
 <body>
@@ -1679,6 +1681,10 @@
 
             <select id="model">
               <option value="flux-dev">Flux Dev · Free</option>
+              <option value="puter-flux-flex">Puter · FLUX.2 Flex</option>
+              <option value="puter-nano-banana">Puter · Nano Banana Pro</option>
+              <option value="puter-gpt-image-2">Puter · GPT Image 2</option>
+              <option value="puter-imagen-4-fast">Puter · Imagen 4 Fast</option>
               <option value="ai-horde-flux">Flux Schnell · Free Horde</option>
               <option value="ai-horde-sdxl">AlbedoBase XL · Free Horde</option>
               <option value="ai-horde-auto">AI Horde · Auto Free</option>
@@ -3454,6 +3460,66 @@ ${cinematicEnhancement}`;
 
       const selectedModel = $("model").value;
 
+      async function generatePuterImage() {
+        if (!window.puter || !window.puter.ai || typeof window.puter.ai.txt2img !== "function") {
+          throw new Error("Puter.js ещё не загрузился. Обновите страницу и попробуйте снова.");
+        }
+
+        const modelMap = {
+          "puter-flux-flex": "black-forest-labs/flux.2-flex",
+          "puter-nano-banana": "google/gemini-3-pro-image-preview",
+          "puter-gpt-image-2": "openai/gpt-image-2",
+          "puter-imagen-4-fast": "google/imagen-4.0-fast"
+        };
+
+        const puterModel = modelMap[selectedModel];
+        if (!puterModel) {
+          throw new Error("Неизвестная модель Puter.");
+        }
+
+        setLoading(
+          true,
+          "Puter AI создаёт изображение",
+          "Генерация выполняется напрямую через Puter…"
+        );
+
+        const options = {
+          model: puterModel
+        };
+
+        // FLUX.2 Flex supports explicit dimensions.
+        if (selectedModel === "puter-flux-flex") {
+          const dimensions = {
+            "1:1": [768, 768],
+            "16:9": [1024, 576],
+            "9:16": [576, 1024],
+            "4:3": [1024, 768]
+          };
+
+          const [width, height] = dimensions[generatorRatio] || dimensions["1:1"];
+          options.width = width;
+          options.height = height;
+          options.steps = 30;
+        }
+
+        const imageElement = await window.puter.ai.txt2img(prompt, options);
+
+        if (!imageElement) {
+          throw new Error("Puter не вернул изображение.");
+        }
+
+        const imageUrl =
+          typeof imageElement === "string"
+            ? imageElement
+            : imageElement.src || imageElement.currentSrc || "";
+
+        if (!imageUrl) {
+          throw new Error("Puter вернул изображение без URL.");
+        }
+
+        return imageUrl;
+      }
+
       async function generateHordeImage() {
         const submitResponse = await fetch("/api/horde", {
           method: "POST",
@@ -3537,6 +3603,16 @@ ${cinematicEnhancement}`;
         i < copies;
         i++
       ) {
+
+        const isPuter =
+          selectedModel.startsWith("puter-");
+
+        if (isPuter) {
+          results.push(
+            await generatePuterImage()
+          );
+          continue;
+        }
 
         const isHorde =
           selectedModel.startsWith("ai-horde-");
