@@ -11,10 +11,10 @@
     content="Bastyon Mya Studio — AI Image Generator & Mya Editor"
   >
 
-  <meta name="theme-color" content="#faf8ff">
+  <meta name="theme-color" content="#faf9fd">
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+    @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 
     :root {
       --bg: #faf9fd;
@@ -37,14 +37,9 @@
       --success: #20a66a;
       --danger: #dc3545;
 
-      --shadow-sm:
-        0 2px 8px rgba(39, 20, 68, 0.04);
-
-      --shadow:
-        0 12px 35px rgba(39, 20, 68, 0.07);
-
-      --shadow-purple:
-        0 14px 30px rgba(124, 58, 237, 0.22);
+      --shadow-sm: 0 2px 8px rgba(39, 20, 68, 0.04);
+      --shadow: 0 12px 35px rgba(39, 20, 68, 0.07);
+      --shadow-purple: 0 14px 30px rgba(124, 58, 237, 0.22);
 
       --radius-sm: 12px;
       --radius: 18px;
@@ -103,28 +98,19 @@
       display: none !important;
     }
 
-
-    /* =========================================================
-       APP
-    ========================================================== */
-
     .app {
       width: min(1500px, calc(100% - 40px));
       margin: 0 auto;
       padding: 24px 0 50px;
     }
 
-
-    /* =========================================================
-       HEADER
-    ========================================================== */
+    /* HEADER */
 
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 20px;
-
       margin-bottom: 22px;
     }
 
@@ -164,15 +150,12 @@
       font-size: 19px;
       line-height: 1.2;
       font-weight: 800;
-
       letter-spacing: -0.04em;
     }
 
     .brand-sub {
       margin-top: 3px;
-
       color: var(--text-soft);
-
       font-size: 11px;
       font-weight: 600;
     }
@@ -204,19 +187,12 @@
     .online-dot {
       width: 7px;
       height: 7px;
-
       border-radius: 50%;
-
       background: #22c55e;
-
-      box-shadow:
-        0 0 0 4px rgba(34, 197, 94, 0.11);
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.11);
     }
 
-
-    /* =========================================================
-       MODE NAV
-    ========================================================== */
+    /* MODE */
 
     .mode-switch {
       width: fit-content;
@@ -237,7 +213,7 @@
     }
 
     .mode-button {
-      min-width: 140px;
+      min-width: 150px;
 
       border: 0;
       border-radius: 11px;
@@ -245,16 +221,12 @@
       padding: 10px 16px;
 
       background: transparent;
-
       color: var(--text-soft);
 
       font-size: 13px;
       font-weight: 700;
 
-      transition:
-        background 0.2s ease,
-        color 0.2s ease,
-        transform 0.2s ease;
+      transition: all 0.2s ease;
     }
 
     .mode-button:hover {
@@ -264,44 +236,31 @@
     .mode-button.active {
       background: var(--text);
       color: white;
-
-      box-shadow:
-        0 5px 14px rgba(23, 19, 31, 0.12);
+      box-shadow: 0 5px 14px rgba(23, 19, 31, 0.12);
     }
 
-
-    /* =========================================================
-       MAIN WORKSPACE
-    ========================================================== */
+    /* WORKSPACE */
 
     .workspace {
       display: grid;
-
       grid-template-columns:
         minmax(0, 1.5fr)
         minmax(360px, 0.7fr);
-
       gap: 18px;
-
       align-items: stretch;
     }
 
     .panel {
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-
       background: rgba(255, 255, 255, 0.94);
-
       box-shadow: var(--shadow);
     }
 
-
-    /* =========================================================
-       CANVAS
-    ========================================================== */
+    /* CANVAS */
 
     .canvas-panel {
-      min-height: 690px;
+      min-height: 650px;
 
       display: flex;
       flex-direction: column;
@@ -323,15 +282,12 @@
     .canvas-title {
       font-size: 14px;
       font-weight: 800;
-
       letter-spacing: -0.02em;
     }
 
     .canvas-description {
       margin-top: 3px;
-
       color: var(--text-soft);
-
       font-size: 11px;
       font-weight: 500;
     }
@@ -353,17 +309,12 @@
       font-size: 11px;
       font-weight: 700;
 
-      transition:
-        background 0.2s ease,
-        color 0.2s ease,
-        border-color 0.2s ease;
+      transition: all 0.2s ease;
     }
 
     .small-button:hover {
       border-color: var(--border-purple);
-
       color: var(--purple);
-
       background: var(--surface-soft);
     }
 
@@ -386,9 +337,9 @@
 
     .canvas {
       width: 100%;
-      height: 100%;
+      max-height: 720px;
 
-      min-height: 560px;
+      aspect-ratio: 1 / 1;
 
       display: flex;
       align-items: center;
@@ -432,11 +383,12 @@
         0 14px,
         14px -14px,
         -14px 0;
+
+      transition: aspect-ratio 0.25s ease;
     }
 
     .empty-state {
       width: min(430px, 90%);
-
       text-align: center;
     }
 
@@ -461,34 +413,28 @@
     .empty-title {
       font-size: 22px;
       font-weight: 800;
-
       letter-spacing: -0.04em;
     }
 
     .empty-text {
       margin-top: 8px;
-
       color: var(--text-soft);
-
       font-size: 13px;
       line-height: 1.6;
     }
 
     .gallery {
       position: absolute;
-
       inset: 0;
 
       width: 100%;
       height: 100%;
 
       display: grid;
-
       grid-template-columns: 1fr;
       grid-template-rows: 1fr;
 
       gap: 0;
-
       padding: 0;
 
       overflow: hidden;
@@ -500,16 +446,11 @@
       width: 100%;
       height: 100%;
 
-      min-height: 0;
-
       overflow: hidden;
 
-      border: 0;
       border-radius: 20px;
 
       background: #f7f7f8;
-
-      box-shadow: none;
     }
 
     .gallery-item img {
@@ -540,8 +481,7 @@
 
       padding: 8px 10px;
 
-      background:
-        rgba(24, 19, 31, 0.84);
+      background: rgba(24, 19, 31, 0.84);
 
       color: white;
 
@@ -561,10 +501,7 @@
       border-top: 1px solid var(--border);
     }
 
-
-    /* =========================================================
-       CONTROL PANEL
-    ========================================================== */
+    /* CONTROLS */
 
     .controls {
       display: flex;
@@ -588,10 +525,7 @@
       letter-spacing: 0.07em;
     }
 
-
-    /* =========================================================
-       PROMPT
-    ========================================================== */
+    /* PROMPT */
 
     .prompt-box {
       position: relative;
@@ -603,7 +537,7 @@
 
       resize: vertical;
 
-      padding: 15px 15px 48px;
+      padding: 15px 15px 52px;
 
       border: 1px solid var(--border);
       border-radius: 15px;
@@ -628,7 +562,6 @@
 
     .prompt:focus {
       border-color: var(--border-purple);
-
       background: white;
 
       box-shadow:
@@ -650,6 +583,7 @@
     .prompt-tools {
       display: flex;
       gap: 5px;
+      flex-wrap: wrap;
     }
 
     .tool-button {
@@ -664,15 +598,12 @@
       font-size: 11px;
       font-weight: 700;
 
-      transition:
-        all 0.2s ease;
+      transition: all 0.2s ease;
     }
 
     .tool-button:hover {
       color: var(--purple);
-
       border-color: var(--border-purple);
-
       background: var(--surface-purple);
     }
 
@@ -682,9 +613,7 @@
 
     .tool-button.listening {
       border-color: #ef4444;
-
       background: #fff1f2;
-
       color: #dc2626;
 
       animation:
@@ -694,27 +623,21 @@
     @keyframes microphonePulse {
       0%,
       100% {
-        box-shadow:
-          0 0 0 0 rgba(239, 68, 68, 0.15);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.15);
       }
 
       50% {
-        box-shadow:
-          0 0 0 5px rgba(239, 68, 68, 0.08);
+        box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.08);
       }
     }
 
     .counter {
       color: var(--text-light);
-
       font-size: 10px;
       font-weight: 600;
     }
 
-
-    /* =========================================================
-       QUICK IDEAS
-    ========================================================== */
+    /* QUICK IDEAS */
 
     .quick-ideas-header {
       display: flex;
@@ -722,36 +645,41 @@
       justify-content: space-between;
 
       gap: 10px;
-
       margin-bottom: 10px;
     }
 
     .quick-ideas-hint {
       color: var(--text-light);
-
       font-size: 9px;
       font-weight: 600;
-
       white-space: nowrap;
     }
 
     .chips {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 7px;
     }
 
     .chip {
-      border: 1px solid var(--border);
-      border-radius: 999px;
+      min-height: 40px;
 
-      padding: 7px 10px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+
+      border: 1px solid var(--border);
+      border-radius: 12px;
+
+      padding: 8px 10px;
 
       background: white;
       color: var(--text-soft);
 
-      font-size: 11px;
-      font-weight: 600;
+      text-align: left;
+
+      font-size: 10px;
+      font-weight: 700;
 
       transition:
         background 0.2s ease,
@@ -760,13 +688,26 @@
         transform 0.2s ease;
     }
 
-    .chip:hover {
-      border-color: var(--border-purple);
+    .chip-icon {
+      width: 25px;
+      height: 25px;
+
+      flex: 0 0 25px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 8px;
 
       background: var(--surface-purple);
 
-      color: var(--purple);
+      font-size: 13px;
+    }
 
+    .chip:hover {
+      border-color: var(--border-purple);
+      background: var(--surface-purple);
+      color: var(--purple);
       transform: translateY(-1px);
     }
 
@@ -774,16 +715,11 @@
       transform: translateY(0);
     }
 
-
-    /* =========================================================
-       SELECTS
-    ========================================================== */
+    /* SETTINGS */
 
     .settings-grid {
       display: grid;
-
       grid-template-columns: 1fr 1fr;
-
       gap: 9px;
     }
 
@@ -825,23 +761,16 @@
         0 0 0 4px rgba(124, 58, 237, 0.07);
     }
 
-
-    /* =========================================================
-       RATIOS
-    ========================================================== */
+    /* RATIOS */
 
     .ratio-grid {
       display: grid;
-
-      grid-template-columns:
-        repeat(4, 1fr);
-
+      grid-template-columns: repeat(4, 1fr);
       gap: 7px;
     }
 
     .ratio-button {
       border: 1px solid var(--border);
-
       border-radius: 10px;
 
       padding: 9px 4px;
@@ -865,10 +794,7 @@
       color: var(--purple);
     }
 
-
-    /* =========================================================
-       GENERATE
-    ========================================================== */
+    /* GENERATE */
 
     .generate-button {
       width: 100%;
@@ -898,8 +824,7 @@
       font-size: 13px;
       font-weight: 800;
 
-      box-shadow:
-        var(--shadow-purple);
+      box-shadow: var(--shadow-purple);
 
       transition:
         transform 0.2s ease,
@@ -920,16 +845,11 @@
 
     .generate-button:disabled {
       cursor: not-allowed;
-
       opacity: 0.55;
-
       transform: none;
     }
 
-
-    /* =========================================================
-       ERROR
-    ========================================================== */
+    /* ERROR */
 
     .error {
       display: none;
@@ -951,10 +871,7 @@
       display: block;
     }
 
-
-    /* =========================================================
-       HISTORY
-    ========================================================== */
+    /* HISTORY */
 
     .history-panel {
       margin-top: 18px;
@@ -976,9 +893,7 @@
 
     .history-subtitle {
       margin-top: 3px;
-
       color: var(--text-soft);
-
       font-size: 11px;
     }
 
@@ -1008,14 +923,11 @@
 
     .history-item:hover {
       transform: translateY(-2px);
-
-      border-color:
-        var(--border-purple);
+      border-color: var(--border-purple);
     }
 
     .history-item img {
       width: 100%;
-
       aspect-ratio: 1 / 1;
 
       display: block;
@@ -1033,16 +945,24 @@
       font-size: 9px;
 
       white-space: nowrap;
-
       overflow: hidden;
-
       text-overflow: ellipsis;
     }
 
+    .history-empty {
+      padding: 25px;
 
-    /* =========================================================
-       EDITOR
-    ========================================================== */
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+
+      color: var(--text-light);
+
+      text-align: center;
+
+      font-size: 12px;
+    }
+
+    /* EDITOR */
 
     .editor-layout {
       display: grid;
@@ -1077,18 +997,18 @@
 
     .editor-subtitle {
       margin-top: 4px;
-
       color: var(--text-soft);
-
       font-size: 11px;
     }
 
     .upload-zone {
-      min-height: 270px;
+      min-height: 300px;
 
       display: flex;
       align-items: center;
       justify-content: center;
+
+      position: relative;
 
       border: 1.5px dashed #d8d0e3;
       border-radius: 19px;
@@ -1109,79 +1029,60 @@
 
     .upload-zone.dragover {
       border-color: var(--purple);
-
-      background:
-        var(--surface-purple);
+      background: var(--surface-purple);
     }
 
     .upload-placeholder {
-      width: min(380px, 90%);
-
-      padding: 30px;
-
       text-align: center;
+      padding: 25px;
     }
 
     .upload-icon {
-      width: 58px;
-      height: 58px;
+      width: 55px;
+      height: 55px;
+
+      margin: 0 auto 13px;
 
       display: grid;
       place-items: center;
 
-      margin: 0 auto 12px;
-
       border-radius: 17px;
 
       background: var(--surface-purple);
-
       color: var(--purple);
 
-      font-size: 24px;
+      font-size: 23px;
     }
 
     .upload-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
     }
 
     .upload-text {
       margin-top: 6px;
-      margin-bottom: 15px;
 
       color: var(--text-soft);
 
       font-size: 11px;
-      line-height: 1.6;
+      line-height: 1.5;
     }
 
-    .upload-image {
-      max-width: 100%;
-      max-height: 500px;
-
-      display: block;
-
-      object-fit: contain;
-    }
-
-    .editor-buttons {
+    .upload-buttons {
       display: flex;
-      flex-wrap: wrap;
-
+      justify-content: center;
       gap: 7px;
-
-      margin-top: 11px;
+      margin-top: 14px;
+      flex-wrap: wrap;
     }
 
     .secondary-button {
       border: 1px solid var(--border);
-
       border-radius: 10px;
 
       padding: 9px 12px;
 
       background: white;
-
       color: var(--text-soft);
 
       font-size: 11px;
@@ -1190,19 +1091,95 @@
 
     .secondary-button:hover {
       border-color: var(--border-purple);
-
-      background: var(--surface-purple);
-
       color: var(--purple);
+    }
+
+    .editor-source-image {
+      width: 100%;
+      height: 100%;
+
+      position: absolute;
+      inset: 0;
+
+      object-fit: contain;
+
+      background: #f7f7f8;
+    }
+
+    .upload-zone-tools {
+      position: absolute;
+
+      right: 10px;
+      top: 10px;
+
+      display: flex;
+      gap: 5px;
+    }
+
+    .compare-box {
+      margin-top: 15px;
+
+      min-height: 220px;
+
+      position: relative;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      overflow: hidden;
+
+      border: 1px solid var(--border);
+      border-radius: 16px;
+
+      background: #f7f6f9;
+    }
+
+    .compare-box img {
+      width: 100%;
+      height: 100%;
+      max-height: 420px;
+
+      object-fit: contain;
+    }
+
+    .compare-placeholder {
+      padding: 35px;
+
+      color: var(--text-light);
+
+      text-align: center;
+
+      font-size: 11px;
+    }
+
+    .compare-label {
+      position: absolute;
+
+      left: 10px;
+      top: 10px;
+
+      z-index: 2;
+
+      padding: 6px 8px;
+
+      border-radius: 8px;
+
+      background: rgba(24, 19, 31, 0.78);
+
+      color: white;
+
+      font-size: 9px;
+      font-weight: 700;
     }
 
     .editor-prompt {
       width: 100%;
-      min-height: 120px;
+      min-height: 145px;
 
       resize: vertical;
 
-      padding: 13px;
+      padding: 14px;
 
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -1212,7 +1189,7 @@
       background: #fcfbfe;
       color: var(--text);
 
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1.6;
     }
 
@@ -1221,129 +1198,61 @@
 
       box-shadow:
         0 0 0 4px rgba(124, 58, 237, 0.07);
-
-      background: white;
     }
 
-    .compare-grid {
-      display: grid;
-
-      grid-template-columns: 1fr 1fr;
-
-      gap: 10px;
-    }
-
-    .compare-box {
-      position: relative;
-
-      min-height: 300px;
-
+    .editor-prompt-tools {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-
-      overflow: hidden;
-
-      border: 1px solid var(--border);
-
-      border-radius: 16px;
-
-      background:
-        linear-gradient(
-          135deg,
-          #faf9fc,
-          #f5f2fa
-        );
+      margin-top: 7px;
     }
 
-    .compare-label {
-      position: absolute;
+    /* LOADING */
 
-      top: 9px;
-      left: 9px;
-
-      z-index: 2;
-
-      padding: 5px 8px;
-
-      border-radius: 7px;
-
-      background:
-        rgba(255, 255, 255, 0.85);
-
-      color: var(--text-soft);
-
-      font-size: 9px;
-      font-weight: 800;
-
-      backdrop-filter: blur(8px);
-    }
-
-    .compare-box img {
-      width: 100%;
-      height: 100%;
-
-      display: block;
-
-      object-fit: contain;
-    }
-
-
-    /* =========================================================
-       LOADING
-    ========================================================== */
-
-    .loading {
+    .loading-overlay {
       position: fixed;
-
       inset: 0;
 
       z-index: 1000;
 
       display: none;
-
       align-items: center;
       justify-content: center;
 
       padding: 20px;
 
-      background:
-        rgba(250, 249, 253, 0.78);
+      background: rgba(20, 15, 27, 0.38);
 
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(8px);
     }
 
-    .loading.show {
+    .loading-overlay.show {
       display: flex;
     }
 
-    .loading-box {
-      width: min(390px, 100%);
+    .loading-card {
+      width: min(380px, 100%);
 
       padding: 28px;
 
-      border: 1px solid var(--border);
-
-      border-radius: 21px;
+      border-radius: 22px;
 
       background: white;
 
-      text-align: center;
-
       box-shadow:
-        0 25px 70px rgba(40, 20, 70, 0.17);
+        0 25px 80px rgba(20, 15, 27, 0.18);
+
+      text-align: center;
     }
 
     .spinner {
-      width: 38px;
-      height: 38px;
+      width: 42px;
+      height: 42px;
 
-      margin: 0 auto 15px;
+      margin: 0 auto 16px;
 
-      border: 3px solid #eee9f4;
-
-      border-top-color:
-        var(--purple);
+      border: 4px solid #eee8f8;
+      border-top-color: var(--purple);
 
       border-radius: 50%;
 
@@ -1363,59 +1272,33 @@
     }
 
     .loading-text {
-      margin-top: 5px;
+      margin-top: 6px;
 
       color: var(--text-soft);
 
       font-size: 11px;
+      line-height: 1.5;
     }
 
+    /* RESPONSIVE */
 
-    /* =========================================================
-       RESPONSIVE
-    ========================================================== */
-
-    @media (max-width: 1100px) {
-
+    @media (max-width: 1050px) {
       .workspace {
         grid-template-columns: 1fr;
       }
 
       .canvas-panel {
-        min-height: 620px;
+        min-height: 600px;
       }
-
-      .history-grid {
-        grid-template-columns:
-          repeat(6, 1fr);
-      }
-
-    }
-
-
-    @media (max-width: 800px) {
 
       .editor-layout {
         grid-template-columns: 1fr;
       }
-
-      .history-grid {
-        grid-template-columns:
-          repeat(4, 1fr);
-      }
-
     }
 
-
-    @media (max-width: 600px) {
-
+    @media (max-width: 720px) {
       .app {
-        width:
-          min(
-            100% - 20px,
-            1500px
-          );
-
+        width: min(100% - 20px, 1500px);
         padding-top: 14px;
       }
 
@@ -1423,21 +1306,8 @@
         align-items: flex-start;
       }
 
-      .header-right {
+      .online-status {
         display: none;
-      }
-
-      .brand-logo {
-        width: 42px;
-        height: 42px;
-      }
-
-      .brand-name {
-        font-size: 17px;
-      }
-
-      .brand-sub {
-        font-size: 10px;
       }
 
       .mode-switch {
@@ -1445,77 +1315,79 @@
       }
 
       .mode-button {
-        flex: 1;
-
         min-width: 0;
-
-        padding:
-          10px 8px;
-
-        font-size: 11px;
-      }
-
-      .canvas-panel {
-        min-height: 500px;
-      }
-
-      .canvas {
-        min-height: 390px;
-
-        border-radius: 17px;
+        flex: 1;
       }
 
       .canvas-area {
         padding: 12px;
       }
 
-      .empty-title {
-        font-size: 18px;
+      .canvas-panel {
+        min-height: 480px;
       }
 
-      .gallery {
-        grid-template-columns: 1fr;
+      .canvas {
+        max-height: none;
       }
 
       .settings-grid {
         grid-template-columns: 1fr;
       }
 
-      .compare-grid {
+      .history-grid {
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+      }
+
+      .chips {
         grid-template-columns: 1fr;
+      }
+
+      .canvas-footer {
+        flex-wrap: wrap;
+      }
+
+      .canvas-footer .small-button {
+        flex: 1;
+      }
+    }
+
+    @media (max-width: 450px) {
+      .brand-sub {
+        font-size: 9px;
+      }
+
+      .brand-name {
+        font-size: 16px;
+      }
+
+      .brand-logo {
+        width: 43px;
+        height: 43px;
+      }
+
+      .ratio-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
 
       .history-grid {
         grid-template-columns:
-          repeat(3, 1fr);
+          repeat(2, minmax(0, 1fr));
       }
 
-      .control-card,
-      .editor-card,
-      .history-panel {
-        padding: 15px;
+      .prompt {
+        min-height: 180px;
       }
-
-      .quick-ideas-header {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 3px;
-      }
-
     }
-
   </style>
 </head>
-
 
 <body>
 
 <div class="app">
 
-
-  <!-- =======================================================
-       HEADER
-  ======================================================== -->
+  <!-- HEADER -->
 
   <header class="header">
 
@@ -1539,14 +1411,15 @@
 
     </div>
 
-
     <div class="header-right">
 
       <div class="online-status">
 
         <span class="online-dot"></span>
 
-        Online
+        <span>
+          Studio online
+        </span>
 
       </div>
 
@@ -1555,718 +1428,282 @@
   </header>
 
 
-  <!-- =======================================================
-       MODE SWITCH
-  ======================================================== -->
+  <!-- MODE SWITCH -->
 
   <div class="mode-switch">
 
     <button
-      class="mode-button active"
-      id="generatorModeBtn"
       type="button"
+      id="generatorModeBtn"
+      class="mode-button active"
     >
       ✨ Генератор
     </button>
 
-
     <button
-      class="mode-button"
-      id="editorModeBtn"
       type="button"
+      id="editorModeBtn"
+      class="mode-button"
     >
-      🪄 Mya Editor
+      🎨 Mya Editor
     </button>
 
   </div>
 
 
-  <!-- =======================================================
+  <!-- =====================================================
        GENERATOR
-  ======================================================== -->
+  ====================================================== -->
 
-  <main id="generatorMode">
+  <section
+    id="generatorMode"
+    class="workspace"
+  >
 
-    <div class="workspace">
+    <!-- CANVAS -->
 
+    <div class="panel canvas-panel">
 
-      <!-- ===================================================
-           IMAGE CANVAS
-      ==================================================== -->
-
-      <section class="panel canvas-panel">
-
-        <div class="canvas-header">
-
-          <div>
-
-            <div class="canvas-title">
-              Рабочее пространство
-            </div>
-
-            <div class="canvas-description">
-              Создавайте и редактируйте изображения в одном месте
-            </div>
-
-          </div>
-
-
-          <div class="canvas-actions">
-
-            <button
-              class="small-button hidden"
-              id="downloadAllBtn"
-              type="button"
-            >
-              ↓ Скачать
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <div class="canvas-area">
-
-          <div
-            class="canvas"
-            id="generatorStage"
-          >
-
-            <div
-              class="empty-state"
-              id="generatorEmpty"
-            >
-
-              <div class="empty-icon">
-                ✦
-              </div>
-
-              <div class="empty-title">
-                Что создадим сегодня?
-              </div>
-
-              <div class="empty-text">
-                Опишите изображение в поле справа.
-                Mya создаст его по вашему описанию.
-              </div>
-
-            </div>
-
-
-            <div
-              class="gallery hidden"
-              id="generatorGallery"
-            ></div>
-
-          </div>
-
-        </div>
-
-
-        <div class="canvas-footer">
-
-          <button
-            class="small-button hidden"
-            id="openEditorFromGenerator"
-            type="button"
-          >
-            🪄 Открыть Mya Editor
-          </button>
-
-        </div>
-
-      </section>
-
-
-      <!-- ===================================================
-           CONTROLS
-      ==================================================== -->
-
-      <aside class="controls">
-
-
-        <!-- =================================================
-             PROMPT
-        ================================================== -->
-
-        <section class="panel control-card">
-
-          <div class="control-title">
-            Что создать?
-          </div>
-
-
-          <div class="prompt-box">
-
-            <textarea
-              class="prompt"
-              id="prompt"
-              maxlength="2000"
-              placeholder="Опишите изображение, которое хотите получить…"
-            ></textarea>
-
-
-            <div class="prompt-bottom">
-
-              <div class="prompt-tools">
-
-                <button
-                  class="tool-button"
-                  id="voiceBtn"
-                  type="button"
-                  title="Голосовой ввод"
-                >
-                  🎙 Микрофон
-                </button>
-
-
-                <button
-                  class="tool-button"
-                  id="improvePromptBtn"
-                  type="button"
-                  title="Сделать промпт более художественным"
-                >
-                  ✨ Улучшить
-                </button>
-
-
-                <button
-                  class="tool-button"
-                  id="clearPromptBtn"
-                  type="button"
-                  title="Очистить поле"
-                >
-                  Очистить
-                </button>
-
-              </div>
-
-
-              <div
-                class="counter"
-                id="promptCounter"
-              >
-                0 / 2000
-              </div>
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- =================================================
-             QUICK IDEAS
-        ================================================== -->
-
-        <section class="panel control-card">
-
-          <div class="quick-ideas-header">
-
-            <div class="control-title" style="margin-bottom:0">
-              Быстрые идеи
-            </div>
-
-            <div class="quick-ideas-hint">
-              новые идеи при обновлении
-            </div>
-
-          </div>
-
-
-          <div
-            class="chips"
-            id="quickIdeas"
-          ></div>
-
-        </section>
-
-
-        <!-- =================================================
-             SETTINGS
-        ================================================== -->
-
-        <section class="panel control-card">
-
-          <div class="control-title">
-            Настройки
-          </div>
-
-
-          <div class="settings-grid">
-
-            <div class="field">
-
-              <label for="model">
-                Модель
-              </label>
-
-
-              <select id="model">
-
-                <option value="flux-dev">
-                  Flux Dev
-                </option>
-
-              </select>
-
-            </div>
-
-
-            <div class="field">
-
-              <label for="copies">
-                Количество
-              </label>
-
-
-              <select id="copies">
-
-                <option value="1">
-                  1 изображение
-                </option>
-
-                <option value="2">
-                  2 изображения
-                </option>
-
-                <option value="3">
-                  3 изображения
-                </option>
-
-                <option value="4">
-                  4 изображения
-                </option>
-
-              </select>
-
-            </div>
-
-          </div>
-
-
-          <div style="height:16px"></div>
-
-
-          <div class="control-title">
-            Формат
-          </div>
-
-
-          <div
-            class="ratio-grid"
-            id="generatorRatios"
-          >
-
-            <button
-              class="ratio-button active"
-              data-ratio="1:1"
-              type="button"
-            >
-              1:1
-            </button>
-
-
-            <button
-              class="ratio-button"
-              data-ratio="16:9"
-              type="button"
-            >
-              16:9
-            </button>
-
-
-            <button
-              class="ratio-button"
-              data-ratio="9:16"
-              type="button"
-            >
-              9:16
-            </button>
-
-
-            <button
-              class="ratio-button"
-              data-ratio="4:3"
-              type="button"
-            >
-              4:3
-            </button>
-
-          </div>
-
-
-          <button
-            class="generate-button"
-            id="generateBtn"
-            type="button"
-          >
-            ✨ Создать изображение
-          </button>
-
-
-          <div
-            class="error"
-            id="generatorError"
-          ></div>
-
-        </section>
-
-      </aside>
-
-    </div>
-
-
-    <!-- =====================================================
-         HISTORY
-    ====================================================== -->
-
-    <section class="panel history-panel">
-
-      <div class="history-header">
+      <div class="canvas-header">
 
         <div>
 
-          <div class="history-title">
-            История
+          <div class="canvas-title">
+            Рабочее пространство
           </div>
 
-          <div class="history-subtitle">
-            Ваши последние изображения
+          <div class="canvas-description">
+            Результат генерации изображения
           </div>
 
         </div>
 
+        <div class="canvas-actions">
+
+          <button
+            type="button"
+            class="small-button"
+            id="downloadAllBtn"
+          >
+            ↓ Скачать
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div class="canvas-area">
+
+        <div
+          class="canvas"
+          id="generatorCanvas"
+        >
+
+          <div
+            class="empty-state"
+            id="generatorEmpty"
+          >
+
+            <div class="empty-icon">
+              ✦
+            </div>
+
+            <div class="empty-title">
+              Создайте изображение
+            </div>
+
+            <div class="empty-text">
+              Опишите идею справа или выберите одну
+              из быстрых идей. После генерации изображение
+              появится здесь.
+            </div>
+
+          </div>
+
+
+          <div
+            class="gallery hidden"
+            id="generatorGallery"
+          ></div>
+
+        </div>
+
+      </div>
+
+
+      <div class="canvas-footer">
 
         <button
-          class="small-button"
-          id="clearHistoryBtn"
           type="button"
+          class="small-button"
+          id="openEditorFromGenerator"
         >
-          Очистить
+          🎨 Открыть в Mya Editor
         </button>
 
       </div>
 
-
-      <div
-        class="history-grid"
-        id="historyGrid"
-      ></div>
+    </div>
 
 
-      <div
-        class="empty-text"
-        id="historyEmpty"
-      >
-        Здесь появятся ваши изображения.
+    <!-- CONTROLS -->
+
+    <div class="controls">
+
+
+      <!-- PROMPT -->
+
+      <div class="panel control-card">
+
+        <div class="control-title">
+          Что создать
+        </div>
+
+        <div class="prompt-box">
+
+          <textarea
+            id="prompt"
+            class="prompt"
+            maxlength="4000"
+            placeholder="Например: кинематографичный рыжий кот стоит на ночной улице Нью-Йорка под дождём, неоновые вывески отражаются в мокром асфальте..."
+          ></textarea>
+
+
+          <div class="prompt-bottom">
+
+            <div class="prompt-tools">
+
+              <button
+                type="button"
+                class="tool-button"
+                id="voiceBtn"
+                title="Голосовой ввод"
+              >
+                🎙 Микрофон
+              </button>
+
+              <button
+                type="button"
+                class="tool-button"
+                id="improvePromptBtn"
+                title="Сделать промпт ярче и художественнее"
+              >
+                ✨ Улучшить
+              </button>
+
+              <button
+                type="button"
+                class="tool-button"
+                id="clearPromptBtn"
+                title="Очистить промпт"
+              >
+                × Очистить
+              </button>
+
+            </div>
+
+            <div
+              class="counter"
+              id="promptCounter"
+            >
+              0 / 4000
+            </div>
+
+          </div>
+
+        </div>
+
+        <div
+          id="generatorError"
+          class="error"
+        ></div>
+
       </div>
 
-    </section>
 
-  </main>
+      <!-- QUICK IDEAS -->
 
+      <div class="panel control-card">
 
-  <!-- =======================================================
-       MYA EDITOR
-  ======================================================== -->
+        <div class="quick-ideas-header">
 
-  <main
-    id="editorMode"
-    class="hidden"
-  >
-
-    <div class="editor-layout">
-
-
-      <section class="panel editor-card">
-
-        <div class="editor-header">
-
-          <div>
-
-            <div class="editor-title">
-              Mya Editor
-            </div>
-
-            <div class="editor-subtitle">
-              Изменяйте изображение с помощью текста
-            </div>
-
+          <div class="control-title" style="margin:0">
+            Быстрые идеи
           </div>
 
-
-          <button
-            class="secondary-button"
-            id="resetEditorBtn"
-            type="button"
-          >
-            Сбросить
-          </button>
+          <div class="quick-ideas-hint">
+            Каждый раз новые
+          </div>
 
         </div>
-
 
         <div
-          class="upload-zone"
-          id="uploadZone"
-        >
+          class="chips"
+          id="quickIdeasGrid"
+        ></div>
 
-          <div
-            class="upload-placeholder"
-            id="uploadPlaceholder"
-          >
-
-            <div class="upload-icon">
-              🖼
-            </div>
+      </div>
 
 
-            <div class="upload-title">
-              Загрузите изображение
-            </div>
+      <!-- SETTINGS -->
 
-
-            <div class="upload-text">
-              Перетащите изображение сюда
-              или выберите файл с устройства.
-            </div>
-
-
-            <button
-              class="secondary-button"
-              id="chooseImageBtn"
-              type="button"
-            >
-              Выбрать изображение
-            </button>
-
-          </div>
-
-
-          <img
-            id="editorSource"
-            class="upload-image hidden"
-            alt="Исходное изображение"
-          >
-
-        </div>
-
-
-        <input
-          id="editorFile"
-          type="file"
-          accept="image/*"
-          class="hidden"
-        >
-
-
-        <div class="editor-buttons">
-
-          <button
-            class="secondary-button hidden"
-            id="changeImageBtn"
-            type="button"
-          >
-            Заменить
-          </button>
-
-
-          <button
-            class="secondary-button hidden"
-            id="removeImageBtn"
-            type="button"
-          >
-            Удалить
-          </button>
-
-
-          <button
-            class="secondary-button hidden"
-            id="useGeneratorImageBtn"
-            type="button"
-          >
-            Использовать результат
-          </button>
-
-        </div>
-
-
-        <div style="height:20px"></div>
-
+      <div class="panel control-card">
 
         <div class="control-title">
-          Что изменить?
+          Параметры
         </div>
-
-
-        <textarea
-          class="editor-prompt"
-          id="editPrompt"
-          maxlength="1200"
-          placeholder="Например: замени фон на роскошный современный интерьер, сохрани человека и лицо без изменений…"
-        ></textarea>
-
-
-        <div
-          style="
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            margin-top:7px;
-          "
-        >
-
-          <div class="prompt-tools">
-
-            <button
-              class="tool-button"
-              id="clearEditPromptBtn"
-              type="button"
-            >
-              Очистить
-            </button>
-
-
-            <button
-              class="tool-button"
-              id="copyEditPromptBtn"
-              type="button"
-            >
-              Копировать
-            </button>
-
-          </div>
-
-
-          <div
-            class="counter"
-            id="editPromptCounter"
-          >
-            0 / 1200
-          </div>
-
-        </div>
-
-
-        <div style="height:17px"></div>
-
-
-        <div class="control-title">
-          Быстрые изменения
-        </div>
-
-
-        <div class="chips">
-
-          <button
-            class="chip"
-            data-edit="Remove the background and replace it with a clean premium studio background"
-            type="button"
-          >
-            Убрать фон
-          </button>
-
-
-          <button
-            class="chip"
-            data-edit="Make the lighting cinematic and natural while preserving the subject and composition"
-            type="button"
-          >
-            Киносвет
-          </button>
-
-
-          <button
-            class="chip"
-            data-edit="Improve realism, details and textures while preserving the original subject"
-            type="button"
-          >
-            Улучшить детали
-          </button>
-
-
-          <button
-            class="chip"
-            data-edit="Replace the background with a modern luxury interior"
-            type="button"
-          >
-            Новый интерьер
-          </button>
-
-        </div>
-
-
-        <div style="height:18px"></div>
 
 
         <div class="settings-grid">
 
           <div class="field">
 
-            <label>
-              Формат
+            <label for="model">
+              Модель
             </label>
 
+            <select id="model">
 
-            <div
-              class="ratio-grid"
-              id="editorRatios"
-            >
+              <option value="flux-dev">
+                Flux Dev
+              </option>
 
-              <button
-                class="ratio-button active"
-                data-ratio="auto"
-                type="button"
-              >
+              <option value="flux">
+                Flux
+              </option>
+
+              <option value="auto">
                 Auto
-              </button>
+              </option>
 
-
-              <button
-                class="ratio-button"
-                data-ratio="1:1"
-                type="button"
-              >
-                1:1
-              </button>
-
-
-              <button
-                class="ratio-button"
-                data-ratio="16:9"
-                type="button"
-              >
-                16:9
-              </button>
-
-
-              <button
-                class="ratio-button"
-                data-ratio="9:16"
-                type="button"
-              >
-                9:16
-              </button>
-
-            </div>
+            </select>
 
           </div>
 
 
           <div class="field">
 
-            <label for="editorModel">
-              Модель
+            <label for="copies">
+              Изображений
             </label>
 
+            <select id="copies">
 
-            <select id="editorModel">
+              <option value="1">
+                1
+              </option>
 
-              <option value="flux-kontext-dev">
-                Flux Kontext Dev
+              <option value="2">
+                2
+              </option>
+
+              <option value="3">
+                3
+              </option>
+
+              <option value="4">
+                4
               </option>
 
             </select>
@@ -2276,144 +1713,544 @@
         </div>
 
 
-        <button
-          class="generate-button"
-          id="editBtn"
-          type="button"
+        <div
+          class="field"
+          style="margin-top:14px"
         >
-          🪄 Изменить изображение
+
+          <label>
+            Формат
+          </label>
+
+          <div
+            class="ratio-grid"
+            id="generatorRatios"
+          >
+
+            <button
+              type="button"
+              class="ratio-button active"
+              data-ratio="1:1"
+            >
+              1:1
+            </button>
+
+            <button
+              type="button"
+              class="ratio-button"
+              data-ratio="16:9"
+            >
+              16:9
+            </button>
+
+            <button
+              type="button"
+              class="ratio-button"
+              data-ratio="9:16"
+            >
+              9:16
+            </button>
+
+            <button
+              type="button"
+              class="ratio-button"
+              data-ratio="4:3"
+            >
+              4:3
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="generate-button"
+          id="generateBtn"
+        >
+          <span>
+            ✦
+          </span>
+
+          <span>
+            Создать изображение
+          </span>
         </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- =====================================================
+       HISTORY
+  ====================================================== -->
+
+  <section class="panel history-panel">
+
+    <div class="history-header">
+
+      <div>
+
+        <div class="history-title">
+          История
+        </div>
+
+        <div class="history-subtitle">
+          Последние созданные изображения
+        </div>
+
+      </div>
+
+      <button
+        type="button"
+        class="small-button"
+        id="clearHistoryBtn"
+      >
+        Очистить
+      </button>
+
+    </div>
+
+    <div
+      id="historyGrid"
+      class="history-grid"
+    ></div>
+
+    <div
+      id="historyEmpty"
+      class="history-empty"
+    >
+      Здесь появятся ваши изображения.
+    </div>
+
+  </section>
+
+
+  <!-- =====================================================
+       EDITOR
+  ====================================================== -->
+
+  <section
+    id="editorMode"
+    class="editor-layout hidden"
+  >
+
+    <!-- LEFT -->
+
+    <div class="panel editor-card">
+
+      <div class="editor-header">
+
+        <div>
+
+          <div class="editor-title">
+            Mya Editor
+          </div>
+
+          <div class="editor-subtitle">
+            Загрузите изображение и опишите изменения
+          </div>
+
+        </div>
+
+        <button
+          type="button"
+          class="small-button"
+          id="resetEditorBtn"
+        >
+          Сбросить
+        </button>
+
+      </div>
+
+
+      <input
+        type="file"
+        id="editorFile"
+        accept="image/*"
+        class="hidden"
+      >
+
+
+      <div
+        class="upload-zone"
+        id="uploadZone"
+      >
+
+        <img
+          id="editorSource"
+          class="editor-source-image hidden"
+          alt="Изображение для редактирования"
+        >
 
 
         <div
-          class="error"
-          id="editorError"
-        ></div>
+          class="upload-placeholder"
+          id="uploadPlaceholder"
+        >
 
-      </section>
+          <div class="upload-icon">
+            ↑
+          </div>
 
+          <div class="upload-title">
+            Загрузите изображение
+          </div>
 
-      <section class="panel editor-card">
+          <div class="upload-text">
+            Перетащите изображение сюда
+            или выберите файл
+          </div>
 
-        <div class="editor-header">
+          <div class="upload-buttons">
 
-          <div>
+            <button
+              type="button"
+              class="secondary-button"
+              id="chooseImageBtn"
+            >
+              Выбрать изображение
+            </button>
 
-            <div class="editor-title">
-              Результат
-            </div>
-
-            <div class="editor-subtitle">
-              Сравните исходное и изменённое изображение
-            </div>
+            <button
+              type="button"
+              class="secondary-button"
+              id="useGeneratorImageBtn"
+            >
+              Использовать генератор
+            </button>
 
           </div>
 
         </div>
 
 
-        <div class="compare-grid">
-
-          <div class="compare-box">
-
-            <div class="compare-label">
-              Оригинал
-            </div>
-
-
-            <div
-              class="empty-text"
-              id="compareOriginal"
-            >
-              Изображение ещё не загружено
-            </div>
-
-          </div>
-
-
-          <div class="compare-box">
-
-            <div class="compare-label">
-              Mya Editor
-            </div>
-
-
-            <div
-              class="empty-text"
-              id="compareResultPlaceholder"
-            >
-              Результат появится здесь
-            </div>
-
-
-            <img
-              id="editorResultImage"
-              class="hidden"
-              alt="Результат редактирования"
-            >
-
-          </div>
-
-        </div>
-
-
-        <div class="editor-buttons">
+        <div class="upload-zone-tools">
 
           <button
-            class="secondary-button hidden"
-            id="downloadEditedBtn"
             type="button"
+            class="small-button hidden"
+            id="changeImageBtn"
+          >
+            Заменить
+          </button>
+
+          <button
+            type="button"
+            class="small-button hidden"
+            id="removeImageBtn"
+          >
+            Удалить
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="compare-box"
+        id="editorCompare"
+      >
+
+        <div
+          class="compare-placeholder"
+          id="compareResultPlaceholder"
+        >
+          Здесь появится результат редактирования.
+        </div>
+
+        <div
+          id="compareOriginal"
+          style="position:relative;width:100%;height:100%;"
+        ></div>
+
+      </div>
+
+    </div>
+
+
+    <!-- RIGHT -->
+
+    <div class="panel editor-card">
+
+      <div class="control-title">
+        Что изменить
+      </div>
+
+
+      <textarea
+        id="editPrompt"
+        class="editor-prompt"
+        maxlength="4000"
+        placeholder="Например: сделай изображение более кинематографичным, добавь мягкий золотой свет, сохрани лицо и одежду..."
+      ></textarea>
+
+
+      <div class="editor-prompt-tools">
+
+        <div>
+
+          <button
+            type="button"
+            class="tool-button"
+            id="clearEditPromptBtn"
+          >
+            × Очистить
+          </button>
+
+          <button
+            type="button"
+            class="tool-button"
+            id="copyEditPromptBtn"
+          >
+            ⧉ Копировать
+          </button>
+
+        </div>
+
+        <div
+          class="counter"
+          id="editPromptCounter"
+        >
+          0 / 4000
+        </div>
+
+      </div>
+
+
+      <div
+        class="control-title"
+        style="margin-top:20px"
+      >
+        Быстрые изменения
+      </div>
+
+
+      <div class="chips">
+
+        <button
+          type="button"
+          class="chip"
+          data-edit="Сделай изображение более кинематографичным, ярким и профессиональным, сохранив главный объект и композицию."
+        >
+          🎬 Кинематографично
+        </button>
+
+        <button
+          type="button"
+          class="chip"
+          data-edit="Добавь красивое мягкое освещение, выразительные световые акценты, атмосферную глубину и реалистичные тени."
+        >
+          💡 Улучшить свет
+        </button>
+
+        <button
+          type="button"
+          class="chip"
+          data-edit="Сделай изображение максимально фотореалистичным, добавь натуральные текстуры, детали материалов и реалистичную глубину резкости."
+        >
+          📷 Фотореализм
+        </button>
+
+        <button
+          type="button"
+          class="chip"
+          data-edit="Сделай сцену более яркой, насыщенной и визуально впечатляющей, добавь профессиональную цветокоррекцию."
+        >
+          🌈 Ярче
+        </button>
+
+      </div>
+
+
+      <div
+        class="settings-grid"
+        style="margin-top:18px"
+      >
+
+        <div class="field">
+
+          <label>
+            Модель
+          </label>
+
+          <select id="editorModel">
+
+            <option value="flux-dev">
+              Flux Dev
+            </option>
+
+            <option value="flux">
+              Flux
+            </option>
+
+            <option value="auto">
+              Auto
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="field"
+        style="margin-top:15px"
+      >
+
+        <label>
+          Формат результата
+        </label>
+
+        <div
+          class="ratio-grid"
+          id="editorRatios"
+        >
+
+          <button
+            type="button"
+            class="ratio-button active"
+            data-ratio="1:1"
+          >
+            1:1
+          </button>
+
+          <button
+            type="button"
+            class="ratio-button"
+            data-ratio="16:9"
+          >
+            16:9
+          </button>
+
+          <button
+            type="button"
+            class="ratio-button"
+            data-ratio="9:16"
+          >
+            9:16
+          </button>
+
+          <button
+            type="button"
+            class="ratio-button"
+            data-ratio="4:3"
+          >
+            4:3
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="generate-button"
+        id="editBtn"
+      >
+        ✦ Изменить изображение
+      </button>
+
+
+      <div
+        id="editorError"
+        class="error"
+      ></div>
+
+
+      <div
+        id="editorResult"
+        style="margin-top:18px"
+      >
+
+        <div
+          class="compare-box"
+          style="min-height:300px"
+        >
+
+          <img
+            id="editorResultImage"
+            class="hidden"
+            alt="Результат редактирования"
+          >
+
+          <div
+            class="compare-placeholder"
+            id="editorResultPlaceholder"
+          >
+            Результат появится здесь.
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            display:flex;
+            gap:7px;
+            margin-top:10px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <button
+            type="button"
+            class="small-button hidden"
+            id="downloadEditedBtn"
           >
             ↓ Скачать
           </button>
 
-
           <button
-            class="secondary-button hidden"
-            id="sendEditedToGeneratorBtn"
             type="button"
+            class="small-button hidden"
+            id="sendEditedToGeneratorBtn"
           >
             ✨ В генератор
           </button>
 
         </div>
 
-      </section>
+      </div>
 
     </div>
 
-  </main>
+  </section>
 
 </div>
 
 
-<!-- =========================================================
-     LOADING
-========================================================== -->
+<!-- LOADING -->
 
 <div
-  class="loading"
+  class="loading-overlay"
   id="loading"
 >
 
-  <div class="loading-box">
+  <div class="loading-card">
 
     <div class="spinner"></div>
-
 
     <div
       class="loading-title"
       id="loadingTitle"
     >
-      Создаём изображение
+      Генерируем изображение
     </div>
-
 
     <div
       class="loading-text"
       id="loadingText"
     >
-      Подождите немного…
+      Это может занять некоторое время…
     </div>
 
   </div>
@@ -2422,30 +2259,40 @@
 
 
 <script>
-
-(() => {
+(function () {
 
   "use strict";
 
 
-  /* =========================================================
-     BASIC HELPERS
-  ========================================================== */
+  /* =====================================================
+     HELPERS
+  ====================================================== */
 
-  const $ = (id) =>
-    document.getElementById(id);
+  const $ = (id) => document.getElementById(id);
+
+  const qa = (selector) =>
+    Array.from(document.querySelectorAll(selector));
 
 
-  const qa = (
-    selector,
-    root = document
-  ) =>
-    [...root.querySelectorAll(selector)];
+  function escapeHtml(value) {
 
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  }
+
+
+  /* =====================================================
+     STATE
+  ====================================================== */
 
   let generatorRatio = "1:1";
 
-  let editorRatio = "auto";
+  let editorRatio = "1:1";
 
   let lastImages = [];
 
@@ -2453,153 +2300,335 @@
 
   let editorImageUrl = "";
 
-
   const HISTORY_KEY =
-    "bastyon_mya_studio_history_v3";
+    "bastyon-mya-studio-history-v2";
 
 
-  /* =========================================================
-     10 QUICK IDEA THEMES
-  ========================================================== */
+  /* =====================================================
+     QUICK IDEA LIBRARY
+  ====================================================== */
 
-  const QUICK_IDEAS = [
-
-    {
-      icon: "👤",
-      title: "Портрет",
-      variants: [
-        "кинематографичный портрет харизматичного молодого человека",
-        "роскошный портрет молодой женщины в стиле fashion-журнала",
-        "эмоциональный крупный портрет человека с выразительным взглядом",
-        "стильный кинематографичный портрет модели в современном городе"
-      ]
-    },
+  const ideaLibrary = [
 
     {
-      icon: "🐈",
-      title: "Животные",
-      variants: [
-        "очень милый пушистый рыжий кот в роскошном интерьере",
-        "забавный пухлый поросёнок в голливудском стиле",
-        "харизматичная собака, сидящая в центре большого города",
-        "маленький пушистый котёнок в волшебном сказочном лесу"
-      ]
-    },
-
-    {
-      icon: "🌃",
-      title: "Неоновый город",
-      variants: [
-        "футуристический ночной город с неоновыми вывесками и мокрым асфальтом",
-        "киберпанк-улица огромного мегаполиса после дождя",
-        "неоновый Токио ночью с яркими отражениями на мокрой дороге",
-        "футуристичный мегаполис будущего с летающими автомобилями"
-      ]
-    },
-
-    {
-      icon: "🏰",
-      title: "Фэнтези",
-      variants: [
-        "огромный древний замок на вершине горы на рассвете",
-        "волшебный лес с древними деревьями и сияющими огнями",
-        "эпический фантастический город среди облаков",
-        "таинственный замок в окружении туманных гор"
-      ]
-    },
-
-    {
-      icon: "🚀",
-      title: "Космос",
-      variants: [
-        "огромная космическая станция на фоне далёкой галактики",
-        "астронавт стоит на неизвестной планете под огромной луной",
-        "футуристический космический корабль летит сквозь туманность",
-        "инопланетный город на далёкой планете"
-      ]
-    },
-
-    {
-      icon: "🏎️",
-      title: "Автомобили",
-      variants: [
-        "роскошный спортивный автомобиль на ночной улице большого города",
-        "суперкар на горной дороге во время золотого часа",
-        "классический автомобиль возле американского мотеля ночью",
-        "футуристический гиперкар на неоновой улице"
-      ]
-    },
-
-    {
-      icon: "🍔",
-      title: "Еда",
-      variants: [
-        "роскошный ресторанный бургер в профессиональной рекламной съёмке",
-        "идеальная итальянская паста в дорогом ресторане",
-        "шоколадный десерт в премиальной рекламной фотографии",
-        "сочная пицца на деревянном столе в уютной итальянской кухне"
-      ]
-    },
-
-    {
-      icon: "🏙️",
-      title: "Архитектура",
-      variants: [
-        "ультрасовременный роскошный дом у океана",
-        "огромный небоскрёб будущего среди облаков",
-        "роскошный современный интерьер премиального пентхауса",
-        "уютный минималистичный дом в окружении природы"
-      ]
-    },
-
-    {
-      icon: "🌲",
-      title: "Природа",
-      variants: [
-        "величественный водопад среди древнего тропического леса",
-        "заснеженные горы на рассвете с туманом в долине",
-        "таинственный лес после дождя с солнечными лучами",
-        "океанский берег на закате с огромными волнами"
-      ]
-    },
-
-    {
+      title: "Кинематографичный портрет",
       icon: "🎬",
-      title: "Киносцена",
-      variants: [
-        "эпическая сцена из фантастического фильма с главным героем",
-        "напряжённая сцена детективного фильма ночью под дождём",
-        "романтическая сцена фильма на крыше небоскрёба",
-        "голливудская сцена погони по ночному городу"
+
+      prompts: [
+
+        "Кинематографичный портрет харизматичного человека в мягком вечернем свете, выразительный взгляд, натуральная кожа, детализированные волосы, малая глубина резкости, атмосферный фон, профессиональная фотография.",
+
+        "Сверхдетализированный кинематографичный портрет молодого человека на фоне большого города ночью, неоновые отражения, мягкий контровой свет, реалистичная кожа, естественная мимика, объектив 85mm, малая глубина резкости.",
+
+        "Премиальный портрет человека в современной студии, драматичное боковое освещение, глубокие тени, натуральные текстуры кожи, выразительные глаза, профессиональная киношная цветокоррекция.",
+
+        "Фотореалистичный портрет харизматичной девушки возле большого окна на закате, золотой свет на лице, естественные волосы, мягкие тени, кинематографичная композиция, очень высокая детализация.",
+
+        "Кинематографичный крупный план лица с эмоциональным выражением, мягкий объёмный свет, реалистичная кожа, отдельные волоски, атмосферный фон, профессиональная фотография."
+      ]
+    },
+
+    {
+      title: "Рыжий кот",
+      icon: "🐈",
+
+      prompts: [
+
+        "Очень реалистичный пушистый рыжий кот сидит посреди ночного Нью-Йорка, мокрый асфальт отражает неоновые вывески, кинематографичный свет, невероятно детальная шерсть, объектив 35mm.",
+
+        "Харизматичный толстый рыжий кот в маленьком стильном кафе Парижа, сидит за столиком и смотрит прямо в камеру, мягкий утренний свет, реалистичная шерсть, премиальная фотография.",
+
+        "Милый рыжий кот в жёлтом дождевике идёт по дождливой улице большого города, отражения света на мокром асфальте, фотореализм, атмосферная кинематографичная сцена.",
+
+        "Очень пушистый рыжий кот сидит на крыше небоскрёба на закате, огромный город на заднем плане, золотой контровой свет, ветер слегка двигает шерсть, масштабная киношная композиция.",
+
+        "Забавный харизматичный рыжий кот работает шеф-поваром на современной кухне, перед ним большая кастрюля, тёплый свет, реалистичные материалы, детальная шерсть, комедийная кинематографичная сцена."
+      ]
+    },
+
+    {
+      title: "Кудрявый поросёнок",
+      icon: "🐷",
+
+      prompts: [
+
+        "Очень толстый кудрявый рыжевато-золотистый поросёнок стоит на голливудской съёмочной площадке, густая волнистая шерсть, харизматичный взгляд, мягкий студийный свет, фотореализм, премиальная киношная детализация.",
+
+        "Кудрявый поросёнок в стильном костюме идёт по красной дорожке, вокруг вспышки фотографов, выразительная мордочка, невероятно детальная шерсть, кинематографичный свет.",
+
+        "Очень пушистый золотистый поросёнок сидит в роскошном ресторане, перед ним красивое блюдо, тёплое освещение, натуральные материалы, реалистичная шерсть, комедийная голливудская сцена.",
+
+        "Харизматичный кудрявый поросёнок стоит на пляже на закате в солнцезащитных очках, золотой контровой свет, ветер двигает шерсть, океан на заднем плане, кинематографичная фотография.",
+
+        "Маленький очень толстый кудрявый поросёнок работает телеведущим в современной студии, держит микрофон и уверенно смотрит в камеру, реалистичная шерсть, яркий профессиональный свет."
+      ]
+    },
+
+    {
+      title: "Ночной город",
+      icon: "🌃",
+
+      prompts: [
+
+        "Ночной мегаполис после дождя, мокрый асфальт отражает разноцветные неоновые вывески, люди идут по улице, лёгкий туман, кинематографичная композиция, реалистичная фотография.",
+
+        "Огромный футуристический город ночью, летающие транспортные средства между небоскрёбами, неоновый свет, атмосферный туман, невероятная детализация, масштабная киношная сцена.",
+
+        "Тихая ночная улица Токио под дождём, японские неоновые вывески отражаются в лужах, один человек идёт с зонтом, глубокая атмосфера, фотореализм.",
+
+        "Парижская улица ночью после дождя, Эйфелева башня вдали, тёплые фонари, мокрая брусчатка, лёгкий туман, романтичная кинематографичная фотография.",
+
+        "Нью-Йорк ночью с высоты, огромное количество светящихся окон, дороги с потоками автомобилей, лёгкая дымка, реалистичная городская атмосфера."
+      ]
+    },
+
+    {
+      title: "Фантастический мир",
+      icon: "🚀",
+
+      prompts: [
+
+        "Гигантский фантастический город среди облаков, огромные воздушные корабли пролетают между башнями, золотой солнечный свет, атмосферная дымка, эпическая кинематографичная композиция.",
+
+        "Таинственный древний храм посреди инопланетного леса, огромные светящиеся растения, мягкий голубой туман, лучи света пробиваются сквозь деревья, фотореалистичная фантастика.",
+
+        "Одинокий исследователь стоит на поверхности далёкой планеты и смотрит на гигантские кольца планеты в небе, драматичное освещение, масштабная киношная сцена.",
+
+        "Фантастический замок на вершине огромной скалы над облаками, закатное золотое освещение, воздушные корабли вдали, невероятная детализация, эпическое фэнтези.",
+
+        "Неоновый киберпанк-город будущего, человек в длинном плаще идёт по мокрой улице, яркие вывески, пар из канализации, объёмный свет, кинематографичный фотореализм."
+      ]
+    },
+
+    {
+      title: "Роскошный интерьер",
+      icon: "🏛️",
+
+      prompts: [
+
+        "Роскошная современная гостиная с панорамными окнами, дизайнерская мебель, натуральный камень и дерево, мягкий вечерний свет, премиальная архитектурная фотография.",
+
+        "Современная минималистичная спальня класса люкс, большие окна, мягкий утренний свет, бежевые и кремовые оттенки, натуральные материалы, фотореалистичный интерьер.",
+
+        "Роскошная кухня в современном особняке, мраморный остров, тёплая подсветка, панорамные окна, дорогие материалы, профессиональная архитектурная фотография.",
+
+        "Уютный дизайнерский кабинет с огромным окном на город, тёмное дерево, кожаное кресло, мягкий золотой свет, кинематографичная атмосфера.",
+
+        "Роскошный современный отельный номер, кровать king size, панорамные окна, ночной город, мягкое тёплое освещение, реалистичные ткани и материалы."
+      ]
+    },
+
+    {
+      title: "Природа",
+      icon: "🏔️",
+
+      prompts: [
+
+        "Эпический горный пейзаж на рассвете, заснеженные вершины, густой туман в долине, золотые лучи солнца, невероятная детализация, профессиональная пейзажная фотография.",
+
+        "Тропический водопад посреди густого зелёного леса, солнечные лучи проходят сквозь листья, капли воды в воздухе, фотореализм, насыщенная атмосфера.",
+
+        "Огромное спокойное озеро в горах на закате, отражение снежных вершин в воде, лёгкий туман, золотой свет, кинематографичная композиция.",
+
+        "Дикий северный лес зимой, снег на деревьях, мягкий холодный туман, первые солнечные лучи, глубокая атмосферная фотография.",
+
+        "Океанский берег во время мощного заката, огромные волны, золотые отражения на воде, облака подсвечены солнцем, эпическая кинематографичная фотография."
+      ]
+    },
+
+    {
+      title: "Мода",
+      icon: "👗",
+
+      prompts: [
+
+        "Профессиональная fashion-фотография стильной девушки в современном чёрном костюме на фоне большого города, драматичный свет, уверенная поза, объектив 85mm, журнальная эстетика.",
+
+        "Модель в роскошном вечернем платье стоит в современном архитектурном пространстве, мягкий направленный свет, дорогие ткани, кинематографичная редакционная фотография.",
+
+        "Современная street fashion съёмка в Париже, стильная модель идёт по мокрой улице, мягкий дождь, отражения, натуральная поза, премиальная фотография.",
+
+        "Высокая мода в футуристической студии, необычный костюм, минималистичный фон, драматичное освещение, профессиональная журнальная съёмка.",
+
+        "Премиальная fashion-фотография мужчины в дорогом костюме возле роскошного автомобиля ночью, мягкий контровой свет, мокрый асфальт, кинематографичная композиция."
+      ]
+    },
+
+    {
+      title: "Еда",
+      icon: "🍜",
+
+      prompts: [
+
+        "Премиальная фотография блюда высокой кухни, красиво оформленная тарелка, мягкий боковой свет, натуральные текстуры продуктов, малая глубина резкости, ресторанная съёмка.",
+
+        "Аппетитная итальянская паста на деревянном столе, пар поднимается над блюдом, тёплый солнечный свет, детальная текстура еды, профессиональная food photography.",
+
+        "Свежий бургер премиум-класса с хрустящей корочкой и расплавленным сыром, драматичный студийный свет, капли влаги, сверхдетализированная рекламная фотография.",
+
+        "Красивый японский рамен на столе в уютном ресторане, пар над горячим бульоном, мягкий тёплый свет, натуральные детали, кинематографичная food photography.",
+
+        "Роскошный шоколадный десерт на чёрной керамической тарелке, драматичное освещение, глянцевая текстура шоколада, профессиональная рекламная фотография."
+      ]
+    },
+
+    {
+      title: "Автомобиль",
+      icon: "🏎️",
+
+      prompts: [
+
+        "Роскошный спортивный автомобиль стоит на мокрой ночной улице большого города, неоновые отражения на кузове, драматичный свет, рекламная автомобильная фотография.",
+
+        "Современный суперкар едет по горной дороге на закате, горы на фоне, золотой свет, динамическая камера, кинематографичная рекламная съёмка.",
+
+        "Классический автомобиль стоит возле американской заправки ночью, яркие вывески, мокрый асфальт, лёгкий туман, ретро-киношная атмосфера.",
+
+        "Чёрный спортивный автомобиль в огромном современном ангаре, направленный студийный свет подчёркивает линии кузова, премиальная рекламная фотография.",
+
+        "Футуристический автомобиль будущего движется по неоновому мегаполису, мокрая дорога, отражения света, атмосферный туман, реалистичная кинематографичная сцена."
+      ]
+    },
+
+    {
+      title: "Космос",
+      icon: "🌌",
+
+      prompts: [
+
+        "Огромная галактика с яркими звёздами и туманностями, планета на переднем плане, невероятная глубина пространства, фотореалистичная космическая фотография.",
+
+        "Космический корабль пролетает рядом с огромной планетой с кольцами, солнечный свет подсвечивает корпус, эпическая научно-фантастическая сцена.",
+
+        "Астронавт стоит на поверхности неизвестной планеты и смотрит на огромную голубую планету в небе, драматичный свет, масштабная кинематографичная композиция.",
+
+        "Чёрная дыра в центре огромной галактики, свет звёзд и газа закручивается вокруг горизонта событий, научно-фантастическая визуализация с высокой детализацией.",
+
+        "Фантастическая космическая станция вращается над поверхностью далёкой планеты, огромный город внутри станции, звёздное пространство, эпический кинематографичный кадр."
+      ]
+    },
+
+    {
+      title: "Животные",
+      icon: "🦊",
+
+      prompts: [
+
+        "Очень реалистичная лиса стоит в зимнем лесу на рассвете, мягкий золотой свет освещает густую шерсть, лёгкий туман, невероятная детализация.",
+
+        "Величественный лев стоит на африканской равнине во время заката, золотой контровой свет, пыль в воздухе, детальная шерсть, документальная кинематографичная фотография.",
+
+        "Белый волк идёт по заснеженному лесу ночью, лунный свет проходит сквозь деревья, морозный туман, фотореализм, атмосферная сцена.",
+
+        "Маленький слонёнок стоит рядом с матерью на фоне саванны на рассвете, мягкий солнечный свет, натуральные текстуры, эмоциональная документальная фотография.",
+
+        "Красная панда сидит на ветке в густом зелёном лесу, мягкий рассеянный свет, невероятно детальная шерсть, фотореалистичная фотография дикой природы."
+      ]
+    },
+
+    {
+      title: "Средневековье",
+      icon: "🏰",
+
+      prompts: [
+
+        "Средневековый замок на высокой скале во время драматичного заката, флаги развеваются на ветру, туман в долине, эпическая кинематографичная сцена.",
+
+        "Средневековый рыцарь стоит перед огромными воротами замка, мокрая броня отражает свет, пасмурное небо, драматичная атмосфера.",
+
+        "Средневековая европейская деревня утром, деревянные дома, торговцы на рынке, лёгкий туман, солнечные лучи, фотореалистичная историческая сцена.",
+
+        "Таинственный каменный замок ночью, факелы вдоль стен, густой туман, полная луна, драматичное освещение, кинематографичная атмосфера.",
+
+        "Средневековый королевский зал с огромными окнами, свечи, деревянные балки, богатые ткани, золотой свет, невероятная детализация."
+      ]
+    },
+
+    {
+      title: "Ретро 80-х",
+      icon: "📼",
+
+      prompts: [
+
+        "Ночной город в эстетике 1980-х, неоновые вывески, ретро-автомобили, мокрый асфальт, яркие розовые и голубые огни, кинематографичная фотография.",
+
+        "Американская закусочная 1980-х ночью, неоновые вывески, ретро-автомобили возле здания, тёплый свет внутри, атмосферная киношная сцена.",
+
+        "Человек в кожаной куртке идёт по неоновой улице в стиле 1980-х, туман, яркие вывески, драматичный свет, ретро-киношная эстетика.",
+
+        "Ретро-комната подростка 1980-х, старый телевизор, кассеты, плакаты, лампа, тёплый свет, невероятная детализация эпохи.",
+
+        "Футуристический мегаполис в представлении 1980-х, неон, автомобили, огромные рекламные экраны, синтвейв-эстетика, кинематографичный кадр."
+      ]
+    },
+
+    {
+      title: "Мультфильм",
+      icon: "✨",
+
+      prompts: [
+
+        "Очень детализированная 3D-анимационная сцена с милым маленьким персонажем на фоне яркого фантастического города, выразительная мимика, мягкий кинематографичный свет.",
+
+        "Милый забавный персонаж сидит в маленьком уютном кафе, тёплые лампы, красивые детали интерьера, выразительная эмоция, премиальная 3D-анимация.",
+
+        "Маленький мультяшный герой идёт по волшебному лесу, светящиеся растения, мягкий туман, красивые объёмные лучи света, сказочная атмосфера.",
+
+        "Харизматичный мультяшный персонаж стоит на сцене перед огромной аудиторией, яркие прожекторы, выразительная поза, кинематографичная 3D-анимация.",
+
+        "Забавная группа маленьких мультяшных животных устраивает вечеринку в роскошной комнате, яркий свет, выразительные эмоции, очень детализированная 3D-сцена."
+      ]
+    },
+
+    {
+      title: "Минимализм",
+      icon: "◻️",
+
+      prompts: [
+
+        "Минималистичная современная композиция в светлых бежевых оттенках, один выразительный предмет в центре, мягкие тени, премиальная предметная фотография.",
+
+        "Минималистичная архитектура белого современного дома, чистые линии, большое количество свободного пространства, мягкий утренний свет, профессиональная архитектурная фотография.",
+
+        "Премиальная предметная фотография одного объекта на светлом фоне, мягкий рассеянный свет, натуральная тень, идеальная композиция.",
+
+        "Современная минималистичная спальня в кремовых оттенках, натуральное дерево, мягкий солнечный свет, спокойная атмосфера, реалистичная интерьерная фотография.",
+
+        "Абстрактная минималистичная композиция из геометрических форм, мягкий свет, глубокие тени, премиальная современная эстетика."
+      ]
+    },
+
+    {
+      title: "Приключение",
+      icon: "🧭",
+
+      prompts: [
+
+        "Одинокий путешественник стоит на краю огромного каньона на рассвете, ветер развевает одежду, золотой свет, эпическая кинематографичная композиция.",
+
+        "Исследователь идёт через густые джунгли к древнему храму, солнечные лучи пробиваются через листья, влажный воздух, приключенческая атмосфера.",
+
+        "Путешественник стоит перед огромным водопадом в тропическом лесу, туман от воды, солнечные лучи, масштабная фотореалистичная сцена.",
+
+        "Экспедиция пересекает заснеженную горную долину, огромные вершины вокруг, ветер и снег, драматичный свет, эпическая кинематографичная фотография.",
+
+        "Морской исследователь стоит на старом деревянном корабле во время заката, огромные волны, золотой свет, приключенческая киношная атмосфера."
       ]
     }
 
   ];
 
 
-  /* =========================================================
-     RANDOM
-  ========================================================== */
-
-  function randomItem(array) {
-
-    return array[
-      Math.floor(
-        Math.random() * array.length
-      )
-    ];
-
-  }
-
+  /* =====================================================
+     SHUFFLE
+  ====================================================== */
 
   function shuffle(array) {
 
-    const result =
-      [...array];
-
+    const copy = [...array];
 
     for (
-      let i = result.length - 1;
+      let i = copy.length - 1;
       i > 0;
       i--
     ) {
@@ -2609,109 +2638,69 @@
           Math.random() * (i + 1)
         );
 
-
       [
-        result[i],
-        result[j]
-      ] =
-      [
-        result[j],
-        result[i]
+        copy[i],
+        copy[j]
+      ] = [
+        copy[j],
+        copy[i]
       ];
 
     }
 
-
-    return result;
+    return copy;
 
   }
 
 
-  /* =========================================================
+  /* =====================================================
      QUICK IDEAS RENDER
-  ========================================================== */
+  ====================================================== */
 
   function renderQuickIdeas() {
 
     const container =
-      $("quickIdeas");
+      $("quickIdeasGrid");
+
+    if (!container) {
+      return;
+    }
+
+    container.innerHTML = "";
+
+    const selected =
+      shuffle(ideaLibrary)
+        .slice(0, 10);
 
 
-    container.innerHTML =
-      "";
-
-
-    /*
-      Из 10 идей каждый раз выбираем
-      4 случайные.
-    */
-
-    const visibleIdeas =
-      shuffle(
-        QUICK_IDEAS
-      ).slice(
-        0,
-        4
-      );
-
-
-    visibleIdeas.forEach(
+    selected.forEach(
       (idea) => {
 
         const button =
-          document.createElement(
-            "button"
-          );
+          document.createElement("button");
 
+        button.type = "button";
 
-        button.type =
-          "button";
+        button.className = "chip";
 
+        button.innerHTML = `
+          <span class="chip-icon">
+            ${idea.icon}
+          </span>
 
-        button.className =
-          "chip";
+          <span>
+            ${escapeHtml(idea.title)}
+          </span>
+        `;
 
-
-        button.innerHTML =
-          `${idea.icon} ${idea.title}`;
-
-
-        /*
-          При каждом клике выбирается
-          новый случайный вариант текста
-          именно этой темы.
-        */
 
         button.addEventListener(
           "click",
           () => {
 
-            const variant =
-              randomItem(
-                idea.variants
-              );
-
-
-            $("prompt").value =
-              makeBeautifulPrompt(
-                variant,
-                false
-              );
-
-
-            updateCounters();
-
-
-            $("prompt").focus();
-
-
-            /*
-              Прокручиваем поле немного,
-              если текст длинный.
-            */
-
-            $("prompt").scrollTop =
-              $("prompt").scrollHeight;
+            putRandomIdeaPrompt(
+              idea
+            );
 
           }
         );
@@ -2727,86 +2716,96 @@
   }
 
 
-  /* =========================================================
-     BEAUTIFUL PROMPT BUILDER
-  ========================================================== */
+  /* =====================================================
+     RANDOM PROMPT FROM IDEA
+  ====================================================== */
 
-  function makeBeautifulPrompt(
-    text,
-    isImprove = false
-  ) {
-
-    const clean =
-      text
-        .replace(/\s+/g, " ")
-        .trim();
-
-
-    if (!clean) {
-      return "";
-    }
-
-
-    /*
-      Если это уже улучшенный промпт,
-      не добавляем всё повторно.
-    */
+  function putRandomIdeaPrompt(idea) {
 
     if (
-      isImprove
+      !idea ||
+      !idea.prompts ||
+      !idea.prompts.length
     ) {
-
-      return `${clean}, ultra-detailed cinematic masterpiece, breathtaking visual storytelling, sophisticated composition, dramatic yet natural lighting, rich atmospheric depth, realistic textures, subtle volumetric light, beautiful color harmony, realistic shadows and reflections, premium professional photography, shallow depth of field, highly refined details, visually striking, immersive atmosphere, photorealistic quality`;
-
+      return;
     }
 
 
-    return `${clean}, cinematic composition, beautiful natural lighting, highly detailed, realistic textures, professional photography, atmospheric depth`;
+    const current =
+      $("prompt").value.trim();
+
+
+    let variants =
+      idea.prompts.filter(
+        (prompt) =>
+          prompt !== current
+      );
+
+
+    if (!variants.length) {
+      variants = idea.prompts;
+    }
+
+
+    const prompt =
+      variants[
+        Math.floor(
+          Math.random() *
+          variants.length
+        )
+      ];
+
+
+    $("prompt").value =
+      prompt;
+
+
+    updateCounters();
+
+
+    showError(
+      $("generatorError"),
+      ""
+    );
+
+
+    $("prompt").focus();
+
+
+    $("prompt").scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
 
   }
 
 
-  /* =========================================================
-     IMPROVE PROMPT
-  ========================================================== */
+  /* =====================================================
+     PROMPT ENHANCER
+  ====================================================== */
+
+  const cinematicEnhancement =
+    "Преобразуй описание в яркий художественный кинематографичный промпт. Сохрани исходный объект, персонажа и смысл сцены. Добавь выразительную композицию, естественную эмоциональную атмосферу, профессиональное освещение, мягкий объёмный свет, реалистичные материалы и текстуры, атмосферную глубину, красивую цветокоррекцию, естественные тени, аккуратную глубину резкости, выразительные детали окружающей среды, ощущение дорогой профессиональной фотографии и визуальное повествование. Сделай результат фотореалистичным, детализированным и визуально впечатляющим, без изменения основной идеи.";
+
+  const enhancementMarker =
+    "Профессиональная кинематографичная обработка:";
+
 
   function improvePrompt() {
 
     const textarea =
       $("prompt");
 
-
-    const text =
+    const original =
       textarea.value.trim();
 
 
-    if (!text) {
+    if (!original) {
 
-      /*
-        Если поле пустое — предлагаем
-        красивый случайный стартовый промпт.
-      */
-
-      const idea =
-        randomItem(
-          QUICK_IDEAS
-        );
-
-
-      const variant =
-        randomItem(
-          idea.variants
-        );
-
-
-      textarea.value =
-        makeBeautifulPrompt(
-          variant,
-          true
-        );
-
-
-      updateCounters();
+      showError(
+        $("generatorError"),
+        "Сначала напишите, что хотите создать, или выберите быструю идею."
+      );
 
       textarea.focus();
 
@@ -2815,38 +2814,91 @@
     }
 
 
-    /*
-      Реальное художественное улучшение
-      существующего промпта.
-    */
+    if (
+      original.includes(
+        enhancementMarker
+      )
+    ) {
+
+      showError(
+        $("generatorError"),
+        "Этот промпт уже улучшен."
+      );
+
+      return;
+
+    }
+
+
+    const improved =
+      `${original}
+
+${enhancementMarker}
+${cinematicEnhancement}`;
+
 
     textarea.value =
-      makeBeautifulPrompt(
-        text,
-        true
-      );
+      improved;
 
 
     updateCounters();
 
 
+    showError(
+      $("generatorError"),
+      ""
+    );
+
+
     textarea.focus();
-
-
-    textarea.scrollTop =
-      textarea.scrollHeight;
 
   }
 
 
-  /* =========================================================
+  /* =====================================================
+     COUNTERS
+  ====================================================== */
+
+  function updateCounters() {
+
+    const prompt =
+      $("prompt");
+
+    const editPrompt =
+      $("editPrompt");
+
+
+    if (prompt) {
+
+      $("promptCounter").textContent =
+        `${prompt.value.length} / 4000`;
+
+    }
+
+
+    if (editPrompt) {
+
+      $("editPromptCounter").textContent =
+        `${editPrompt.value.length} / 4000`;
+
+    }
+
+  }
+
+
+  /* =====================================================
      ERROR
-  ========================================================== */
+  ====================================================== */
 
   function showError(
     element,
     message
   ) {
+
+    if (!element) {
+      return;
+    }
+
 
     element.textContent =
       message || "";
@@ -2860,90 +2912,322 @@
   }
 
 
-  /* =========================================================
+  /* =====================================================
      LOADING
-  ========================================================== */
+  ====================================================== */
 
   function setLoading(
-    visible,
-    title = "Создаём изображение",
-    text = "Подождите немного…"
+    show,
+    title = "Генерируем изображение",
+    text = "Это может занять некоторое время…"
   ) {
 
-    $("loadingTitle")
-      .textContent =
-      title;
+    const loading =
+      $("loading");
 
 
-    $("loadingText")
-      .textContent =
-      text;
+    if (show) {
+
+      $("loadingTitle").textContent =
+        title;
+
+      $("loadingText").textContent =
+        text;
 
 
-    $("loading")
-      .classList
-      .toggle(
-        "show",
-        visible
+      loading.classList.add(
+        "show"
+      );
+
+    } else {
+
+      loading.classList.remove(
+        "show"
+      );
+
+    }
+
+  }
+
+
+  /* =====================================================
+     RATIO -> CSS
+  ====================================================== */
+
+  function ratioToCss(
+    ratio
+  ) {
+
+    const parts =
+      String(ratio)
+        .split(":")
+        .map(Number);
+
+
+    if (
+      parts.length !== 2 ||
+      !parts[0] ||
+      !parts[1]
+    ) {
+
+      return "1 / 1";
+
+    }
+
+
+    return `${parts[0]} / ${parts[1]}`;
+
+  }
+
+
+  function updateCanvasRatio() {
+
+    const canvas =
+      $("generatorCanvas");
+
+
+    if (!canvas) {
+      return;
+    }
+
+
+    canvas.style.aspectRatio =
+      ratioToCss(
+        generatorRatio
       );
 
   }
 
 
-  /* =========================================================
-     COUNTERS
-  ========================================================== */
+  /* =====================================================
+     SELECT RATIO
+  ====================================================== */
 
-  function updateCounters() {
+  function selectRatio(
+    container,
+    activeButton
+  ) {
 
-    $("promptCounter")
-      .textContent =
-      `${$("prompt").value.length} / 2000`;
+    if (!container) {
+      return;
+    }
 
 
-    $("editPromptCounter")
-      .textContent =
-      `${$("editPrompt").value.length} / 1200`;
+    container
+      .querySelectorAll(
+        ".ratio-button"
+      )
+      .forEach(
+        (button) => {
+
+          button.classList.toggle(
+            "active",
+            button === activeButton
+          );
+
+        }
+      );
 
   }
 
 
-  /* =========================================================
-     HTML ESCAPE
-  ========================================================== */
+  /* =====================================================
+     GENERATOR RATIO EVENTS
+  ====================================================== */
 
-  function escapeHtml(value) {
+  qa(
+    "#generatorRatios .ratio-button"
+  )
+    .forEach(
+      (button) => {
 
-    return String(value).replace(
-      /[&<>"']/g,
-      (character) => {
+        button.addEventListener(
+          "click",
+          () => {
 
-        const map = {
+            generatorRatio =
+              button.dataset.ratio;
 
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#039;"
+            selectRatio(
+              $("generatorRatios"),
+              button
+            );
 
-        };
+            updateCanvasRatio();
 
-
-        return map[character];
+          }
+        );
 
       }
+    );
+
+
+  /* =====================================================
+     EDITOR RATIO
+  ====================================================== */
+
+  qa(
+    "#editorRatios .ratio-button"
+  )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            editorRatio =
+              button.dataset.ratio;
+
+            selectRatio(
+              $("editorRatios"),
+              button
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  /* =====================================================
+     GALLERY
+  ====================================================== */
+
+  function renderGallery(
+    images
+  ) {
+
+    const gallery =
+      $("generatorGallery");
+
+    const empty =
+      $("generatorEmpty");
+
+
+    if (
+      !images ||
+      !images.length
+    ) {
+
+      gallery.classList.add(
+        "hidden"
+      );
+
+      empty.classList.remove(
+        "hidden"
+      );
+
+      return;
+
+    }
+
+
+    gallery.innerHTML = "";
+
+
+    images.forEach(
+      (url, index) => {
+
+        const item =
+          document.createElement(
+            "div"
+          );
+
+        item.className =
+          "gallery-item";
+
+
+        item.innerHTML = `
+
+          <img
+            src="${escapeHtml(url)}"
+            alt="Generated image ${index + 1}"
+          >
+
+          <div class="image-toolbar">
+
+            <button
+              type="button"
+              class="image-tool"
+              data-action="download"
+            >
+              ↓ Скачать
+            </button>
+
+            <button
+              type="button"
+              class="image-tool"
+              data-action="editor"
+            >
+              🎨 Редактор
+            </button>
+
+          </div>
+
+        `;
+
+
+        item
+          .querySelector(
+            '[data-action="download"]'
+          )
+          .addEventListener(
+            "click",
+            () => {
+
+              downloadImage(
+                url,
+                `mya-${index + 1}.png`
+              );
+
+            }
+          );
+
+
+        item
+          .querySelector(
+            '[data-action="editor"]'
+          )
+          .addEventListener(
+            "click",
+            () => {
+
+              openEditorWithUrl(
+                url
+              );
+
+            }
+          );
+
+
+        gallery.appendChild(
+          item
+        );
+
+      }
+    );
+
+
+    empty.classList.add(
+      "hidden"
+    );
+
+    gallery.classList.remove(
+      "hidden"
     );
 
   }
 
 
-  /* =========================================================
+  /* =====================================================
      DOWNLOAD
-  ========================================================== */
+  ====================================================== */
 
   async function downloadImage(
     url,
-    filename = "mya-image.png"
+    filename
   ) {
 
     try {
@@ -2953,9 +3237,7 @@
 
 
       if (!response.ok) {
-        throw new Error(
-          "Download failed"
-        );
+        throw new Error();
       }
 
 
@@ -2970,37 +3252,29 @@
 
 
       const link =
-        document.createElement(
-          "a"
-        );
-
+        document.createElement("a");
 
       link.href =
         objectUrl;
 
-
       link.download =
-        filename;
+        filename || "mya-image.png";
 
 
       document.body.appendChild(
         link
       );
 
-
       link.click();
-
 
       link.remove();
 
 
       setTimeout(
         () => {
-
           URL.revokeObjectURL(
             objectUrl
           );
-
         },
         1000
       );
@@ -3011,7 +3285,7 @@
       window.open(
         url,
         "_blank",
-        "noopener,noreferrer"
+        "noopener"
       );
 
     }
@@ -3019,328 +3293,9 @@
   }
 
 
-  /* =========================================================
-     GALLERY
-  ========================================================== */
-
-  function renderGallery(urls) {
-
-    lastImages =
-      urls.filter(Boolean);
-
-
-    const empty =
-      $("generatorEmpty");
-
-
-    const gallery =
-      $("generatorGallery");
-
-
-    empty.classList.toggle(
-      "hidden",
-      lastImages.length > 0
-    );
-
-
-    gallery.classList.toggle(
-      "hidden",
-      lastImages.length === 0
-    );
-
-
-    $("downloadAllBtn")
-      .classList
-      .toggle(
-        "hidden",
-        lastImages.length === 0
-      );
-
-
-    $("openEditorFromGenerator")
-      .classList
-      .toggle(
-        "hidden",
-        lastImages.length === 0
-      );
-
-
-    gallery.innerHTML =
-      "";
-
-
-    lastImages.forEach(
-      (url, index) => {
-
-        const item =
-          document.createElement(
-            "div"
-          );
-
-
-        item.className =
-          "gallery-item";
-
-
-        item.innerHTML = `
-
-          <img
-            src="${escapeHtml(url)}"
-            alt="Generated image"
-          >
-
-          <div class="image-toolbar">
-
-            <button
-              class="image-tool"
-              data-action="editor"
-              type="button"
-            >
-              🪄
-            </button>
-
-            <button
-              class="image-tool"
-              data-action="download"
-              type="button"
-            >
-              ↓
-            </button>
-
-          </div>
-
-        `;
-
-
-        item
-          .querySelector(
-            '[data-action="download"]'
-          )
-          .onclick =
-          () => {
-
-            downloadImage(
-              url,
-              `mya-${index + 1}.png`
-            );
-
-          };
-
-
-        item
-          .querySelector(
-            '[data-action="editor"]'
-          )
-          .onclick =
-          () => {
-
-            openEditorWithUrl(
-              url
-            );
-
-          };
-
-
-        gallery.appendChild(
-          item
-        );
-
-      }
-    );
-
-  }
-
-
-  /* =========================================================
-     HISTORY
-  ========================================================== */
-
-  function getHistory() {
-
-    try {
-
-      return JSON.parse(
-        localStorage.getItem(
-          HISTORY_KEY
-        ) || "[]"
-      );
-
-    } catch {
-
-      return [];
-
-    }
-
-  }
-
-
-  function saveHistory(
-    urls,
-    prompt
-  ) {
-
-    let history =
-      getHistory();
-
-
-    urls.forEach(
-      (url) => {
-
-        history.unshift({
-
-          url,
-
-          prompt,
-
-          createdAt:
-            Date.now()
-
-        });
-
-      }
-    );
-
-
-    const unique = [];
-
-    const seen =
-      new Set();
-
-
-    for (
-      const item of history
-    ) {
-
-      if (
-        !item.url ||
-        seen.has(item.url)
-      ) {
-
-        continue;
-
-      }
-
-
-      seen.add(
-        item.url
-      );
-
-
-      unique.push(
-        item
-      );
-
-    }
-
-
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify(
-        unique.slice(
-          0,
-          20
-        )
-      )
-    );
-
-
-    renderHistory();
-
-  }
-
-
-  function renderHistory() {
-
-    const history =
-      getHistory();
-
-
-    const grid =
-      $("historyGrid");
-
-
-    grid.innerHTML =
-      "";
-
-
-    $("historyEmpty")
-      .classList
-      .toggle(
-        "hidden",
-        history.length > 0
-      );
-
-
-    history.forEach(
-      (item) => {
-
-        const element =
-          document.createElement(
-            "div"
-          );
-
-
-        element.className =
-          "history-item";
-
-
-        element.innerHTML = `
-
-          <img
-            src="${escapeHtml(item.url)}"
-            alt="History image"
-          >
-
-          <div class="history-caption">
-            ${escapeHtml(
-              item.prompt ||
-              "Изображение"
-            )}
-          </div>
-
-        `;
-
-
-        element.onclick =
-          () => {
-
-            $("prompt").value =
-              item.prompt || "";
-
-
-            updateCounters();
-
-
-            renderGallery([
-              item.url
-            ]);
-
-
-            window.scrollTo({
-
-              top: 0,
-
-              behavior:
-                "smooth"
-
-            });
-
-          };
-
-
-        grid.appendChild(
-          element
-        );
-
-      }
-    );
-
-  }
-
-
-  /* =========================================================
+  /* =====================================================
      GENERATE
-  ========================================================== */
+  ====================================================== */
 
   async function generateImages() {
 
@@ -3354,9 +3309,8 @@
 
       showError(
         $("generatorError"),
-        "Введите описание изображения."
+        "Напишите описание изображения или выберите быструю идею."
       );
-
 
       $("prompt").focus();
 
@@ -3371,71 +3325,67 @@
     );
 
 
-    const count =
-      Number(
-        $("copies").value || 1
-      );
-
-
-    $("generateBtn")
-      .disabled = true;
+    $("generateBtn").disabled =
+      true;
 
 
     setLoading(
       true,
       "Создаём изображение",
-      "Подключаем Mya AI…"
+      "AI готовит вашу сцену…"
     );
 
 
     try {
 
+      const copies =
+        Math.max(
+          1,
+          Math.min(
+            4,
+            Number(
+              $("copies").value
+            ) || 1
+          )
+        );
+
+
       const results = [];
 
 
+      /*
+       * PixelSter endpoint currently supports
+       * prompt + ratio.
+       *
+       * We intentionally keep the model field
+       * in the UI for future API support.
+       */
+
       for (
         let i = 0;
-        i < count;
+        i < copies;
         i++
       ) {
-
-        setLoading(
-          true,
-          "Создаём изображение",
-          count > 1
-            ? `Генерация ${i + 1} из ${count}…`
-            : "Генерация изображения…"
-        );
-
 
         const response =
           await fetch(
             "/api/generate",
             {
-
-              method:
-                "POST",
+              method: "POST",
 
               headers: {
-
                 "Content-Type":
                   "application/json"
-
               },
 
               body:
                 JSON.stringify({
-
                   prompt,
-
                   ratio:
                     generatorRatio,
-
                   model:
                     $("model").value
-
                 })
-
             }
           );
 
@@ -3483,6 +3433,10 @@
       }
 
 
+      lastImages =
+        results;
+
+
       renderGallery(
         results
       );
@@ -3494,10 +3448,13 @@
       );
 
 
+      renderHistory();
+
+
     } catch (error) {
 
       console.error(
-        "Generation error:",
+        "Generator error:",
         error
       );
 
@@ -3505,9 +3462,8 @@
       showError(
         $("generatorError"),
         error.message ||
-        "Ошибка генерации изображения."
+        "Не удалось создать изображение."
       );
-
 
     } finally {
 
@@ -3515,198 +3471,487 @@
         false
       );
 
-
-      $("generateBtn")
-        .disabled = false;
+      $("generateBtn").disabled =
+        false;
 
     }
 
   }
 
 
-  /* =========================================================
+  /* =====================================================
+     HISTORY
+  ====================================================== */
+
+  function getHistory() {
+
+    try {
+
+      const value =
+        localStorage.getItem(
+          HISTORY_KEY
+        );
+
+
+      const parsed =
+        JSON.parse(
+          value || "[]"
+        );
+
+
+      return Array.isArray(parsed)
+        ? parsed
+        : [];
+
+    } catch {
+
+      return [];
+
+    }
+
+  }
+
+
+  function saveHistory(
+    images,
+    prompt
+  ) {
+
+    const history =
+      getHistory();
+
+
+    images.forEach(
+      (imageUrl) => {
+
+        history.unshift({
+          imageUrl,
+          prompt,
+          createdAt:
+            Date.now()
+        });
+
+      }
+    );
+
+
+    const limited =
+      history.slice(
+        0,
+        21
+      );
+
+
+    try {
+
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify(
+          limited
+        )
+      );
+
+    } catch (error) {
+
+      console.warn(
+        "History save error:",
+        error
+      );
+
+    }
+
+  }
+
+
+  function renderHistory() {
+
+    const grid =
+      $("historyGrid");
+
+    const empty =
+      $("historyEmpty");
+
+
+    const history =
+      getHistory();
+
+
+    grid.innerHTML = "";
+
+
+    if (!history.length) {
+
+      empty.classList.remove(
+        "hidden"
+      );
+
+      return;
+
+    }
+
+
+    empty.classList.add(
+      "hidden"
+    );
+
+
+    history.forEach(
+      (item) => {
+
+        const card =
+          document.createElement(
+            "div"
+          );
+
+        card.className =
+          "history-item";
+
+
+        card.innerHTML = `
+
+          <img
+            src="${escapeHtml(item.imageUrl)}"
+            alt="History image"
+          >
+
+          <div class="history-caption">
+            ${escapeHtml(item.prompt)}
+          </div>
+
+        `;
+
+
+        card.addEventListener(
+          "click",
+          () => {
+
+            lastImages =
+              [item.imageUrl];
+
+
+            renderGallery(
+              lastImages
+            );
+
+
+            switchMode(
+              "generator"
+            );
+
+          }
+        );
+
+
+        grid.appendChild(
+          card
+        );
+
+      }
+    );
+
+  }
+
+
+  /* =====================================================
      MODE SWITCH
-  ========================================================== */
+  ====================================================== */
 
   function switchMode(
     mode
   ) {
 
     const generator =
-      mode === "generator";
+      $("generatorMode");
+
+    const editor =
+      $("editorMode");
+
+    const generatorButton =
+      $("generatorModeBtn");
+
+    const editorButton =
+      $("editorModeBtn");
 
 
-    $("generatorMode")
-      .classList
-      .toggle(
-        "hidden",
-        !generator
+    if (mode === "editor") {
+
+      generator.classList.add(
+        "hidden"
       );
 
-
-    $("editorMode")
-      .classList
-      .toggle(
-        "hidden",
-        generator
+      editor.classList.remove(
+        "hidden"
       );
 
-
-    $("generatorModeBtn")
-      .classList
-      .toggle(
-        "active",
-        generator
+      generatorButton.classList.remove(
+        "active"
       );
 
-
-    $("editorModeBtn")
-      .classList
-      .toggle(
-        "active",
-        !generator
+      editorButton.classList.add(
+        "active"
       );
+
+    } else {
+
+      editor.classList.add(
+        "hidden"
+      );
+
+      generator.classList.remove(
+        "hidden"
+      );
+
+      editorButton.classList.remove(
+        "active"
+      );
+
+      generatorButton.classList.add(
+        "active"
+      );
+
+    }
+
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
 
   }
 
 
-  /* =========================================================
-     RATIO
-  ========================================================== */
+  $("generatorModeBtn")
+    .addEventListener(
+      "click",
+      () => {
 
-  function selectRatio(
-    container,
-    button
-  ) {
-
-    qa(
-      ".ratio-button",
-      container
-    ).forEach(
-      (element) => {
-
-        element.classList.remove(
-          "active"
+        switchMode(
+          "generator"
         );
 
       }
     );
 
 
-    button.classList.add(
-      "active"
+  $("editorModeBtn")
+    .addEventListener(
+      "click",
+      () => {
+
+        switchMode(
+          "editor"
+        );
+
+      }
+    );
+
+
+  /* =====================================================
+     CLEAR PROMPT
+  ====================================================== */
+
+  $("clearPromptBtn")
+    .addEventListener(
+      "click",
+      () => {
+
+        $("prompt").value =
+          "";
+
+        updateCounters();
+
+        showError(
+          $("generatorError"),
+          ""
+        );
+
+        $("prompt").focus();
+
+      }
+    );
+
+
+  /* =====================================================
+     IMPROVE PROMPT
+  ====================================================== */
+
+  $("improvePromptBtn")
+    .addEventListener(
+      "click",
+      improvePrompt
+    );
+
+
+  /* =====================================================
+     PROMPT INPUT
+  ====================================================== */
+
+  $("prompt")
+    .addEventListener(
+      "input",
+      updateCounters
+    );
+
+
+  $("editPrompt")
+    .addEventListener(
+      "input",
+      updateCounters
+    );
+
+
+  /* =====================================================
+     GENERATE BUTTON
+  ====================================================== */
+
+  $("generateBtn")
+    .addEventListener(
+      "click",
+      generateImages
+    );
+
+
+  /* =====================================================
+     DOWNLOAD ALL
+  ====================================================== */
+
+  $("downloadAllBtn")
+    .addEventListener(
+      "click",
+      async () => {
+
+        if (!lastImages.length) {
+
+          showError(
+            $("generatorError"),
+            "Сначала создайте изображение."
+          );
+
+          return;
+
+        }
+
+
+        for (
+          let i = 0;
+          i < lastImages.length;
+          i++
+        ) {
+
+          await downloadImage(
+            lastImages[i],
+            `mya-${i + 1}.png`
+          );
+
+        }
+
+      }
+    );
+
+
+  /* =====================================================
+     OPEN EDITOR
+  ====================================================== */
+
+  $("openEditorFromGenerator")
+    .addEventListener(
+      "click",
+      () => {
+
+        if (
+          lastImages.length
+        ) {
+
+          openEditorWithUrl(
+            lastImages[0]
+          );
+
+        } else {
+
+          switchMode(
+            "editor"
+          );
+
+        }
+
+      }
+    );
+
+
+  /* =====================================================
+     HISTORY CLEAR
+  ====================================================== */
+
+  $("clearHistoryBtn")
+    .addEventListener(
+      "click",
+      () => {
+
+        localStorage.removeItem(
+          HISTORY_KEY
+        );
+
+        renderHistory();
+
+      }
+    );
+
+
+  /* =====================================================
+     EDITOR FILE
+  ====================================================== */
+
+  function fileToDataUrl(
+    file
+  ) {
+
+    return new Promise(
+      (
+        resolve,
+        reject
+      ) => {
+
+        const reader =
+          new FileReader();
+
+
+        reader.onload =
+          () => {
+
+            resolve(
+              reader.result
+            );
+
+          };
+
+
+        reader.onerror =
+          reject;
+
+
+        reader.readAsDataURL(
+          file
+        );
+
+      }
     );
 
   }
 
-
-  /* =========================================================
-     EDITOR RESET
-  ========================================================== */
-
-  function resetEditor() {
-
-    editorImageBase64 =
-      "";
-
-    editorImageUrl =
-      "";
-
-
-    $("editorSource").src =
-      "";
-
-
-    $("editorSource")
-      .classList
-      .add(
-        "hidden"
-      );
-
-
-    $("uploadPlaceholder")
-      .classList
-      .remove(
-        "hidden"
-      );
-
-
-    $("changeImageBtn")
-      .classList
-      .add(
-        "hidden"
-      );
-
-
-    $("removeImageBtn")
-      .classList
-      .add(
-        "hidden"
-      );
-
-
-    $("useGeneratorImageBtn")
-      .classList
-      .add(
-        "hidden"
-      );
-
-
-    $("compareOriginal")
-      .innerHTML =
-      "Изображение ещё не загружено";
-
-
-    $("editorResultImage")
-      .classList
-      .add(
-        "hidden"
-      );
-
-
-    $("compareResultPlaceholder")
-      .classList
-      .remove(
-        "hidden"
-      );
-
-
-    $("downloadEditedBtn")
-      .classList
-      .add(
-        "hidden"
-      );
-
-
-    $("sendEditedToGeneratorBtn")
-      .classList
-      .add(
-        "hidden"
-      );
-
-
-    $("editPrompt").value =
-      "";
-
-
-    updateCounters();
-
-
-    showError(
-      $("editorError"),
-      ""
-    );
-
-  }
-
-
-  /* =========================================================
-     DATA URL
-  ========================================================== */
 
   function extractBase64(
     dataUrl
   ) {
+
+    if (
+      typeof dataUrl !==
+      "string"
+    ) {
+
+      return "";
+
+    }
+
 
     if (
       dataUrl.includes(",")
@@ -3723,10 +3968,6 @@
 
   }
 
-
-  /* =========================================================
-     SET EDITOR IMAGE
-  ========================================================== */
 
   function setEditorImage(
     dataUrl,
@@ -3800,10 +4041,6 @@
   }
 
 
-  /* =========================================================
-     OPEN EDITOR
-  ========================================================== */
-
   async function openEditorWithUrl(
     url
   ) {
@@ -3876,8 +4113,12 @@
         url
       );
 
+    } catch (error) {
 
-    } catch {
+      console.error(
+        error
+      );
+
 
       editorImageUrl =
         url;
@@ -3915,13 +4156,6 @@
         );
 
 
-      $("useGeneratorImageBtn")
-        .classList
-        .remove(
-          "hidden"
-        );
-
-
       $("compareOriginal")
         .innerHTML = `
 
@@ -3947,85 +4181,84 @@
   }
 
 
-  /* =========================================================
-     FILE TO DATA URL
-  ========================================================== */
+  function resetEditor() {
 
-  function fileToDataUrl(
-    file
-  ) {
+    editorImageBase64 =
+      "";
 
-    return new Promise(
-      (
-        resolve,
-        reject
-      ) => {
-
-        const reader =
-          new FileReader();
+    editorImageUrl =
+      "";
 
 
-        reader.onload =
-          () =>
-            resolve(
-              reader.result
-            );
+    $("editorFile").value =
+      "";
 
 
-        reader.onerror =
-          reject;
+    $("editorSource").src =
+      "";
 
-
-        reader.readAsDataURL(
-          file
-        );
-
-      }
-    );
-
-  }
-
-
-  /* =========================================================
-     EDIT IMAGE
-  ========================================================== */
-
-  async function editImage() {
-
-    if (
-      !editorImageBase64
-    ) {
-
-      showError(
-        $("editorError"),
-        "Сначала загрузите изображение."
+    $("editorSource")
+      .classList
+      .add(
+        "hidden"
       );
 
 
-      return;
-
-    }
-
-
-    const prompt =
-      $("editPrompt")
-        .value
-        .trim();
-
-
-    if (!prompt) {
-
-      showError(
-        $("editorError"),
-        "Опишите, что нужно изменить."
+    $("uploadPlaceholder")
+      .classList
+      .remove(
+        "hidden"
       );
 
 
-      $("editPrompt").focus();
+    $("changeImageBtn")
+      .classList
+      .add(
+        "hidden"
+      );
 
-      return;
 
-    }
+    $("removeImageBtn")
+      .classList
+      .add(
+        "hidden"
+      );
+
+
+    $("compareOriginal")
+      .innerHTML =
+      "";
+
+
+    $("editorResultImage").src =
+      "";
+
+    $("editorResultImage")
+      .classList
+      .add(
+        "hidden"
+      );
+
+
+    $("editorResultPlaceholder")
+      .classList
+      .remove(
+        "hidden"
+      );
+
+
+    $("downloadEditedBtn")
+      .classList
+      .add(
+        "hidden"
+      );
+
+
+    $("sendEditedToGeneratorBtn")
+      .classList
+      .add(
+        "hidden"
+      );
 
 
     showError(
@@ -4033,398 +4266,8 @@
       ""
     );
 
-
-    $("editBtn")
-      .disabled = true;
-
-
-    setLoading(
-      true,
-      "Mya Editor работает",
-      "Изменяем изображение…"
-    );
-
-
-    try {
-
-      const response =
-        await fetch(
-          "/api/edit",
-          {
-
-            method:
-              "POST",
-
-            headers: {
-
-              "Content-Type":
-                "application/json"
-
-            },
-
-            body:
-              JSON.stringify({
-
-                prompt,
-
-                imageBase64:
-                  editorImageBase64,
-
-                ratio:
-                  editorRatio,
-
-                model:
-                  $("editorModel").value
-
-              })
-
-          }
-        );
-
-
-      const text =
-        await response.text();
-
-
-      let data;
-
-
-      try {
-
-        data =
-          JSON.parse(
-            text
-          );
-
-      } catch {
-
-        throw new Error(
-          `Сервер вернул не JSON (${response.status})`
-        );
-
-      }
-
-
-      if (
-        !response.ok ||
-        !data.imageUrl
-      ) {
-
-        throw new Error(
-          data.error ||
-          `Ошибка редактирования (${response.status})`
-        );
-
-      }
-
-
-      const resultUrl =
-        data.imageUrl;
-
-
-      $("editorResultImage").src =
-        resultUrl;
-
-
-      $("editorResultImage")
-        .classList
-        .remove(
-          "hidden"
-        );
-
-
-      $("compareResultPlaceholder")
-        .classList
-        .add(
-          "hidden"
-        );
-
-
-      $("downloadEditedBtn")
-        .classList
-        .remove(
-          "hidden"
-        );
-
-
-      $("sendEditedToGeneratorBtn")
-        .classList
-        .remove(
-          "hidden"
-        );
-
-
-      $("downloadEditedBtn").onclick =
-        () => {
-
-          downloadImage(
-            resultUrl,
-            "mya-edited.png"
-          );
-
-        };
-
-
-      $("sendEditedToGeneratorBtn").onclick =
-        () => {
-
-          $("prompt").value =
-            prompt;
-
-
-          updateCounters();
-
-
-          renderGallery([
-            resultUrl
-          ]);
-
-
-          switchMode(
-            "generator"
-          );
-
-        };
-
-
-    } catch (error) {
-
-      console.error(
-        "Editor error:",
-        error
-      );
-
-
-      showError(
-        $("editorError"),
-        error.message ||
-        "Ошибка редактирования."
-      );
-
-
-    } finally {
-
-      setLoading(
-        false
-      );
-
-
-      $("editBtn")
-        .disabled = false;
-
-    }
-
   }
 
-
-  /* =========================================================
-     EVENTS
-  ========================================================== */
-
-  $("generatorModeBtn")
-    .addEventListener(
-      "click",
-      () =>
-        switchMode(
-          "generator"
-        )
-    );
-
-
-  $("editorModeBtn")
-    .addEventListener(
-      "click",
-      () =>
-        switchMode(
-          "editor"
-        )
-    );
-
-
-  $("generateBtn")
-    .addEventListener(
-      "click",
-      generateImages
-    );
-
-
-  $("improvePromptBtn")
-    .addEventListener(
-      "click",
-      improvePrompt
-    );
-
-
-  $("clearPromptBtn")
-    .addEventListener(
-      "click",
-      () => {
-
-        $("prompt").value =
-          "";
-
-
-        updateCounters();
-
-
-        showError(
-          $("generatorError"),
-          ""
-        );
-
-
-        $("prompt").focus();
-
-      }
-    );
-
-
-  $("prompt")
-    .addEventListener(
-      "input",
-      updateCounters
-    );
-
-
-  $("editPrompt")
-    .addEventListener(
-      "input",
-      updateCounters
-    );
-
-
-  /* =========================================================
-     GENERATOR RATIOS
-  ========================================================== */
-
-  qa(
-    "#generatorRatios .ratio-button"
-  )
-    .forEach(
-      (button) => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            generatorRatio =
-              button.dataset.ratio;
-
-
-            selectRatio(
-              $("generatorRatios"),
-              button
-            );
-
-          }
-        );
-
-      }
-    );
-
-
-  /* =========================================================
-     EDITOR RATIOS
-  ========================================================== */
-
-  qa(
-    "#editorRatios .ratio-button"
-  )
-    .forEach(
-      (button) => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            editorRatio =
-              button.dataset.ratio;
-
-
-            selectRatio(
-              $("editorRatios"),
-              button
-            );
-
-          }
-        );
-
-      }
-    );
-
-
-  /* =========================================================
-     DOWNLOAD ALL
-  ========================================================== */
-
-  $("downloadAllBtn")
-    .addEventListener(
-      "click",
-      async () => {
-
-        for (
-          let i = 0;
-          i < lastImages.length;
-          i++
-        ) {
-
-          await downloadImage(
-            lastImages[i],
-            `mya-${i + 1}.png`
-          );
-
-        }
-
-      }
-    );
-
-
-  /* =========================================================
-     OPEN EDITOR
-  ========================================================== */
-
-  $("openEditorFromGenerator")
-    .addEventListener(
-      "click",
-      () => {
-
-        if (
-          lastImages[0]
-        ) {
-
-          openEditorWithUrl(
-            lastImages[0]
-          );
-
-        }
-
-      }
-    );
-
-
-  /* =========================================================
-     HISTORY CLEAR
-  ========================================================== */
-
-  $("clearHistoryBtn")
-    .addEventListener(
-      "click",
-      () => {
-
-        localStorage.removeItem(
-          HISTORY_KEY
-        );
-
-
-        renderHistory();
-
-      }
-    );
-
-
-  /* =========================================================
-     EDITOR UPLOAD
-  ========================================================== */
 
   $("chooseImageBtn")
     .addEventListener(
@@ -4480,7 +4323,6 @@
             "Выберите изображение."
           );
 
-
           return;
 
         }
@@ -4498,7 +4340,6 @@
             dataUrl
           );
 
-
         } catch {
 
           showError(
@@ -4511,10 +4352,6 @@
       }
     );
 
-
-  /* =========================================================
-     USE GENERATOR IMAGE
-  ========================================================== */
 
   $("useGeneratorImageBtn")
     .addEventListener(
@@ -4535,63 +4372,9 @@
     );
 
 
-  /* =========================================================
-     EDITOR RESET
-  ========================================================== */
-
-  $("resetEditorBtn")
-    .addEventListener(
-      "click",
-      resetEditor
-    );
-
-
-  $("editBtn")
-    .addEventListener(
-      "click",
-      editImage
-    );
-
-
-  /* =========================================================
-     EDITOR PROMPT
-  ========================================================== */
-
-  $("clearEditPromptBtn")
-    .addEventListener(
-      "click",
-      () => {
-
-        $("editPrompt").value =
-          "";
-
-
-        updateCounters();
-
-      }
-    );
-
-
-  $("copyEditPromptBtn")
-    .addEventListener(
-      "click",
-      async () => {
-
-        try {
-
-          await navigator.clipboard.writeText(
-            $("editPrompt").value
-          );
-
-        } catch {}
-
-      }
-    );
-
-
-  /* =========================================================
+  /* =====================================================
      DRAG & DROP
-  ========================================================== */
+  ====================================================== */
 
   const uploadZone =
     $("uploadZone");
@@ -4609,7 +4392,6 @@
           (event) => {
 
             event.preventDefault();
-
 
             uploadZone.classList.add(
               "dragover"
@@ -4634,7 +4416,6 @@
           (event) => {
 
             event.preventDefault();
-
 
             uploadZone.classList.remove(
               "dragover"
@@ -4681,7 +4462,6 @@
           dataUrl
         );
 
-
       } catch {
 
         showError(
@@ -4695,9 +4475,355 @@
   );
 
 
-  /* =========================================================
-     MICROPHONE / SPEECH RECOGNITION
-  ========================================================== */
+  /* =====================================================
+     EDITOR QUICK ACTIONS
+  ====================================================== */
+
+  qa(
+    "[data-edit]"
+  )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const text =
+              button.dataset.edit ||
+              "";
+
+
+            const textarea =
+              $("editPrompt");
+
+
+            const current =
+              textarea.value.trim();
+
+
+            textarea.value =
+              current
+                ? `${current}. ${text}`
+                : text;
+
+
+            updateCounters();
+
+            textarea.focus();
+
+          }
+        );
+
+      }
+    );
+
+
+  /* =====================================================
+     EDITOR PROMPT BUTTONS
+  ====================================================== */
+
+  $("clearEditPromptBtn")
+    .addEventListener(
+      "click",
+      () => {
+
+        $("editPrompt").value =
+          "";
+
+        updateCounters();
+
+        $("editPrompt").focus();
+
+      }
+    );
+
+
+  $("copyEditPromptBtn")
+    .addEventListener(
+      "click",
+      async () => {
+
+        const text =
+          $("editPrompt").value;
+
+
+        if (!text) {
+          return;
+        }
+
+
+        try {
+
+          await navigator.clipboard.writeText(
+            text
+          );
+
+        } catch {
+
+          const textarea =
+            $("editPrompt");
+
+
+          textarea.select();
+
+
+          try {
+            document.execCommand(
+              "copy"
+            );
+          } catch {}
+
+        }
+
+      }
+    );
+
+
+  /* =====================================================
+     EDIT IMAGE
+  ====================================================== */
+
+  async function editImage() {
+
+    if (
+      !editorImageBase64
+    ) {
+
+      showError(
+        $("editorError"),
+        "Сначала загрузите изображение."
+      );
+
+      return;
+
+    }
+
+
+    const prompt =
+      $("editPrompt")
+        .value
+        .trim();
+
+
+    if (!prompt) {
+
+      showError(
+        $("editorError"),
+        "Опишите, что нужно изменить."
+      );
+
+      $("editPrompt").focus();
+
+      return;
+
+    }
+
+
+    showError(
+      $("editorError"),
+      ""
+    );
+
+
+    $("editBtn").disabled =
+      true;
+
+
+    setLoading(
+      true,
+      "Mya Editor работает",
+      "Изменяем изображение…"
+    );
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/edit",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body:
+              JSON.stringify({
+
+                prompt,
+
+                imageBase64:
+                  editorImageBase64,
+
+                ratio:
+                  editorRatio,
+
+                model:
+                  $("editorModel").value
+
+              })
+          }
+        );
+
+
+      const text =
+        await response.text();
+
+
+      let data;
+
+
+      try {
+
+        data =
+          JSON.parse(
+            text
+          );
+
+      } catch {
+
+        throw new Error(
+          `Сервер вернул не JSON (${response.status})`
+        );
+
+      }
+
+
+      if (
+        !response.ok ||
+        !data.imageUrl
+      ) {
+
+        throw new Error(
+          data.error ||
+          `Ошибка редактирования (${response.status})`
+        );
+
+      }
+
+
+      const resultUrl =
+        data.imageUrl;
+
+
+      $("editorResultImage").src =
+        resultUrl;
+
+
+      $("editorResultImage")
+        .classList
+        .remove(
+          "hidden"
+        );
+
+
+      $("editorResultPlaceholder")
+        .classList
+        .add(
+          "hidden"
+        );
+
+
+      $("downloadEditedBtn")
+        .classList
+        .remove(
+          "hidden"
+        );
+
+
+      $("sendEditedToGeneratorBtn")
+        .classList
+        .remove(
+          "hidden"
+        );
+
+
+      $("downloadEditedBtn").onclick =
+        () => {
+
+          downloadImage(
+            resultUrl,
+            "mya-edited.png"
+          );
+
+        };
+
+
+      $("sendEditedToGeneratorBtn").onclick =
+        () => {
+
+          $("prompt").value =
+            prompt;
+
+
+          updateCounters();
+
+
+          lastImages =
+            [resultUrl];
+
+
+          renderGallery(
+            lastImages
+          );
+
+
+          switchMode(
+            "generator"
+          );
+
+        };
+
+
+    } catch (error) {
+
+      console.error(
+        "Editor error:",
+        error
+      );
+
+
+      showError(
+        $("editorError"),
+        error.message ||
+        "Ошибка редактирования."
+      );
+
+    } finally {
+
+      setLoading(
+        false
+      );
+
+
+      $("editBtn").disabled =
+        false;
+
+    }
+
+  }
+
+
+  $("editBtn")
+    .addEventListener(
+      "click",
+      editImage
+    );
+
+
+  $("resetEditorBtn")
+    .addEventListener(
+      "click",
+      resetEditor
+    );
+
+
+  /* =====================================================
+     MICROPHONE
+  ====================================================== */
 
   const SpeechRecognition =
     window.SpeechRecognition ||
@@ -4715,7 +4841,7 @@
 
 
     recognition.interimResults =
-      true;
+      false;
 
 
     recognition.continuous =
@@ -4726,7 +4852,7 @@
       1;
 
 
-    let recognitionStarted =
+    let listening =
       false;
 
 
@@ -4735,9 +4861,7 @@
         "click",
         () => {
 
-          if (
-            recognitionStarted
-          ) {
+          if (listening) {
 
             try {
 
@@ -4750,13 +4874,21 @@
           }
 
 
+          showError(
+            $("generatorError"),
+            ""
+          );
+
+
           try {
 
             recognition.start();
 
-          } catch {
+          } catch (error) {
 
-            return;
+            console.error(
+              error
+            );
 
           }
 
@@ -4767,7 +4899,7 @@
     recognition.onstart =
       () => {
 
-        recognitionStarted =
+        listening =
           true;
 
 
@@ -4778,9 +4910,12 @@
           );
 
 
-        $("voiceBtn")
-          .textContent =
+        $("voiceBtn").textContent =
           "🔴 Слушаю…";
+
+
+        $("voiceBtn").title =
+          "Нажмите, чтобы остановить";
 
       };
 
@@ -4809,17 +4944,28 @@
           transcript.trim();
 
 
-        if (
-          transcript
-        ) {
-
-          $("prompt").value =
-            transcript;
-
-
-          updateCounters();
-
+        if (!transcript) {
+          return;
         }
+
+
+        const textarea =
+          $("prompt");
+
+
+        const current =
+          textarea.value.trim();
+
+
+        textarea.value =
+          current
+            ? `${current} ${transcript}`
+            : transcript;
+
+
+        updateCounters();
+
+        textarea.focus();
 
       };
 
@@ -4828,13 +4974,13 @@
       (event) => {
 
         console.error(
-          "Speech recognition error:",
+          "Speech recognition:",
           event.error
         );
 
 
         let message =
-          "";
+          "Не удалось распознать голос.";
 
 
         if (
@@ -4843,7 +4989,7 @@
         ) {
 
           message =
-            "Браузер заблокировал микрофон. Разрешите доступ к микрофону для этого сайта.";
+            "Доступ к микрофону запрещён. Разрешите микрофон для этого сайта.";
 
         } else if (
           event.error ===
@@ -4851,7 +4997,15 @@
         ) {
 
           message =
-            "Речь не была распознана. Попробуйте ещё раз.";
+            "Речь не была распознана. Попробуйте говорить немного громче.";
+
+        } else if (
+          event.error ===
+          "audio-capture"
+        ) {
+
+          message =
+            "Микрофон не найден или занят другим приложением.";
 
         } else if (
           event.error ===
@@ -4859,19 +5013,15 @@
         ) {
 
           message =
-            "Не удалось подключить распознавание речи. Проверьте соединение.";
+            "Браузер не смог выполнить распознавание речи. Попробуйте Chrome или Edge.";
 
         }
 
 
-        if (message) {
-
-          showError(
-            $("generatorError"),
-            message
-          );
-
-        }
+        showError(
+          $("generatorError"),
+          message
+        );
 
       };
 
@@ -4879,7 +5029,7 @@
     recognition.onend =
       () => {
 
-        recognitionStarted =
+        listening =
           false;
 
 
@@ -4890,13 +5040,25 @@
           );
 
 
-        $("voiceBtn")
-          .textContent =
+        $("voiceBtn").textContent =
           "🎙 Микрофон";
+
+
+        $("voiceBtn").title =
+          "Голосовой ввод";
 
       };
 
   } else {
+
+    /*
+     * Firefox currently may not expose
+     * SpeechRecognition.
+     *
+     * We don't fake support here.
+     * The rest of the application continues
+     * working normally.
+     */
 
     $("voiceBtn")
       .addEventListener(
@@ -4905,7 +5067,7 @@
 
           showError(
             $("generatorError"),
-            "Голосовой ввод не поддерживается этим браузером. Попробуйте Chrome или Edge."
+            "Этот браузер не предоставляет API распознавания речи. В Firefox используйте Chrome/Edge для голосового ввода или можно подключить локальный Whisper без внешнего сервиса."
           );
 
         }
@@ -4914,9 +5076,9 @@
   }
 
 
-  /* =========================================================
-     KEYBOARD
-  ========================================================== */
+  /* =====================================================
+     KEYBOARD SHORTCUT
+  ====================================================== */
 
   document.addEventListener(
     "keydown",
@@ -4950,18 +5112,19 @@
   );
 
 
-  /* =========================================================
+  /* =====================================================
      INIT
-  ========================================================== */
+  ====================================================== */
 
   renderQuickIdeas();
 
   updateCounters();
 
+  updateCanvasRatio();
+
   renderHistory();
 
 })();
-
 </script>
 
 </body>
