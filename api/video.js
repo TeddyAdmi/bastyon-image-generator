@@ -69,12 +69,37 @@ export default async function handler(req, res) {
       });
     }
 
-    const { mimeType, extension, buffer } = parseImageData(imageBase64);
+    const source = String(imageBase64).trim();
 
-    if (!buffer.length) {
+    // The editor may already hold a public image URL (for example from PixelSter).
+    // Wan 2.7 accepts an image URL directly, so use it without re-uploading.
+    let imageUrl = source;
+
+    if (source.startsWith("data:image/")) {
+      const { mimeType, extension, buffer } = parseImageData(source);
+
+      if (!buffer.length) {
+        return res.status(400).json({
+          success: false,
+          error: "Не удалось прочитать исходное изображение."
+        });
+      }
+
+      const blob = await put(
+        `miya-video-input/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`,
+        buffer,
+        {
+          access: "public",
+          contentType: mimeType,
+          addRandomSuffix: false
+        }
+      );
+
+      imageUrl = blob.url;
+    } else if (!/^https?:\\/\\//i.test(source)) {
       return res.status(400).json({
         success: false,
-        error: "Не удалось прочитать исходное изображение."
+        error: "Изображение должно быть URL или data:image/...;base64,..."
       });
     }
 
@@ -85,18 +110,6 @@ export default async function handler(req, res) {
 
     const safeResolution =
       resolution === "1080P" ? "1080P" : "720P";
-
-    // Wan 2.7 requires image to be a public URL.
-    // Upload the editor image to the connected Vercel Blob store first.
-    const blob = await put(
-      `miya-video-input/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`,
-      buffer,
-      {
-        access: "public",
-        contentType: mimeType,
-        addRandomSuffix: false
-      }
-    );
 
     const response = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/run`,
