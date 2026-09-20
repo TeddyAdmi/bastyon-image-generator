@@ -1,13 +1,13 @@
 function parseImageData(imageBase64) {
   const value = String(imageBase64 || "");
-  const match = value.match(/^data:(image\\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
+  const match = value.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
 
   if (!match) {
     throw new Error("Изображение должно быть передано в формате data:image/...;base64,...");
   }
 
   const mimeType = match[1].toLowerCase();
-  const base64 = match[2].replace(/\\s/g, "");
+  const base64 = match[2].replace(/\s/g, "");
 
   const extensionMap = {
     "image/png": "png",
@@ -23,21 +23,26 @@ function parseImageData(imageBase64) {
   };
 }
 
+function isHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({
-      success: false,
-      error: "Method not allowed"
-    });
+    return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
   try {
-    const {
-      prompt,
-      imageBase64,
-      duration = 5,
-      resolution = "720P"
-    } = req.body || {};
+    const body = req.body || {};
+    const prompt = body.prompt;
+    const imageBase64 = body.imageBase64;
+    const duration = body.duration ?? 5;
+    const resolution = body.resolution ?? "720P";
 
     if (!prompt || !String(prompt).trim()) {
       return res.status(400).json({
@@ -56,23 +61,23 @@ export default async function handler(req, res) {
     if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
       return res.status(503).json({
         success: false,
-        error: "Cloudflare Workers AI ещё не настроен. Добавьте CLOUDFLARE_ACCOUNT_ID и CLOUDFLARE_API_TOKEN в Vercel → Settings → Environment Variables."
+        error: "Cloudflare Workers AI ещё не настроен. Проверьте CLOUDFLARE_ACCOUNT_ID и CLOUDFLARE_API_TOKEN в Vercel."
       });
     }
 
     const source = String(imageBase64).trim();
 
-    if (source.length > 8_000_000) {
+    // Vercel Functions have a 4.5 MB request-body limit.
+    // Normal editor images should be URLs, so this mainly protects accidental huge data URLs.
+    if (source.length > 4_000_000) {
       return res.status(413).json({
         success: false,
-        error: "Исходное изображение слишком большое. Уменьшите его и попробуйте снова."
+        error: "Изображение слишком большое для Vercel API. Используйте изображение из генератора или уменьшите его размер."
       });
     }
 
     let imageUrl = source;
 
-    // Wan 2.7 requires a URL. Existing public image URLs can be passed directly.
-    // Data URLs are uploaded to Vercel Blob first.
     if (source.startsWith("data:image/")) {
       const { mimeType, extension, buffer } = parseImageData(source);
 
@@ -86,7 +91,12 @@ export default async function handler(req, res) {
       const { put } = await import("@vercel/blob");
 
       const blob = await put(
-        `miya-video-input/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`,
+        "miya-video-input/" +
+          Date.now() +
+          "-" +
+          Math.random().toString(36).slice(2) +
+          "." +
+          extension,
         buffer,
         {
           access: "public",
@@ -96,32 +106,23 @@ export default async function handler(req, res) {
       );
 
       imageUrl = blob.url;
-    } else if (!/^https?:\\/\\//i.test(source)) {
+    } else if (!isHttpUrl(source)) {
       return res.status(400).json({
         success: false,
         error: "Изображение должно быть URL или data:image/...;base64,..."
       });
     }
 
-    const safeDuration = Math.min(
-      15,
-      Math.max(2, Number(duration) || 5)
-    );
-
+    const safeDuration = Math.min(15, Math.max(2, Number(duration) || 5));
     const safeResolution = resolution === "1080P" ? "1080P" : "720P";
 
     const cloudflareUrl =
-      `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/run`;
+      "https://api.cloudflare.com/client/v4/accounts/" +
+      process.env.CLOUDFLARE_ACCOUNT_ID +
+      "/ai/run";
 
-    console.log("Wan 2.7 request:", {
+    console.log("Wan 2.7 request", {
       imageType: source.startsWith("data:image/") ? "blob" : "url",
-      imageUrlHost: (() => {
-        try {
-          return new URL(imageUrl).host;
-        } catch {
-          return "invalid-url";
-        }
-      })(),
       duration: safeDuration,
       resolution: safeResolution
     });
@@ -129,7 +130,7 @@ export default async function handler(req, res) {
     const response = await fetch(cloudflareUrl, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+        Authorization: "Bearer " + process.env.CLOUDFLARE_API_TOKEN,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -146,14 +147,13 @@ export default async function handler(req, res) {
       })
     });
 
-    const text = await response.text();
+    const responseText = await response.text();
 
     let data;
     try {
-      data = JSON.parse(text);
+      data = JSON.parse(responseText);
     } catch {
-      console.error("Cloudflare non-JSON response:", response.status, text.slice(0, 1000));
-
+      console.error("Cloudflare non-JSON response", response.status, responseText.slice(0, 1000));
       return res.status(502).json({
         success: false,
         error: "Cloudflare вернул не JSON.",
@@ -161,24 +161,22 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!response.ok || data?.success === false) {
-      const code = data?.errors?.[0]?.code;
+    if (!response.ok || data.success === false) {
+      const code = data.errors && data.errors[0] ? data.errors[0].code : null;
       const message =
-        data?.errors?.[0]?.message ||
-        data?.error ||
-        "Cloudflare Workers AI не смог создать видео.";
+        data.errors && data.errors[0]
+          ? data.errors[0].message
+          : data.error || "Cloudflare Workers AI не смог создать видео.";
 
       let userMessage = message;
 
       if (code === 3036 || /daily free allocation|10,000 neurons/i.test(message)) {
-        userMessage =
-          "Бесплатный дневной лимит Cloudflare Workers AI исчерпан. Попробуйте позже.";
+        userMessage = "Бесплатный дневной лимит Cloudflare Workers AI исчерпан. Попробуйте позже.";
       } else if (code === 3040 || /capacity/i.test(message)) {
-        userMessage =
-          "Cloudflare сейчас перегружен. Попробуйте ещё раз через несколько минут.";
+        userMessage = "Cloudflare сейчас перегружен. Попробуйте ещё раз через несколько минут.";
       }
 
-      console.error("Cloudflare Wan 2.7 error:", {
+      console.error("Cloudflare Wan 2.7 error", {
         status: response.status,
         code,
         message
@@ -187,15 +185,14 @@ export default async function handler(req, res) {
       return res.status(response.status || 502).json({
         success: false,
         error: userMessage,
-        cloudflareCode: code || null
+        cloudflareCode: code
       });
     }
 
-    const videoUrl = data?.result?.video;
+    const videoUrl = data.result && data.result.video;
 
     if (!videoUrl) {
-      console.error("Cloudflare response without video:", data);
-
+      console.error("Cloudflare response without video", data);
       return res.status(502).json({
         success: false,
         error: "Cloudflare завершил запрос, но не вернул ссылку на видео."
@@ -210,13 +207,12 @@ export default async function handler(req, res) {
       duration: safeDuration,
       resolution: safeResolution
     });
-
   } catch (error) {
     console.error("Video API error:", error);
 
     return res.status(500).json({
       success: false,
-      error: error?.message || "Ошибка видеогенерации."
+      error: error && error.message ? error.message : "Ошибка видеогенерации."
     });
   }
 }
