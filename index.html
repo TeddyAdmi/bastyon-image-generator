@@ -3083,12 +3083,14 @@ ${cinematicEnhancement}`;
 
     const editorPremium =
       $("editorModel") && $("editorModel").value === "gpt-image-2";
+    const editorPuter =
+      $("editorModel") && $("editorModel").value.startsWith("puter-");
 
     [
       ["quality", generatorPremium || generatorPuter],
       ["size", generatorPremium],
       ["outputFormat", generatorPremium],
-      ["editorQuality", editorPremium],
+      ["editorQuality", editorPremium || editorPuter],
       ["editorSize", editorPremium],
       ["editorOutputFormat", editorPremium]
     ].forEach(([id, enabled]) => {
