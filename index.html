@@ -5202,148 +5202,61 @@ ${cinematicEnhancement}`;
       $("editPrompt").value.trim() ||
       "The subject gently moves naturally, subtle facial expression and realistic breathing, cinematic camera movement, realistic lighting and detailed textures.";
 
-    const Gradio = window.MiyaGradio;
-    if (!Gradio || !Gradio.Client || !Gradio.handle_file) {
-      showError($("editorError"), "Gradio Client ещё не загрузился. Обновите страницу и попробуйте снова.");
-      return;
-    }
-
     $("animateEditedBtn").disabled = true;
     showError($("editorError"), "");
 
     setLoading(
       true,
       "Miya AI создаёт видео",
-      "LTX Video · Hugging Face ZeroGPU…"
+      "Wan 2.7 I2V · Cloudflare Workers AI…"
     );
 
     try {
-      const app = await Gradio.Client.connect("Lightricks/ltx-video-distilled");
-
-      const response = await fetch($("editorSource").src);
-      if (!response.ok) {
-        throw new Error("Не удалось подготовить исходное изображение.");
-      }
-
-      const imageBlob = await response.blob();
-
-      const ratioMap = {
-        "1:1": [640, 640],
-        "16:9": [576, 1024],
-        "9:16": [1024, 576],
-        "4:3": [576, 768]
-      };
-
-      const [height, width] = ratioMap[editorRatio] || [640, 640];
-
-      const result = await app.predict(
-        "/image_to_video",
-        [
+      const response = await fetch("/api/video", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
           prompt,
-          "worst quality, inconsistent motion, blurry, jittery, distorted",
-          Gradio.handle_file(imageBlob),
-          null,
-          height,
-          width,
-          "image-to-video",
-          2,
-          9,
-          42,
-          true,
-          3,
-          false
-        ]
-      );
+          imageBase64: editorImageBase64,
+          ratio: editorRatio,
+          duration: 5,
+          resolution: "720P"
+        })
+      });
 
-      console.log("LTX raw result:", result);
+      const text = await response.text();
+      let data;
 
-      const videoData = result?.data?.[0];
-
-      function findVideoUrl(value) {
-        if (!value) return "";
-
-        if (typeof value === "string") {
-          if (/^(https?:|blob:|data:)/i.test(value)) return value;
-          if (/\.(mp4|webm|mov)(\?|$)/i.test(value)) return value;
-          if (value.startsWith("/file=")) {
-            return "https://lightricks-ltx-video-distilled.hf.space" + value;
-          }
-          if (value.startsWith("/")) {
-            return "https://lightricks-ltx-video-distilled.hf.space/file=" + value.replace(/^\/+/, "");
-          }
-          return "";
-        }
-
-        if (Array.isArray(value)) {
-          for (const item of value) {
-            const found = findVideoUrl(item);
-            if (found) return found;
-          }
-          return "";
-        }
-
-        if (typeof value === "object") {
-          const directKeys = [
-            "url",
-            "path",
-            "video",
-            "file",
-            "name",
-            "src"
-          ];
-
-          for (const key of directKeys) {
-            if (value[key]) {
-              const found = findVideoUrl(value[key]);
-              if (found) return found;
-            }
-          }
-
-          for (const key of Object.keys(value)) {
-            const found = findVideoUrl(value[key]);
-            if (found) return found;
-          }
-        }
-
-        return "";
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Сервер видео вернул не JSON (" + response.status + ").");
       }
 
-      const videoUrl = findVideoUrl(videoData);
-
-      console.log("LTX video data:", videoData);
-      console.log("LTX resolved video URL:", videoUrl);
-
-      if (!videoUrl) {
+      if (!response.ok || !data.videoUrl) {
         throw new Error(
-          "LTX вернул результат, но браузер не смог найти ссылку на видео. Откройте консоль — там будет LTX raw result."
+          data.error ||
+          ("Ошибка видеогенерации (" + response.status + ")")
         );
       }
 
       const video = $("editorVideoResult");
-      video.src = videoUrl;
+      video.src = data.videoUrl;
       video.classList.remove("hidden");
       $("editorResultImage").classList.add("hidden");
       $("editorResultPlaceholder").classList.add("hidden");
-
       video.load();
 
     } catch (error) {
-      console.error("LTX video error:", error);
+      console.error("Video generation error:", error);
       const message = String(error?.message || error || "");
 
-      if (
-        /quota|GPU|queue|exceeded|limit/i.test(message)
-      ) {
-        showError(
-          $("editorError"),
-          "Hugging Face ZeroGPU сейчас занят или достигнут дневной лимит. Попробуйте позже."
-        );
-      } else {
-        showError(
-          $("editorError"),
-          "Не удалось создать видео: " + message
-        );
-      }
+      showError(
+        $("editorError"),
+        "Не удалось создать видео: " + message
+      );
 
     } finally {
       setLoading(false);
