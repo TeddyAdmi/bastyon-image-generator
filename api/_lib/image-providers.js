@@ -46,8 +46,6 @@ function extensionForType(mediaType) {
 async function storeImage(dataUrl, prefix = "miya") {
   if (!dataUrl) throw new Error("Нет изображения для сохранения.");
 
-  // Vercel Blob keeps large base64 images out of the Function response.
-  // If the Blob token is not configured, return the data URL as a development fallback.
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     console.warn("BLOB_READ_WRITE_TOKEN is missing; returning data URL fallback.");
     return dataUrl;
@@ -112,8 +110,7 @@ async function openRouterImage({
   };
 
   if (size && ["1024x1024", "1536x1024", "1024x1536"].includes(size)) {
-    body.resolution =
-      size === "1024x1024" ? "1K" : "2K";
+    body.resolution = size === "1024x1024" ? "1K" : "2K";
   }
 
   if (quality && quality !== "auto") body.quality = quality;
@@ -301,21 +298,13 @@ export async function generateImage(options) {
   if (selection === "auto") {
     const errors = [];
 
-    if (process.env.OPENROUTER_API_KEY) {
-      try {
-        return await openRouterImage({
-          model: OPENROUTER_MODELS["or-nano-banana-2"],
-          prompt,
-          ratio,
-          quality,
-          size,
-          outputFormat
-        });
-      } catch (error) {
-        errors.push("OpenRouter: " + error.message);
-      }
-    } else {
-      errors.push("OpenRouter: OPENROUTER_API_KEY отсутствует");
+    // AUTO deliberately starts with the existing FLUX service.
+    // This keeps the current free/working generation path in front of
+    // paid OpenRouter image generation.
+    try {
+      return await legacyPixelSterGenerate({ prompt, ratio });
+    } catch (error) {
+      errors.push("FLUX Legacy: " + error.message);
     }
 
     if (process.env.HF_TOKEN) {
@@ -337,10 +326,21 @@ export async function generateImage(options) {
       }
     }
 
-    try {
-      return await legacyPixelSterGenerate({ prompt, ratio });
-    } catch (error) {
-      errors.push("Legacy: " + error.message);
+    if (process.env.OPENROUTER_API_KEY) {
+      try {
+        return await openRouterImage({
+          model: OPENROUTER_MODELS["or-nano-banana-2"],
+          prompt,
+          ratio,
+          quality,
+          size,
+          outputFormat
+        });
+      } catch (error) {
+        errors.push("OpenRouter: " + error.message);
+      }
+    } else {
+      errors.push("OpenRouter: OPENROUTER_API_KEY отсутствует");
     }
 
     throw new Error(
