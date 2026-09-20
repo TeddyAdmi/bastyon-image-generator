@@ -1395,11 +1395,6 @@
     .seo-content{max-width:1100px;margin:26px auto 0;padding:26px 28px;border:1px solid var(--border);border-radius:var(--radius-lg);background:rgba(255,255,255,.94);box-shadow:var(--shadow);line-height:1.7;color:var(--text-soft)}
     .seo-content h1,.seo-content h2{color:var(--text);letter-spacing:-.03em}.seo-content h1{font-size:28px;margin:0 0 10px}.seo-content h2{font-size:18px;margin:22px 0 8px}.seo-content p{margin:8px 0}.seo-content ul{padding-left:22px}.seo-faq details{border-top:1px solid var(--border);padding:12px 0}.seo-faq summary{cursor:pointer;color:var(--text);font-weight:700}
   </style>
-  <script src="https://js.puter.com/v2/"></script>
-  <script type="module">
-    import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
-    window.MiyaGradio = { Client, handle_file };
-  </script>
 
 </head>
 
@@ -1684,18 +1679,14 @@
             </label>
 
             <select id="model">
-              <option value="flux-dev">Flux Dev · Free</option>
-              <option value="puter-flux-klein-4b">Puter · FLUX.2 Klein 4B</option>
-              <option value="puter-grok-quality">Puter · Grok Imagine Quality</option>
-              <option value="puter-nano-banana">Puter · Nano Banana Pro</option>
-              <option value="puter-gpt-image-2">Puter · GPT Image 2</option>
-              <option value="puter-gemini-flash">Puter · Gemini 3.1 Flash Image</option>
-              <option value="puter-imagen-4-fast">Puter · Imagen 4 Fast</option>
-              <option value="ai-horde-flux">Flux Schnell · Free Horde</option>
-              <option value="ai-horde-sdxl">AlbedoBase XL · Free Horde</option>
-              <option value="ai-horde-auto">AI Horde · Auto Free</option>
-              <option value="gpt-image-2">GPT-Image-2 · Premium</option>
-              <option value="auto">Auto · Free</option>
+              <option value="auto">Auto · OpenRouter → HF → Pollinations → резерв</option>
+              <option value="or-nano-banana-2">OpenRouter · Nano Banana 2</option>
+              <option value="or-flux-klein">OpenRouter · FLUX.2 Klein 4B</option>
+              <option value="or-seedream-4-5">OpenRouter · Seedream 4.5</option>
+              <option value="or-gpt-image-2">OpenRouter · GPT Image 2</option>
+              <option value="hf-flux-schnell">Hugging Face · FLUX.1 Schnell</option>
+              <option value="pollinations-flux">Pollinations · FLUX</option>
+              <option value="legacy-flux">Legacy · Flux Dev</option>
             </select>
 
           </div>
@@ -2131,13 +2122,12 @@
           </label>
 
           <select id="editorModel">
-            <option value="flux-dev">Flux Kontext Dev · Free</option>
-            <option value="puter-grok-quality">Puter · Grok Imagine Quality</option>
-            <option value="puter-nano-banana">Puter · Nano Banana Pro</option>
-            <option value="puter-gpt-image-2">Puter · GPT Image 2</option>
-            <option value="puter-gemini-flash">Puter · Gemini 3.1 Flash Image</option>
-            <option value="gpt-image-2">GPT-Image-2 · Premium</option>
-            <option value="auto">Auto · Free</option>
+            <option value="auto">Auto · OpenRouter</option>
+            <option value="or-nano-banana-2">OpenRouter · Nano Banana 2</option>
+            <option value="or-flux-klein">OpenRouter · FLUX.2 Klein 4B</option>
+            <option value="or-seedream-4-5">OpenRouter · Seedream 4.5</option>
+            <option value="or-gpt-image-2">OpenRouter · GPT Image 2</option>
+            <option value="legacy-flux">Legacy · Flux Kontext Dev</option>
           </select>
 
         </div>
@@ -2886,69 +2876,55 @@
     "Профессиональная кинематографичная обработка:";
 
 
-  function improvePrompt() {
-
-    const textarea =
-      $("prompt");
-
-    const original =
-      textarea.value.trim();
-
+  async function improvePrompt() {
+    const textarea = $("prompt");
+    const original = textarea.value.trim();
 
     if (!original) {
-
       showError(
         $("generatorError"),
         "Сначала напишите, что хотите создать, или выберите быструю идею."
       );
-
       textarea.focus();
-
       return;
-
     }
 
+    showError($("generatorError"), "");
+    setLoading(true, "AI Prompt улучшает описание", "OpenRouter подготавливает профессиональный промпт…");
 
-    if (
-      original.includes(
-        enhancementMarker
-      )
-    ) {
+    try {
+      const response = await fetch("/api/prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: original })
+      });
 
+      const text = await response.text();
+      let data;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("AI Prompt вернул не JSON.");
+      }
+
+      if (!response.ok || !data.prompt) {
+        throw new Error(data.error || "Не удалось улучшить промпт.");
+      }
+
+      textarea.value = data.prompt;
+      updateCounters();
+      textarea.focus();
+    } catch (error) {
+      console.error("Prompt enhancer error:", error);
       showError(
         $("generatorError"),
-        "Этот промпт уже улучшен."
+        error.message || "Не удалось улучшить промпт."
       );
-
-      return;
-
+    } finally {
+      setLoading(false);
     }
-
-
-    const improved =
-      `${original}
-
-${enhancementMarker}
-${cinematicEnhancement}`;
-
-
-    textarea.value =
-      improved;
-
-
-    updateCounters();
-
-
-    showError(
-      $("generatorError"),
-      ""
-    );
-
-
-    textarea.focus();
-
   }
-
 
   /* =====================================================
      COUNTERS
@@ -3097,33 +3073,20 @@ ${cinematicEnhancement}`;
   ====================================================== */
 
   function syncAdvancedControls() {
-    const generatorPremium =
-      $("model") && $("model").value === "gpt-image-2";
-    const generatorPuter =
-      $("model") && $("model").value.startsWith("puter-");
-
-    const editorPremium =
-      $("editorModel") && $("editorModel").value === "gpt-image-2";
-    const editorPuter =
-      $("editorModel") && $("editorModel").value.startsWith("puter-");
-
     [
-      ["quality", generatorPremium || generatorPuter],
-      ["size", generatorPremium],
-      ["outputFormat", generatorPremium],
-      ["editorQuality", editorPremium || editorPuter],
-      ["editorSize", editorPremium],
-      ["editorOutputFormat", editorPremium]
-    ].forEach(([id, enabled]) => {
+      "quality",
+      "size",
+      "outputFormat",
+      "editorQuality",
+      "editorSize",
+      "editorOutputFormat"
+    ].forEach((id) => {
       const el = $(id);
       if (!el) return;
-      el.disabled = !enabled;
-      el.title = enabled
-        ? ""
-        : "Этот параметр доступен для GPT-Image-2 или совместимых моделей.";
+      el.disabled = false;
+      el.title = "";
     });
   }
-
 
   /* =====================================================
      SELECT RATIO
@@ -3424,150 +3387,39 @@ ${cinematicEnhancement}`;
   ====================================================== */
 
   async function generateImages() {
-
-    const prompt =
-      $("prompt")
-        .value
-        .trim();
-
+    const prompt = $("prompt").value.trim();
 
     if (!prompt) {
-
       showError(
         $("generatorError"),
         "Напишите описание изображения или выберите быструю идею."
       );
-
       $("prompt").focus();
-
       return;
-
     }
 
-
-    showError(
-      $("generatorError"),
-      ""
-    );
-
-
-    $("generateBtn").disabled =
-      true;
-
-
-    setLoading(
-      true,
-      "Создаём изображение",
-      "AI готовит вашу сцену…"
-    );
-
+    showError($("generatorError"), "");
+    $("generateBtn").disabled = true;
 
     try {
-
-      const copies =
-        Math.max(
-          1,
-          Math.min(
-            4,
-            Number(
-              $("copies").value
-            ) || 1
-          )
-        );
-
-
-      const results = [];
-
-
-      /*
-       * Free routing:
-       * - PixelSter / Flux Dev
-       * - AI Horde / Flux Schnell
-       * - AI Horde / AlbedoBase XL
-       *
-       * AI Horde is asynchronous, so its jobs are
-       * submitted and then polled through /api/status.
-       */
+      const copies = Math.max(
+        1,
+        Math.min(4, Number($("copies").value) || 1)
+      );
 
       const selectedModel = $("model").value;
+      const results = [];
 
-      async function generatePuterImage() {
-        if (!window.puter || !window.puter.ai || typeof window.puter.ai.txt2img !== "function") {
-          throw new Error("Puter.js ещё не загрузился. Обновите страницу и попробуйте снова.");
-        }
-
-        const modelMap = {
-          "puter-flux-klein-4b": "black-forest-labs/flux-2-klein-4b",
-          "puter-grok-quality": "grok-imagine-image-quality",
-          "puter-nano-banana": "google/gemini-3-pro-image-preview",
-          "puter-gpt-image-2": "gpt-image-2",
-          "puter-gemini-flash": "gemini-3.1-flash-image-preview"
-        };
-
-        const puterModel = modelMap[selectedModel];
-        if (!puterModel) {
-          throw new Error("Неизвестная модель Puter.");
-        }
-
+      for (let i = 0; i < copies; i++) {
         setLoading(
           true,
-          "Puter AI создаёт изображение",
-          "Генерация выполняется напрямую через Puter…"
+          "Miya AI создаёт изображение",
+          selectedModel === "auto"
+            ? "Единый роутер выбирает доступный провайдер…"
+            : "Модель: " + selectedModel
         );
 
-        const options = {
-          model: puterModel
-        };
-
-        const dimensions = {
-          "1:1": [768, 768],
-          "16:9": [1024, 576],
-          "9:16": [576, 1024],
-          "4:3": [1024, 768]
-        };
-
-        if (selectedModel === "puter-flux-klein-4b") {
-          const [width, height] = dimensions[generatorRatio] || dimensions["1:1"];
-          options.width = width;
-          options.height = height;
-        }
-
-        if (selectedModel === "puter-grok-quality") {
-          options.quality = $("quality").value === "high" ? "2k" : "1k";
-        }
-
-        if (selectedModel === "puter-gpt-image-2") {
-          const [w, h] = dimensions[generatorRatio] || dimensions["1:1"];
-          options.ratio = { w, h };
-          options.quality = $("quality").value === "auto" ? "auto" : $("quality").value;
-        }
-
-        if (selectedModel === "puter-gemini-flash" || selectedModel === "puter-nano-banana") {
-          options.ratio = { w: Number(generatorRatio.split(":")[0]), h: Number(generatorRatio.split(":")[1]) };
-          const q = $("quality").value;
-          options.quality = q === "high" ? "2K" : q === "medium" ? "1K" : "512";
-        }
-
-        const imageElement = await window.puter.ai.txt2img(prompt, options);
-
-        if (!imageElement) {
-          throw new Error("Puter не вернул изображение.");
-        }
-
-        const imageUrl =
-          typeof imageElement === "string"
-            ? imageElement
-            : imageElement.src || imageElement.currentSrc || "";
-
-        if (!imageUrl) {
-          throw new Error("Puter вернул изображение без URL.");
-        }
-
-        return imageUrl;
-      }
-
-      async function generateHordeImage() {
-        const submitResponse = await fetch("/api/horde", {
+        const response = await fetch("/api/generate", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -3575,213 +3427,61 @@ ${cinematicEnhancement}`;
           body: JSON.stringify({
             prompt,
             ratio: generatorRatio,
-            model: selectedModel
+            model: selectedModel,
+            quality: $("quality").value,
+            size: $("size").value,
+            outputFormat: $("outputFormat").value
           })
         });
 
-        const submitText = await submitResponse.text();
-        let submitData;
-
-        try {
-          submitData = JSON.parse(submitText);
-        } catch {
-          throw new Error(
-            `AI Horde вернул не JSON (${submitResponse.status})`
-          );
-        }
-
-        if (!submitResponse.ok || !submitData.id) {
-          throw new Error(
-            submitData.error ||
-            `AI Horde не принял запрос (${submitResponse.status})`
-          );
-        }
-
-        for (let attempt = 0; attempt < 40; attempt++) {
-          const statusResponse = await fetch(
-            `/api/status?id=${encodeURIComponent(submitData.id)}`,
-            { cache: "no-store" }
-          );
-
-          const statusText = await statusResponse.text();
-          let statusData;
-
-          try {
-            statusData = JSON.parse(statusText);
-          } catch {
-            throw new Error(
-              `AI Horde вернул неверный статус (${statusResponse.status})`
-            );
-          }
-
-          if (!statusResponse.ok || !statusData.success) {
-            throw new Error(
-              statusData.error ||
-              `Ошибка AI Horde (${statusResponse.status})`
-            );
-          }
-
-          if (statusData.done && statusData.image) {
-            return statusData.image;
-          }
-
-          const queue = Number(statusData.queue_position || 0);
-          const wait = Number(statusData.wait_time || 0);
-
-          setLoading(
-            true,
-            "AI Horde создаёт изображение",
-            queue
-              ? `Бесплатная очередь. Позиция: ${queue}. Примерное ожидание: ${Math.max(1, Math.round(wait / 60))} мин.`
-              : "Бесплатные GPU обрабатывают запрос…"
-          );
-
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-        }
-
-        throw new Error(
-          "AI Horde отвечает слишком долго. Попробуйте ещё раз — бесплатная очередь может быть загружена."
-        );
-      }
-
-      for (
-        let i = 0;
-        i < copies;
-        i++
-      ) {
-
-        const isPuter =
-          selectedModel.startsWith("puter-");
-
-        if (isPuter) {
-          results.push(
-            await generatePuterImage()
-          );
-          continue;
-        }
-
-        const isHorde =
-          selectedModel.startsWith("ai-horde-");
-
-        if (isHorde) {
-          results.push(
-            await generateHordeImage()
-          );
-          continue;
-        }
-
-        const response =
-          await fetch(
-            "/api/generate",
-            {
-              method: "POST",
-
-              headers: {
-                "Content-Type":
-                  "application/json"
-              },
-
-              body:
-                JSON.stringify({
-                  prompt,
-                  ratio: generatorRatio,
-                  model: selectedModel,
-                  quality: $("quality").value,
-                  size: $("size").value,
-                  outputFormat: $("outputFormat").value
-                })
-            }
-          );
-
-
-        const text =
-          await response.text();
-
-
+        const text = await response.text();
         let data;
 
-
         try {
-
-          data =
-            JSON.parse(
-              text
-            );
-
+          data = JSON.parse(text);
         } catch {
-
           throw new Error(
-            `Сервер вернул не JSON (${response.status})`
+            "Сервер генерации вернул не JSON (HTTP " +
+            response.status +
+            ")."
           );
-
         }
 
-
-        if (
-          !response.ok ||
-          !data.imageUrl
-        ) {
-
+        if (!response.ok || !data.imageUrl) {
           throw new Error(
             data.error ||
-            `Ошибка генерации (${response.status})`
+            "Ошибка генерации изображения (HTTP " +
+            response.status +
+            ")."
           );
-
         }
 
+        results.push(data.imageUrl);
 
-        results.push(
-          data.imageUrl
-        );
-
+        if (data.provider) {
+          setLoading(
+            true,
+            "Готово",
+            data.provider + " · " + (data.model || "AI model")
+          );
+        }
       }
 
-
-      lastImages =
-        results;
-
-
-      renderGallery(
-        results
-      );
-
-
-      saveHistory(
-        results,
-        prompt
-      );
-
-
+      lastImages = results;
+      renderGallery(results);
+      saveHistory(results, prompt);
       renderHistory();
-
-
     } catch (error) {
-
-      console.error(
-        "Generator error:",
-        error
-      );
-
-
+      console.error("Generator error:", error);
       showError(
         $("generatorError"),
-        error.message ||
-        "Не удалось создать изображение."
+        error.message || "Не удалось создать изображение."
       );
-
     } finally {
-
-      setLoading(
-        false
-      );
-
-      $("generateBtn").disabled =
-        false;
-
+      setLoading(false);
+      $("generateBtn").disabled = false;
     }
-
   }
-
 
   /* =====================================================
      HISTORY
@@ -4905,291 +4605,113 @@ ${cinematicEnhancement}`;
   ====================================================== */
 
   async function editImage() {
-
-    if (
-      !editorImageBase64
-    ) {
-
+    if (!editorImageBase64) {
       showError(
         $("editorError"),
         "Сначала загрузите изображение."
       );
-
       return;
-
     }
 
-
-    const prompt =
-      $("editPrompt")
-        .value
-        .trim();
-
+    const prompt = $("editPrompt").value.trim();
 
     if (!prompt) {
-
       showError(
         $("editorError"),
         "Опишите, что нужно изменить."
       );
-
       $("editPrompt").focus();
-
       return;
-
     }
 
-
-    showError(
-      $("editorError"),
-      ""
-    );
-
-
-    $("editBtn").disabled =
-      true;
-
+    showError($("editorError"), "");
+    $("editBtn").disabled = true;
 
     setLoading(
       true,
       "Miya Editor работает",
-      "Изменяем изображение…"
+      "OpenRouter / AI provider редактирует изображение…"
     );
 
-
     try {
+      const response = await fetch("/api/edit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prompt,
+          imageBase64: editorImageBase64,
+          ratio: editorRatio,
+          model: $("editorModel").value,
+          quality: $("editorQuality").value,
+          size: $("editorSize").value,
+          outputFormat: $("editorOutputFormat").value
+        })
+      });
 
-      const selectedEditorModel = $("editorModel").value;
-      const isPuterEditor = selectedEditorModel.startsWith("puter-");
-
-      if (isPuterEditor) {
-        if (!window.puter || !window.puter.ai || typeof window.puter.ai.txt2img !== "function") {
-          throw new Error("Puter.js ещё не загрузился. Обновите страницу и попробуйте снова.");
-        }
-
-        const modelMap = {
-          "puter-grok-quality": "grok-imagine-image-quality",
-          "puter-nano-banana": "google/gemini-3-pro-image-preview",
-          "puter-gpt-image-2": "gpt-image-2",
-          "puter-gemini-flash": "gemini-3.1-flash-image-preview"
-        };
-
-        const puterModel = modelMap[selectedEditorModel];
-        if (!puterModel) throw new Error("Неизвестная модель Puter.");
-
-        const parts = String(editorRatio).split(":").map(Number);
-        const ratioW = parts[0] || 1;
-        const ratioH = parts[1] || 1;
-        const quality = $("editorQuality").value;
-        const options = {
-          model: puterModel,
-          input_image: $("editorSource").src,
-          ratio: { w: ratioW, h: ratioH }
-        };
-
-        if (selectedEditorModel === "puter-grok-quality") {
-          options.quality = quality === "high" ? "2k" : "1k";
-        } else if (selectedEditorModel === "puter-gpt-image-2") {
-          options.quality = quality === "auto" ? "auto" : quality;
-        } else {
-          options.quality = quality === "high" ? "2K" : quality === "medium" ? "1K" : "512";
-        }
-
-        const imageElement = await window.puter.ai.txt2img(prompt, options);
-        const resultUrl = typeof imageElement === "string"
-          ? imageElement
-          : imageElement?.src || imageElement?.currentSrc || "";
-
-        if (!resultUrl) throw new Error("Puter не вернул результат редактирования.");
-
-        $("editorResultImage").src = resultUrl;
-        $("editorResultImage").classList.remove("hidden");
-        $("editorResultPlaceholder").classList.add("hidden");
-        $("downloadEditedBtn").classList.remove("hidden");
-        $("sendEditedToGeneratorBtn").classList.remove("hidden");
-        $("animateEditedBtn").classList.remove("hidden");
-
-        $("downloadEditedBtn").onclick = () => downloadImage(resultUrl, "miya-edited.png");
-        $("sendEditedToGeneratorBtn").onclick = () => {
-          $("prompt").value = prompt;
-          updateCounters();
-          lastImages = [resultUrl];
-          renderGallery(lastImages);
-          switchMode("generator");
-        };
-
-        return;
-      }
-
-      const response =
-        await fetch(
-          "/api/edit",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body:
-              JSON.stringify({
-                prompt,
-                imageBase64: editorImageBase64,
-                ratio: editorRatio,
-                model: $("editorModel").value,
-                quality: $("editorQuality").value,
-                size: $("editorSize").value,
-                outputFormat: $("editorOutputFormat").value
-              })
-          }
-        );
-
-
-      const text =
-        await response.text();
-
-
+      const text = await response.text();
       let data;
 
-
       try {
-
-        data =
-          JSON.parse(
-            text
-          );
-
+        data = JSON.parse(text);
       } catch {
-
         throw new Error(
-          `Сервер вернул не JSON (${response.status})`
+          "Сервер редактирования вернул не JSON (HTTP " +
+          response.status +
+          ")."
         );
-
       }
 
-
-      if (
-        !response.ok ||
-        !data.imageUrl
-      ) {
-
+      if (!response.ok || !data.imageUrl) {
         throw new Error(
           data.error ||
-          `Ошибка редактирования (${response.status})`
+          "Ошибка редактирования (HTTP " +
+          response.status +
+          ")."
         );
-
       }
 
+      const resultUrl = data.imageUrl;
 
-      const resultUrl =
-        data.imageUrl;
+      $("editorResultImage").src = resultUrl;
+      $("editorResultImage").classList.remove("hidden");
+      $("editorResultPlaceholder").classList.add("hidden");
+      $("editorVideoResult").classList.add("hidden");
+      $("downloadEditedBtn").classList.remove("hidden");
+      $("sendEditedToGeneratorBtn").classList.remove("hidden");
+      $("animateEditedBtn").classList.remove("hidden");
 
+      $("downloadEditedBtn").onclick = () =>
+        downloadImage(resultUrl, "miya-edited.png");
 
-      $("editorResultImage").src =
-        resultUrl;
+      $("sendEditedToGeneratorBtn").onclick = () => {
+        $("prompt").value = prompt;
+        updateCounters();
+        lastImages = [resultUrl];
+        renderGallery(lastImages);
+        switchMode("generator");
+      };
 
-
-      $("editorResultImage")
-        .classList
-        .remove(
-          "hidden"
+      if (data.provider) {
+        setLoading(
+          true,
+          "Редактирование завершено",
+          data.provider + " · " + (data.model || "AI model")
         );
-
-
-      $("editorResultPlaceholder")
-        .classList
-        .add(
-          "hidden"
-        );
-
-
-      $("downloadEditedBtn")
-        .classList
-        .remove(
-          "hidden"
-        );
-
-
-      $("sendEditedToGeneratorBtn")
-        .classList
-        .remove(
-          "hidden"
-        );
-
-      $("animateEditedBtn")
-        .classList
-        .remove(
-          "hidden"
-        );
-
-
-      $("downloadEditedBtn").onclick =
-        () => {
-
-          downloadImage(
-            resultUrl,
-            "miya-edited.png"
-          );
-
-        };
-
-
-      $("sendEditedToGeneratorBtn").onclick =
-        () => {
-
-          $("prompt").value =
-            prompt;
-
-
-          updateCounters();
-
-
-          lastImages =
-            [resultUrl];
-
-
-          renderGallery(
-            lastImages
-          );
-
-
-          switchMode(
-            "generator"
-          );
-
-        };
-
-
+        await new Promise((resolve) => setTimeout(resolve, 350));
+      }
     } catch (error) {
-
-      console.error(
-        "Editor error:",
-        error
-      );
-
-
+      console.error("Editor error:", error);
       showError(
         $("editorError"),
-        error.message ||
-        "Ошибка редактирования."
+        error.message || "Ошибка редактирования."
       );
-
     } finally {
-
-      setLoading(
-        false
-      );
-
-
-      $("editBtn").disabled =
-        false;
-
+      setLoading(false);
+      $("editBtn").disabled = false;
     }
-
   }
-
-
 
   async function animateEditorImage() {
     const resultImage = $("editorResultImage");
