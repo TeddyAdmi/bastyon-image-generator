@@ -4,14 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-  <title>Bastyon Mya Studio</title>
+  <title>Miya AI — Free AI Image Generator & Editor</title>
 
-  <meta
-    name="description"
-    content="Bastyon Mya Studio — AI Image Generator & Mya Editor"
-  >
+  <meta name="description" content="Miya AI — free AI image generator, AI photo generator and AI image editor powered by Flux.">
 
   <meta name="theme-color" content="#faf9fd">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="author" content="Miya AI">
+  <link rel="canonical" href="https://bastyon-image-generator.vercel.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Miya AI">
+  <meta property="og:title" content="Miya AI — Free AI Image Generator & Editor">
+  <meta property="og:description" content="Create and edit AI images online for free with Miya AI and Flux.">
+  <meta property="og:url" content="https://bastyon-image-generator.vercel.app/">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Miya AI — Free AI Image Generator & Editor">
+  <meta name="twitter:description" content="Free online AI image generator and editor powered by Flux.">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Miya AI","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"Free online AI image generator and AI image editor powered by Flux.","url":"https://bastyon-image-generator.vercel.app/","browserRequirements":"Requires JavaScript","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+  </script>
 
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
@@ -997,8 +1009,7 @@
 
     .editor-subtitle {
       margin-top: 4px;
-      color: var(--text-soft);
-      font-size: 11px;
+      color: var(--text-soft);      font-size: 11px;
     }
 
     .upload-zone {
@@ -1380,6 +1391,9 @@
         min-height: 180px;
       }
     }
+  
+    .seo-content{max-width:1100px;margin:26px auto 0;padding:26px 28px;border:1px solid var(--border);border-radius:var(--radius-lg);background:rgba(255,255,255,.94);box-shadow:var(--shadow);line-height:1.7;color:var(--text-soft)}
+    .seo-content h1,.seo-content h2{color:var(--text);letter-spacing:-.03em}.seo-content h1{font-size:28px;margin:0 0 10px}.seo-content h2{font-size:18px;margin:22px 0 8px}.seo-content p{margin:8px 0}.seo-content ul{padding-left:22px}.seo-faq details{border-top:1px solid var(--border);padding:12px 0}.seo-faq summary{cursor:pointer;color:var(--text);font-weight:700}
   </style>
 </head>
 
@@ -1400,11 +1414,11 @@
       <div>
 
         <div class="brand-name">
-          Bastyon Mya Studio
+          Miya AI
         </div>
 
         <div class="brand-sub">
-          AI Image Generator &amp; Mya Editor
+          AI Image Generator &amp; Miya Editor
         </div>
 
       </div>
@@ -1445,7 +1459,7 @@
       id="editorModeBtn"
       class="mode-button"
     >
-      🎨 Mya Editor
+      🎨 Miya Editor
     </button>
 
   </div>
@@ -1539,7 +1553,7 @@
           class="small-button"
           id="openEditorFromGenerator"
         >
-          🎨 Открыть в Mya Editor
+          🎨 Открыть в Miya Editor
         </button>
 
       </div>
@@ -1848,7 +1862,7 @@
         <div>
 
           <div class="editor-title">
-            Mya Editor
+            Miya Editor
           </div>
 
           <div class="editor-subtitle">
@@ -1997,8 +2011,7 @@
 
           <button
             type="button"
-            class="tool-button"
-            id="clearEditPromptBtn"
+            class="tool-button"            id="clearEditPromptBtn"
           >
             × Очистить
           </button>
@@ -2997,7 +3010,6 @@ ${cinematicEnhancement}`;
       );
 
   }
-
 
   /* =====================================================
      SELECT RATIO
@@ -4052,7 +4064,7 @@ ${cinematicEnhancement}`;
 
     setLoading(
       true,
-      "Открываем Mya Editor",
+      "Открываем Miya Editor",
       "Подготавливаем изображение…"
     );
 
@@ -4632,7 +4644,7 @@ ${cinematicEnhancement}`;
 
     setLoading(
       true,
-      "Mya Editor работает",
+      "Miya Editor работает",
       "Изменяем изображение…"
     );
 
@@ -4746,7 +4758,7 @@ ${cinematicEnhancement}`;
 
           downloadImage(
             resultUrl,
-            "mya-edited.png"
+            "miya-edited.png"
           );
 
         };
@@ -4998,134 +5010,3 @@ ${cinematicEnhancement}`;
 
           message =
             "Речь не была распознана. Попробуйте говорить немного громче.";
-
-        } else if (
-          event.error ===
-          "audio-capture"
-        ) {
-
-          message =
-            "Микрофон не найден или занят другим приложением.";
-
-        } else if (
-          event.error ===
-          "network"
-        ) {
-
-          message =
-            "Браузер не смог выполнить распознавание речи. Попробуйте Chrome или Edge.";
-
-        }
-
-
-        showError(
-          $("generatorError"),
-          message
-        );
-
-      };
-
-
-    recognition.onend =
-      () => {
-
-        listening =
-          false;
-
-
-        $("voiceBtn")
-          .classList
-          .remove(
-            "listening"
-          );
-
-
-        $("voiceBtn").textContent =
-          "🎙 Микрофон";
-
-
-        $("voiceBtn").title =
-          "Голосовой ввод";
-
-      };
-
-  } else {
-
-    /*
-     * Firefox currently may not expose
-     * SpeechRecognition.
-     *
-     * We don't fake support here.
-     * The rest of the application continues
-     * working normally.
-     */
-
-    $("voiceBtn")
-      .addEventListener(
-        "click",
-        () => {
-
-          showError(
-            $("generatorError"),
-            "Этот браузер не предоставляет API распознавания речи. В Firefox используйте Chrome/Edge для голосового ввода или можно подключить локальный Whisper без внешнего сервиса."
-          );
-
-        }
-      );
-
-  }
-
-
-  /* =====================================================
-     KEYBOARD SHORTCUT
-  ====================================================== */
-
-  document.addEventListener(
-    "keydown",
-    (event) => {
-
-      if (
-        (event.ctrlKey ||
-          event.metaKey) &&
-        event.key === "Enter"
-      ) {
-
-        if (
-          !$("generatorMode")
-            .classList
-            .contains(
-              "hidden"
-            )
-        ) {
-
-          generateImages();
-
-        } else {
-
-          editImage();
-
-        }
-
-      }
-
-    }
-  );
-
-
-  /* =====================================================
-     INIT
-  ====================================================== */
-
-  renderQuickIdeas();
-
-  updateCounters();
-
-  updateCanvasRatio();
-
-  renderHistory();
-
-})();
-</script>
-
-</body>
-</html>
