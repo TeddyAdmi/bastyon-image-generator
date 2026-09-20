@@ -5258,14 +5258,35 @@ ${cinematicEnhancement}`;
       const videoData = result?.data?.[0];
       let videoUrl = "";
 
+      console.log("LTX raw result:", result);
+
       if (typeof videoData === "string") {
         videoUrl = videoData;
       } else if (videoData && typeof videoData === "object") {
-        videoUrl = videoData.url || videoData.path || "";
+        videoUrl = videoData.url || "";
+
+        if (!videoUrl && typeof videoData.path === "string") {
+          const path = videoData.path;
+
+          if (/^https?:\\/\\//i.test(path)) {
+            videoUrl = path;
+          } else {
+            const spaceBase = "https://lightricks-ltx-video-distilled.hf.space";
+            const normalizedPath = path.startsWith("/") ? path : "/" + path;
+
+            if (normalizedPath.startsWith("/file=")) {
+              videoUrl = spaceBase + normalizedPath;
+            } else {
+              videoUrl = spaceBase + "/file=" + normalizedPath;
+            }
+          }
+        }
       }
 
       if (!videoUrl) {
-        throw new Error("LTX не вернул видео.");
+        throw new Error(
+          "LTX создал результат, но браузер не получил URL видео. Проверьте консоль: LTX raw result."
+        );
       }
 
       $("editorVideoResult").src = videoUrl;
