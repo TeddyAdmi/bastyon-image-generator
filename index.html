@@ -1678,19 +1678,9 @@
             </label>
 
             <select id="model">
-
-              <option value="flux-dev">
-                Flux Dev
-              </option>
-
-              <option value="flux">
-                Flux
-              </option>
-
-              <option value="auto">
-                Auto
-              </option>
-
+              <option value="flux-dev">Flux Dev · Free</option>
+              <option value="gpt-image-2">GPT-Image-2 · Premium</option>
+              <option value="auto">Auto · Free</option>
             </select>
 
           </div>
@@ -1726,6 +1716,39 @@
 
         </div>
 
+
+        <div
+          class="settings-grid"
+          style="margin-top:12px"
+        >
+          <div class="field">
+            <label for="quality">Качество</label>
+            <select id="quality">
+              <option value="auto">Авто</option>
+              <option value="low">Низкое</option>
+              <option value="medium">Среднее</option>
+              <option value="high">Высокое</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="size">Размер</label>
+            <select id="size">
+              <option value="auto">Авто</option>
+              <option value="1024x1024">1024 × 1024</option>
+              <option value="1536x1024">1536 × 1024</option>
+              <option value="1024x1536">1024 × 1536</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:10px">
+          <label for="outputFormat">Формат файла</label>
+          <select id="outputFormat">
+            <option value="png">PNG</option>
+            <option value="jpeg">JPEG</option>
+            <option value="webp">WebP</option>
+          </select>
+        </div>
 
         <div
           class="field"
@@ -2093,25 +2116,48 @@
           </label>
 
           <select id="editorModel">
-
-            <option value="flux-dev">
-              Flux Dev
-            </option>
-
-            <option value="flux">
-              Flux
-            </option>
-
-            <option value="auto">
-              Auto
-            </option>
-
+            <option value="flux-dev">Flux Kontext Dev · Free</option>
+            <option value="gpt-image-2">GPT-Image-2 · Premium</option>
+            <option value="auto">Auto · Free</option>
           </select>
 
         </div>
 
       </div>
 
+
+      <div
+        class="settings-grid"
+        style="margin-top:14px"
+      >
+        <div class="field">
+          <label for="editorQuality">Качество</label>
+          <select id="editorQuality">
+            <option value="auto">Авто</option>
+            <option value="low">Низкое</option>
+            <option value="medium">Среднее</option>
+            <option value="high">Высокое</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="editorSize">Размер</label>
+          <select id="editorSize">
+            <option value="auto">Авто</option>
+            <option value="1024x1024">1024 × 1024</option>
+            <option value="1536x1024">1536 × 1024</option>
+            <option value="1024x1536">1024 × 1536</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:10px">
+        <label for="editorOutputFormat">Формат файла</label>
+        <select id="editorOutputFormat">
+          <option value="png">PNG</option>
+          <option value="jpeg">JPEG</option>
+          <option value="webp">WebP</option>
+        </select>
+      </div>
 
       <div
         class="field"
@@ -2998,7 +3044,6 @@ ${cinematicEnhancement}`;
     const canvas =
       $("generatorCanvas");
 
-
     if (!canvas) {
       return;
     }
@@ -3010,6 +3055,35 @@ ${cinematicEnhancement}`;
       );
 
   }
+
+  /* =====================================================
+     ADVANCED IMAGE CONTROLS
+  ====================================================== */
+
+  function syncAdvancedControls() {
+    const generatorPremium =
+      $("model") && $("model").value === "gpt-image-2";
+
+    const editorPremium =
+      $("editorModel") && $("editorModel").value === "gpt-image-2";
+
+    [
+      ["quality", generatorPremium],
+      ["size", generatorPremium],
+      ["outputFormat", generatorPremium],
+      ["editorQuality", editorPremium],
+      ["editorSize", editorPremium],
+      ["editorOutputFormat", editorPremium]
+    ].forEach(([id, enabled]) => {
+      const el = $(id);
+      if (!el) return;
+      el.disabled = !enabled;
+      el.title = enabled
+        ? ""
+        : "Этот параметр применяется при выборе GPT-Image-2";
+    });
+  }
+
 
   /* =====================================================
      SELECT RATIO
@@ -3393,10 +3467,11 @@ ${cinematicEnhancement}`;
               body:
                 JSON.stringify({
                   prompt,
-                  ratio:
-                    generatorRatio,
-                  model:
-                    $("model").value
+                  ratio: generatorRatio,
+                  model: $("model").value,
+                  quality: $("quality").value,
+                  size: $("size").value,
+                  outputFormat: $("outputFormat").value
                 })
             }
           );
@@ -3533,18 +3608,21 @@ ${cinematicEnhancement}`;
       getHistory();
 
 
-    images.forEach(
-      (imageUrl) => {
-
-        history.unshift({
-          imageUrl,
-          prompt,
-          createdAt:
-            Date.now()
-        });
-
-      }
-    );
+    images
+      .filter(
+        (imageUrl) =>
+          typeof imageUrl === "string" &&
+          !imageUrl.startsWith("data:")
+      )
+      .forEach(
+        (imageUrl) => {
+          history.unshift({
+            imageUrl,
+            prompt,
+            createdAt: Date.now()
+          });
+        }
+      );
 
 
     const limited =
@@ -4664,18 +4742,13 @@ ${cinematicEnhancement}`;
 
             body:
               JSON.stringify({
-
                 prompt,
-
-                imageBase64:
-                  editorImageBase64,
-
-                ratio:
-                  editorRatio,
-
-                model:
-                  $("editorModel").value
-
+                imageBase64: editorImageBase64,
+                ratio: editorRatio,
+                model: $("editorModel").value,
+                quality: $("editorQuality").value,
+                size: $("editorSize").value,
+                outputFormat: $("editorOutputFormat").value
               })
           }
         );
@@ -5205,6 +5278,11 @@ ${cinematicEnhancement}`;
   updateCounters();
 
   updateCanvasRatio();
+
+  syncAdvancedControls();
+
+  $("model").addEventListener("change", syncAdvancedControls);
+  $("editorModel").addEventListener("change", syncAdvancedControls);
 
   renderHistory();
 
