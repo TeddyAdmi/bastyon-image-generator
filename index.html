@@ -1679,6 +1679,9 @@
 
             <select id="model">
               <option value="flux-dev">Flux Dev · Free</option>
+              <option value="ai-horde-flux">Flux Schnell · Free Horde</option>
+              <option value="ai-horde-sdxl">AlbedoBase XL · Free Horde</option>
+              <option value="ai-horde-auto">AI Horde · Auto Free</option>
               <option value="gpt-image-2">GPT-Image-2 · Premium</option>
               <option value="auto">Auto · Free</option>
             </select>
@@ -3440,18 +3443,110 @@ ${cinematicEnhancement}`;
 
 
       /*
-       * PixelSter endpoint currently supports
-       * prompt + ratio.
+       * Free routing:
+       * - PixelSter / Flux Dev
+       * - AI Horde / Flux Schnell
+       * - AI Horde / AlbedoBase XL
        *
-       * We intentionally keep the model field
-       * in the UI for future API support.
+       * AI Horde is asynchronous, so its jobs are
+       * submitted and then polled through /api/status.
        */
+
+      const selectedModel = $("model").value;
+
+      async function generateHordeImage() {
+        const submitResponse = await fetch("/api/horde", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            prompt,
+            ratio: generatorRatio,
+            model: selectedModel
+          })
+        });
+
+        const submitText = await submitResponse.text();
+        let submitData;
+
+        try {
+          submitData = JSON.parse(submitText);
+        } catch {
+          throw new Error(
+            `AI Horde вернул не JSON (${submitResponse.status})`
+          );
+        }
+
+        if (!submitResponse.ok || !submitData.id) {
+          throw new Error(
+            submitData.error ||
+            `AI Horde не принял запрос (${submitResponse.status})`
+          );
+        }
+
+        for (let attempt = 0; attempt < 40; attempt++) {
+          const statusResponse = await fetch(
+            `/api/status?id=${encodeURIComponent(submitData.id)}`,
+            { cache: "no-store" }
+          );
+
+          const statusText = await statusResponse.text();
+          let statusData;
+
+          try {
+            statusData = JSON.parse(statusText);
+          } catch {
+            throw new Error(
+              `AI Horde вернул неверный статус (${statusResponse.status})`
+            );
+          }
+
+          if (!statusResponse.ok || !statusData.success) {
+            throw new Error(
+              statusData.error ||
+              `Ошибка AI Horde (${statusResponse.status})`
+            );
+          }
+
+          if (statusData.done && statusData.image) {
+            return statusData.image;
+          }
+
+          const queue = Number(statusData.queue_position || 0);
+          const wait = Number(statusData.wait_time || 0);
+
+          setLoading(
+            true,
+            "AI Horde создаёт изображение",
+            queue
+              ? `Бесплатная очередь. Позиция: ${queue}. Примерное ожидание: ${Math.max(1, Math.round(wait / 60))} мин.`
+              : "Бесплатные GPU обрабатывают запрос…"
+          );
+
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+
+        throw new Error(
+          "AI Horde отвечает слишком долго. Попробуйте ещё раз — бесплатная очередь может быть загружена."
+        );
+      }
 
       for (
         let i = 0;
         i < copies;
         i++
       ) {
+
+        const isHorde =
+          selectedModel.startsWith("ai-horde-");
+
+        if (isHorde) {
+          results.push(
+            await generateHordeImage()
+          );
+          continue;
+        }
 
         const response =
           await fetch(
@@ -3468,7 +3563,7 @@ ${cinematicEnhancement}`;
                 JSON.stringify({
                   prompt,
                   ratio: generatorRatio,
-                  model: $("model").value,
+                  model: selectedModel,
                   quality: $("quality").value,
                   size: $("size").value,
                   outputFormat: $("outputFormat").value
