@@ -1396,7 +1396,10 @@
     .seo-content h1,.seo-content h2{color:var(--text);letter-spacing:-.03em}.seo-content h1{font-size:28px;margin:0 0 10px}.seo-content h2{font-size:18px;margin:22px 0 8px}.seo-content p{margin:8px 0}.seo-content ul{padding-left:22px}.seo-faq details{border-top:1px solid var(--border);padding:12px 0}.seo-faq summary{cursor:pointer;color:var(--text);font-weight:700}
   </style>
   <script src="https://js.puter.com/v2/"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js"></script>
+  <script type="module">
+    import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
+    window.MiyaGradio = { Client, handle_file };
+  </script>
 
 </head>
 
@@ -5199,7 +5202,7 @@ ${cinematicEnhancement}`;
       $("editPrompt").value.trim() ||
       "The subject gently moves naturally, subtle facial expression and realistic breathing, cinematic camera movement, realistic lighting and detailed textures.";
 
-    const Gradio = window.gradio;
+    const Gradio = window.MiyaGradio;
     if (!Gradio || !Gradio.Client || !Gradio.handle_file) {
       showError($("editorError"), "Gradio Client ещё не загрузился. Обновите страницу и попробуйте снова.");
       return;
