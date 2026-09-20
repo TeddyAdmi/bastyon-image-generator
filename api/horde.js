@@ -21,10 +21,10 @@ export default async function handler(req, res) {
     }
 
     const dimensions = {
-      "1:1": [1024, 1024],
-      "16:9": [1024, 576],
-      "9:16": [576, 1024],
-      "4:3": [1024, 768]
+      "1:1": [768, 768],
+      "16:9": [768, 432],
+      "9:16": [432, 768],
+      "4:3": [768, 576]
     };
 
     const [width, height] =
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       params: {
         width,
         height,
-        steps: 25,
+        steps: 20,
         cfg_scale: 7.5,
         sampler_name: "k_euler_a",
         n: 1
