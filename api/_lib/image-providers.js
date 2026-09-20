@@ -473,7 +473,9 @@ export async function editImage(options) {
       body: JSON.stringify({
         prompt,
         ratio,
-        imageBase64
+        // Legacy FLUX editor expects the raw base64 payload.
+        // normalizeImageInput also supports callers that send a full data URL.
+        imageBase64: normalized.base64
       })
     });
 
