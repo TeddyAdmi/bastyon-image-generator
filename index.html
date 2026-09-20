@@ -2128,6 +2128,10 @@
 
           <select id="editorModel">
             <option value="flux-dev">Flux Kontext Dev · Free</option>
+            <option value="puter-grok-quality">Puter · Grok Imagine Quality</option>
+            <option value="puter-nano-banana">Puter · Nano Banana Pro</option>
+            <option value="puter-gpt-image-2">Puter · GPT Image 2</option>
+            <option value="puter-gemini-flash">Puter · Gemini 3.1 Flash Image</option>
             <option value="gpt-image-2">GPT-Image-2 · Premium</option>
             <option value="auto">Auto · Free</option>
           </select>
@@ -4918,6 +4922,67 @@ ${cinematicEnhancement}`;
 
 
     try {
+
+      const selectedEditorModel = $("editorModel").value;
+      const isPuterEditor = selectedEditorModel.startsWith("puter-");
+
+      if (isPuterEditor) {
+        if (!window.puter || !window.puter.ai || typeof window.puter.ai.txt2img !== "function") {
+          throw new Error("Puter.js ещё не загрузился. Обновите страницу и попробуйте снова.");
+        }
+
+        const modelMap = {
+          "puter-grok-quality": "grok-imagine-image-quality",
+          "puter-nano-banana": "google/gemini-3-pro-image-preview",
+          "puter-gpt-image-2": "gpt-image-2",
+          "puter-gemini-flash": "gemini-3.1-flash-image-preview"
+        };
+
+        const puterModel = modelMap[selectedEditorModel];
+        if (!puterModel) throw new Error("Неизвестная модель Puter.");
+
+        const parts = String(editorRatio).split(":").map(Number);
+        const ratioW = parts[0] || 1;
+        const ratioH = parts[1] || 1;
+        const quality = $("editorQuality").value;
+        const options = {
+          model: puterModel,
+          input_image: $("editorSource").src,
+          ratio: { w: ratioW, h: ratioH }
+        };
+
+        if (selectedEditorModel === "puter-grok-quality") {
+          options.quality = quality === "high" ? "2k" : "1k";
+        } else if (selectedEditorModel === "puter-gpt-image-2") {
+          options.quality = quality === "auto" ? "auto" : quality;
+        } else {
+          options.quality = quality === "high" ? "2K" : quality === "medium" ? "1K" : "512";
+        }
+
+        const imageElement = await window.puter.ai.txt2img(prompt, options);
+        const resultUrl = typeof imageElement === "string"
+          ? imageElement
+          : imageElement?.src || imageElement?.currentSrc || "";
+
+        if (!resultUrl) throw new Error("Puter не вернул результат редактирования.");
+
+        $("editorResultImage").src = resultUrl;
+        $("editorResultImage").classList.remove("hidden");
+        $("editorResultPlaceholder").classList.add("hidden");
+        $("downloadEditedBtn").classList.remove("hidden");
+        $("sendEditedToGeneratorBtn").classList.remove("hidden");
+
+        $("downloadEditedBtn").onclick = () => downloadImage(resultUrl, "miya-edited.png");
+        $("sendEditedToGeneratorBtn").onclick = () => {
+          $("prompt").value = prompt;
+          updateCounters();
+          lastImages = [resultUrl];
+          renderGallery(lastImages);
+          switchMode("generator");
+        };
+
+        return;
+      }
 
       const response =
         await fetch(
