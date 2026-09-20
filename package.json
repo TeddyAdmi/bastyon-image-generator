@@ -2,7 +2,6 @@
   "name": "bastyon-image-generator",
   "private": true,
   "dependencies": {
-    "@huggingface/inference": "^4.13.30",
     "@vercel/blob": "^2.4.0"
   }
 }
