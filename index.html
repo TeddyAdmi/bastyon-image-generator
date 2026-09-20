@@ -1681,9 +1681,11 @@
 
             <select id="model">
               <option value="flux-dev">Flux Dev · Free</option>
-              <option value="puter-flux-flex">Puter · FLUX.2 Klein 4B</option>
-              <option value="puter-nano-banana">Puter · Nano Banana Pro</option>
+              <option value="puter-flux-klein-4b">Puter · FLUX.2 Klein 4B</option>
+              <option value="puter-grok-quality">Puter · Grok Imagine Quality</option>
+              <option value="puter-nano-banana">Puter · Nano Banana Pro
               <option value="puter-gpt-image-2">Puter · GPT Image 2</option>
+              <option value="puter-gemini-flash">Puter · Gemini 3.1 Flash Image</option></option>
               <option value="puter-imagen-4-fast">Puter · Imagen 4 Fast</option>
               <option value="ai-horde-flux">Flux Schnell · Free Horde</option>
               <option value="ai-horde-sdxl">AlbedoBase XL · Free Horde</option>
@@ -3072,12 +3074,14 @@ ${cinematicEnhancement}`;
   function syncAdvancedControls() {
     const generatorPremium =
       $("model") && $("model").value === "gpt-image-2";
+    const generatorPuter =
+      $("model") && $("model").value.startsWith("puter-");
 
     const editorPremium =
       $("editorModel") && $("editorModel").value === "gpt-image-2";
 
     [
-      ["quality", generatorPremium],
+      ["quality", generatorPremium || generatorPuter],
       ["size", generatorPremium],
       ["outputFormat", generatorPremium],
       ["editorQuality", editorPremium],
@@ -3089,7 +3093,7 @@ ${cinematicEnhancement}`;
       el.disabled = !enabled;
       el.title = enabled
         ? ""
-        : "Этот параметр применяется при выборе GPT-Image-2";
+        : "Этот параметр доступен для GPT-Image-2 или совместимых моделей.";
     });
   }
 
@@ -3466,10 +3470,11 @@ ${cinematicEnhancement}`;
         }
 
         const modelMap = {
-          "puter-flux-flex": "black-forest-labs/flux-2-klein-4b",
+          "puter-flux-klein-4b": "black-forest-labs/flux-2-klein-4b",
+          "puter-grok-quality": "grok-imagine-image-quality",
           "puter-nano-banana": "google/gemini-3-pro-image-preview",
-          "puter-gpt-image-2": "openai/gpt-image-2",
-          "puter-imagen-4-fast": "google/imagen-4.0-fast"
+          "puter-gpt-image-2": "gpt-image-2",
+          "puter-gemini-flash": "gemini-3.1-flash-image-preview"
         };
 
         const puterModel = modelMap[selectedModel];
@@ -3487,19 +3492,33 @@ ${cinematicEnhancement}`;
           model: puterModel
         };
 
-        // FLUX.2 Flex supports explicit dimensions.
-        if (selectedModel === "puter-flux-flex") {
-          const dimensions = {
-            "1:1": [768, 768],
-            "16:9": [1024, 576],
-            "9:16": [576, 1024],
-            "4:3": [1024, 768]
-          };
+        const dimensions = {
+          "1:1": [768, 768],
+          "16:9": [1024, 576],
+          "9:16": [576, 1024],
+          "4:3": [1024, 768]
+        };
 
+        if (selectedModel === "puter-flux-klein-4b") {
           const [width, height] = dimensions[generatorRatio] || dimensions["1:1"];
           options.width = width;
           options.height = height;
-          options.steps = 30;
+        }
+
+        if (selectedModel === "puter-grok-quality") {
+          options.quality = $("quality").value === "high" ? "2k" : "1k";
+        }
+
+        if (selectedModel === "puter-gpt-image-2") {
+          const [w, h] = dimensions[generatorRatio] || dimensions["1:1"];
+          options.ratio = { w, h };
+          options.quality = $("quality").value === "auto" ? "auto" : $("quality").value;
+        }
+
+        if (selectedModel === "puter-gemini-flash" || selectedModel === "puter-nano-banana") {
+          options.ratio = { w: Number(generatorRatio.split(":")[0]), h: Number(generatorRatio.split(":")[1]) };
+          const q = $("quality").value;
+          options.quality = q === "high" ? "2K" : q === "medium" ? "1K" : "512";
         }
 
         const imageElement = await window.puter.ai.txt2img(prompt, options);
