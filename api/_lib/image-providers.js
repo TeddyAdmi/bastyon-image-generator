@@ -1,3 +1,5 @@
+import { put } from "@vercel/blob";
+
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/images";
 
 const OPENROUTER_MODELS = {
@@ -14,9 +16,7 @@ const HF_MODELS = {
 
 function cleanDataUrl(value) {
   const text = String(value || "");
-  if (!text) return "";
-  if (text.startsWith("data:image/")) return text;
-  return "";
+  return text.startsWith("data:image/") ? text : "";
 }
 
 function ratioToSize(ratio) {
@@ -30,13 +30,44 @@ function ratioToSize(ratio) {
 }
 
 function mediaTypeFromDataUrl(dataUrl) {
-  const match = String(dataUrl || "").match(/^data:(image\\/[^;]+);base64,/i);
+  const match = String(dataUrl || "").match(/^data:(image\/[^;]+);base64,/i);
   return match?.[1] || "image/png";
 }
 
 function dataUrlFromBuffer(buffer, mediaType = "image/png") {
-  const bytes = Buffer.from(buffer);
-  return `data:${mediaType};base64,${bytes.toString("base64")}`;
+  return `data:${mediaType};base64,${Buffer.from(buffer).toString("base64")}`;
+}
+
+function extensionForType(mediaType) {
+  const type = String(mediaType || "image/png").toLowerCase();
+  if (type.includes("jpeg") || type.includes("jpg")) return "jpg";
+  if (type.includes("webp")) return "webp";
+  return "png";
+}
+
+async function storeImage(dataUrl, prefix = "miya") {
+  if (!dataUrl) throw new Error("Нет изображения для сохранения.");
+
+  // Vercel Blob keeps large base64 images out of the Function response.
+  // If the Blob token is not configured, return the data URL as a development fallback.
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.warn("BLOB_READ_WRITE_TOKEN is missing; returning data URL fallback.");
+    return dataUrl;
+  }
+
+  const mediaType = mediaTypeFromDataUrl(dataUrl);
+  const base64 = dataUrl.split(",").pop();
+  const bytes = Buffer.from(base64, "base64");
+  const filename =
+    `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extensionForType(mediaType)}`;
+
+  const blob = await put(filename, bytes, {
+    access: "public",
+    contentType: mediaType,
+    addRandomSuffix: false
+  });
+
+  return blob.url;
 }
 
 async function readJsonResponse(response, providerName) {
@@ -71,7 +102,7 @@ async function openRouterImage({
   imageDataUrl
 }) {
   if (!process.env.OPENROUTER_API_KEY) {
-    throw new Error("OPENROUTER_API_KEY не настроен.");
+    throw new Error("OPENROUTER_API_KEY не настроен в Vercel.");
   }
 
   const body = {
@@ -80,25 +111,22 @@ async function openRouterImage({
     aspect_ratio: ratio || "1:1"
   };
 
-  const resolutionMap = {
-    "1024x1024": "1K",
-    "1536x1024": "2K",
-    "1024x1536": "2K"
-  };
+  if (size && ["1024x1024", "1536x1024", "1024x1536"].includes(size)) {
+    body.resolution =
+      size === "1024x1024" ? "1K" : "2K";
+  }
 
-  if (size && resolutionMap[size]) body.resolution = resolutionMap[size];
   if (quality && quality !== "auto") body.quality = quality;
-  if (outputFormat && ["png", "jpeg", "webp"].includes(outputFormat)) {
+
+  if (
+    outputFormat &&
+    ["png", "jpeg", "webp"].includes(String(outputFormat).toLowerCase())
+  ) {
     body.output_format = outputFormat;
   }
 
   if (imageDataUrl) {
-    body.input_references = [
-      {
-        type: "image_url",
-        image_url: { url: imageDataUrl }
-      }
-    ];
+    body.input_references = [imageDataUrl];
   }
 
   const response = await fetch(OPENROUTER_URL, {
@@ -106,7 +134,9 @@ async function openRouterImage({
     headers: {
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": process.env.APP_URL || "https://bastyon-image-generator.vercel.app/",
+      "HTTP-Referer":
+        process.env.APP_URL ||
+        "https://bastyon-image-generator.vercel.app/",
       "X-Title": "Miya AI"
     },
     body: JSON.stringify(body)
@@ -119,10 +149,16 @@ async function openRouterImage({
     throw new Error("OpenRouter не вернул изображение.");
   }
 
+  const dataUrl = dataUrlFromBuffer(
+    Buffer.from(item.b64_json, "base64"),
+    item.media_type || "image/png"
+  );
+
   return {
-    imageUrl: `data:${item.media_type || "image/png"};base64,${item.b64_json}`,
+    imageUrl: await storeImage(dataUrl, "miya-openrouter"),
     provider: "OpenRouter",
-    model
+    model,
+    cost: data?.usage?.cost ?? null
   };
 }
 
@@ -131,15 +167,31 @@ async function huggingFaceGenerate({ model, prompt }) {
     throw new Error("HF_TOKEN не настроен.");
   }
 
-  const { InferenceClient } = await import("@huggingface/inference");
-  const client = new InferenceClient(process.env.HF_TOKEN);
-  const image = await client.textToImage({
-    model,
-    inputs: prompt
-  });
+  const response = await fetch(
+    `https://router.huggingface.co/hf-inference/models/${model}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.HF_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ inputs: prompt })
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Hugging Face HTTP ${response.status}: ${text.slice(0, 500)}`);
+  }
+
+  const type = response.headers.get("content-type") || "image/png";
+  const dataUrl = dataUrlFromBuffer(
+    await response.arrayBuffer(),
+    type.split(";")[0]
+  );
 
   return {
-    imageUrl: dataUrlFromBuffer(await image.arrayBuffer(), image.type || "image/png"),
+    imageUrl: await storeImage(dataUrl, "miya-hf"),
     provider: "Hugging Face",
     model
   };
@@ -151,6 +203,7 @@ async function pollinationsGenerate({ prompt, ratio }) {
   }
 
   const [width, height] = ratioToSize(ratio);
+
   const url =
     "https://gen.pollinations.ai/image/" +
     encodeURIComponent(prompt) +
@@ -163,12 +216,19 @@ async function pollinationsGenerate({ prompt, ratio }) {
   });
 
   if (!response.ok) {
-    throw new Error(`Pollinations: HTTP ${response.status}`);
+    throw new Error(`Pollinations HTTP ${response.status}`);
   }
 
-  const contentType = response.headers.get("content-type") || "image/png";
+  const contentType =
+    (response.headers.get("content-type") || "image/png").split(";")[0];
+
+  const dataUrl = dataUrlFromBuffer(
+    await response.arrayBuffer(),
+    contentType
+  );
+
   return {
-    imageUrl: dataUrlFromBuffer(await response.arrayBuffer(), contentType.split(";")[0]),
+    imageUrl: await storeImage(dataUrl, "miya-pollinations"),
     provider: "Pollinations",
     model: "flux"
   };
@@ -251,6 +311,8 @@ export async function generateImage(options) {
       } catch (error) {
         errors.push("OpenRouter: " + error.message);
       }
+    } else {
+      errors.push("OpenRouter: OPENROUTER_API_KEY отсутствует");
     }
 
     if (process.env.HF_TOKEN) {
@@ -279,8 +341,7 @@ export async function generateImage(options) {
     }
 
     throw new Error(
-      "Не удалось создать изображение ни у одного провайдера. " +
-      errors.join(" | ")
+      "Не удалось создать изображение. " + errors.join(" | ")
     );
   }
 
@@ -298,9 +359,11 @@ export async function editImage(options) {
     outputFormat = "png"
   } = options;
 
-  const imageDataUrl =
-    cleanDataUrl(imageBase64) ||
-    `data:${mediaTypeFromDataUrl(imageBase64)};base64,${String(imageBase64 || "").split(",").pop()}`;
+  const imageDataUrl = cleanDataUrl(imageBase64);
+
+  if (!imageDataUrl) {
+    throw new Error("Редактор получил изображение не в формате data:image/...;base64.");
+  }
 
   const selection = String(model || "auto");
 
@@ -317,29 +380,22 @@ export async function editImage(options) {
   }
 
   if (selection === "auto") {
-    if (process.env.OPENROUTER_API_KEY) {
-      return openRouterImage({
-        model: OPENROUTER_MODELS["or-nano-banana-2"],
-        prompt,
-        ratio,
-        quality,
-        size,
-        outputFormat,
-        imageDataUrl
-      });
-    }
-
-    if (process.env.POLLINATIONS_API_KEY) {
+    if (!process.env.OPENROUTER_API_KEY) {
       throw new Error(
-        "Для редактирования изображения настройте OPENROUTER_API_KEY. " +
-        "Pollinations оставлен резервным генератором, а не редактором."
+        "OPENROUTER_API_KEY не настроен в Vercel. " +
+        "Добавьте его для работы редактора."
       );
     }
 
-    throw new Error(
-      "Для редактирования нужен OPENROUTER_API_KEY. " +
-      "После его добавления режим Auto заработает автоматически."
-    );
+    return openRouterImage({
+      model: OPENROUTER_MODELS["or-nano-banana-2"],
+      prompt,
+      ratio,
+      quality,
+      size,
+      outputFormat,
+      imageDataUrl
+    });
   }
 
   if (selection === "legacy-flux") {
@@ -367,8 +423,7 @@ export async function editImage(options) {
   }
 
   throw new Error(
-    "Эта модель не поддерживает редактирование через выбранный провайдер. " +
-    "Выберите OpenRouter или Auto."
+    "Эта модель не поддерживает редактирование. Выберите OpenRouter или Auto."
   );
 }
 
@@ -377,6 +432,7 @@ export function getProviderStatus() {
     openrouter: Boolean(process.env.OPENROUTER_API_KEY),
     huggingface: Boolean(process.env.HF_TOKEN),
     pollinations: Boolean(process.env.POLLINATIONS_API_KEY),
+    blob: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
     legacy: true
   };
 }
