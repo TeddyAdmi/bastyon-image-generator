@@ -1,9 +1,9 @@
 {
   "manifest_version": 1,
-  "name": "Bastyon Image Generator",
-  "short_name": "ImageGen",
-  "description": "Мини-приложение для генерации картинок по тексту",
-  "version": "1.0.0",
+  "name": "Miya AI",
+  "short_name": "Miya AI",
+  "description": "Free AI image generator and AI image editor powered by Flux",
+  "version": "1.1.0",
   "start_url": "/",
   "display": "standalone"
 }
