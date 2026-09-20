@@ -3981,10 +3981,13 @@
     url = ""
   ) {
 
+    // The API expects the complete data URL, not only the base64 payload.
+    // Keeping the MIME prefix is important for the FLUX editor and fallbacks.
     editorImageBase64 =
-      extractBase64(
-        dataUrl
-      );
+      typeof dataUrl === "string" &&
+      dataUrl.startsWith("data:image/")
+        ? dataUrl
+        : "";
 
 
     editorImageUrl =
