@@ -1,13 +1,13 @@
 function parseImageData(imageBase64) {
   const value = String(imageBase64 || "");
-  const match = value.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
+  const match = value.match(/^data:(image\\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
 
   if (!match) {
     throw new Error("Изображение должно быть передано в формате data:image/...;base64,...");
   }
 
   const mimeType = match[1].toLowerCase();
-  const base64 = match[2].replace(/\s/g, "");
+  const base64 = match[2].replace(/\\s/g, "");
 
   const extensionMap = {
     "image/png": "png",
@@ -32,19 +32,175 @@ function isHttpUrl(value) {
   }
 }
 
+function getAlibabaBaseUrl() {
+  // The legacy DashScope domain remains supported for Wan 2.2.
+  // The API key must belong to the China (Beijing) region.
+  return "https://dashscope.aliyuncs.com";
+}
+
+async function uploadImageIfNeeded(source) {
+  if (!source.startsWith("data:image/")) {
+    if (!isHttpUrl(source)) {
+      throw new Error("Изображение должно быть URL или data:image/...;base64,...");
+    }
+    return source;
+  }
+
+  const { mimeType, extension, buffer } = parseImageData(source);
+
+  if (!buffer.length) {
+    throw new Error("Не удалось прочитать исходное изображение.");
+  }
+
+  const { put } = await import("@vercel/blob");
+
+  const blob = await put(
+    "miya-video-input/" +
+      Date.now() +
+      "-" +
+      Math.random().toString(36).slice(2) +
+      "." +
+      extension,
+    buffer,
+    {
+      access: "public",
+      contentType: mimeType,
+      addRandomSuffix: false
+    }
+  );
+
+  return blob.url;
+}
+
+function normalizeAlibabaError(data, fallback) {
+  const message =
+    data?.message ||
+    data?.output?.message ||
+    data?.output?.code ||
+    fallback;
+
+  if (/quota|rate.?limit|throttl/i.test(String(message))) {
+    return "Alibaba Cloud: превышен лимит запросов или бесплатная квота.";
+  }
+
+  if (/invalid.*api.?key|api.?key.*invalid|unauthorized/i.test(String(message))) {
+    return "Alibaba Cloud: неверный API-ключ. Проверьте DASHSCOPE_API_KEY и регион China (Beijing).";
+  }
+
+  if (/insufficient|balance|billing|payment|fund/i.test(String(message))) {
+    return "Alibaba Cloud: бесплатная квота исчерпана или для аккаунта требуется биллинг.";
+  }
+
+  return String(message);
+}
+
+async function getTask(taskId) {
+  const response = await fetch(
+    getAlibabaBaseUrl() + "/api/v1/tasks/" + encodeURIComponent(taskId),
+    {
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + process.env.DASHSCOPE_API_KEY
+      }
+    }
+  );
+
+  const text = await response.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("Alibaba Cloud вернул не JSON при проверке задачи.");
+  }
+
+  if (!response.ok) {
+    throw new Error(normalizeAlibabaError(data, "Ошибка проверки задачи Alibaba Cloud."));
+  }
+
+  return data;
+}
+
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ success: false, error: "Method not allowed" });
+  if (!process.env.DASHSCOPE_API_KEY) {
+    return res.status(503).json({
+      success: false,
+      error: "Alibaba Cloud ещё не настроен. Добавьте DASHSCOPE_API_KEY в Vercel."
+    });
   }
 
   try {
-    const body = req.body || {};
-    const prompt = body.prompt;
-    const imageBase64 = body.imageBase64;
-    const duration = body.duration ?? 5;
-    const resolution = body.resolution ?? "720P";
+    // GET /api/video?taskId=... — poll Alibaba task status.
+    if (req.method === "GET") {
+      const taskId = String(req.query?.taskId || "").trim();
 
-    if (!prompt || !String(prompt).trim()) {
+      if (!taskId) {
+        return res.status(400).json({
+          success: false,
+          error: "Не указан taskId."
+        });
+      }
+
+      const data = await getTask(taskId);
+      const output = data?.output || {};
+      const status = output.task_status || "UNKNOWN";
+
+      if (status === "SUCCEEDED") {
+        const videoUrl = output.video_url || output.results?.[0]?.video_url || "";
+
+        if (!videoUrl) {
+          return res.status(502).json({
+            success: false,
+            error: "Alibaba Cloud завершил задачу, но не вернул видео."
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          status,
+          done: true,
+          videoUrl,
+          provider: "Alibaba Cloud Model Studio",
+          model: "Wan 2.2 I2V Flash",
+          duration: 5
+        });
+      }
+
+      if (status === "FAILED" || status === "CANCELED" || status === "UNKNOWN") {
+        return res.status(200).json({
+          success: false,
+          status,
+          done: true,
+          error: normalizeAlibabaError(
+            output,
+            "Alibaba Cloud не смог создать видео."
+          )
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        status,
+        done: false,
+        provider: "Alibaba Cloud Model Studio",
+        model: "Wan 2.2 I2V Flash"
+      });
+    }
+
+    // POST /api/video — create an asynchronous Alibaba video task.
+    if (req.method !== "POST") {
+      return res.status(405).json({
+        success: false,
+        error: "Method not allowed"
+      });
+    }
+
+    const body = req.body || {};
+    const prompt = String(body.prompt || "").trim();
+    const imageBase64 = String(body.imageBase64 || "").trim();
+    const requestedResolution = String(body.resolution || "480P").toUpperCase();
+
+    if (!prompt) {
       return res.status(400).json({
         success: false,
         error: "Введите описание движения для видео."
@@ -58,94 +214,47 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
-      return res.status(503).json({
-        success: false,
-        error: "Cloudflare Workers AI ещё не настроен. Проверьте CLOUDFLARE_ACCOUNT_ID и CLOUDFLARE_API_TOKEN в Vercel."
-      });
-    }
-
-    const source = String(imageBase64).trim();
-
-    // Vercel Functions have a 4.5 MB request-body limit.
-    // Normal editor images should be URLs, so this mainly protects accidental huge data URLs.
-    if (source.length > 4_000_000) {
+    // Vercel Functions have a limited request body. Normal editor images are small
+    // enough, but protect the endpoint from accidentally huge data URLs.
+    if (imageBase64.length > 4_000_000) {
       return res.status(413).json({
         success: false,
-        error: "Изображение слишком большое для Vercel API. Используйте изображение из генератора или уменьшите его размер."
+        error: "Изображение слишком большое для Vercel API."
       });
     }
 
-    let imageUrl = source;
+    const imageUrl = await uploadImageIfNeeded(imageBase64);
 
-    if (source.startsWith("data:image/")) {
-      const { mimeType, extension, buffer } = parseImageData(source);
+    // Wan 2.2 I2V Flash always outputs 5 seconds.
+    // 480P is selected to keep the free/trial path as lightweight as possible.
+    const resolution =
+      requestedResolution === "1080P" || requestedResolution === "720P"
+        ? requestedResolution
+        : "480P";
 
-      if (!buffer.length) {
-        return res.status(400).json({
-          success: false,
-          error: "Не удалось прочитать исходное изображение."
-        });
+    const response = await fetch(
+      getAlibabaBaseUrl() +
+        "/api/v1/services/aigc/video-generation/video-synthesis",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + process.env.DASHSCOPE_API_KEY,
+          "X-DashScope-Async": "enable",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "wan2.2-i2v-flash",
+          input: {
+            prompt,
+            img_url: imageUrl
+          },
+          parameters: {
+            resolution,
+            prompt_extend: false
+          }
+        })
       }
-
-      const { put } = await import("@vercel/blob");
-
-      const blob = await put(
-        "miya-video-input/" +
-          Date.now() +
-          "-" +
-          Math.random().toString(36).slice(2) +
-          "." +
-          extension,
-        buffer,
-        {
-          access: "public",
-          contentType: mimeType,
-          addRandomSuffix: false
-        }
-      );
-
-      imageUrl = blob.url;
-    } else if (!isHttpUrl(source)) {
-      return res.status(400).json({
-        success: false,
-        error: "Изображение должно быть URL или data:image/...;base64,..."
-      });
-    }
-
-    const safeDuration = Math.min(15, Math.max(2, Number(duration) || 5));
-    const safeResolution = resolution === "1080P" ? "1080P" : "720P";
-
-    const cloudflareUrl =
-      "https://api.cloudflare.com/client/v4/accounts/" +
-      process.env.CLOUDFLARE_ACCOUNT_ID +
-      "/ai/run";
-
-    console.log("Wan 2.7 request", {
-      imageType: source.startsWith("data:image/") ? "blob" : "url",
-      duration: safeDuration,
-      resolution: safeResolution
-    });
-
-    const response = await fetch(cloudflareUrl, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + process.env.CLOUDFLARE_API_TOKEN,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "alibaba/wan-2.7-i2v",
-        input: {
-          image: imageUrl,
-          prompt: String(prompt).trim(),
-          negative_prompt:
-            "blurry, distorted face, extra limbs, deformed body, flicker, jitter, unstable background",
-          duration: safeDuration,
-          resolution: safeResolution,
-          watermark: false
-        }
-      })
-    });
+    );
 
     const responseText = await response.text();
 
@@ -153,66 +262,68 @@ export default async function handler(req, res) {
     try {
       data = JSON.parse(responseText);
     } catch {
-      console.error("Cloudflare non-JSON response", response.status, responseText.slice(0, 1000));
+      console.error(
+        "Alibaba non-JSON response",
+        response.status,
+        responseText.slice(0, 1000)
+      );
+
       return res.status(502).json({
         success: false,
-        error: "Cloudflare вернул не JSON.",
+        error: "Alibaba Cloud вернул не JSON.",
         status: response.status
       });
     }
 
-    if (!response.ok || data.success === false) {
-      const code = data.errors && data.errors[0] ? data.errors[0].code : null;
-      const message =
-        data.errors && data.errors[0]
-          ? data.errors[0].message
-          : data.error || "Cloudflare Workers AI не смог создать видео.";
+    if (!response.ok || data?.code) {
+      const message = normalizeAlibabaError(
+        data,
+        "Alibaba Cloud не смог запустить генерацию."
+      );
 
-      let userMessage = message;
-
-      if (code === 3036 || /daily free allocation|10,000 neurons/i.test(message)) {
-        userMessage = "Бесплатный дневной лимит Cloudflare Workers AI исчерпан. Попробуйте позже.";
-      } else if (code === 3040 || /capacity/i.test(message)) {
-        userMessage = "Cloudflare сейчас перегружен. Попробуйте ещё раз через несколько минут.";
-      }
-
-      console.error("Cloudflare Wan 2.7 error", {
+      console.error("Alibaba Wan 2.2 create error", {
         status: response.status,
-        code,
+        code: data?.code,
         message
       });
 
       return res.status(response.status || 502).json({
         success: false,
-        error: userMessage,
-        cloudflareCode: code
+        error: message,
+        provider: "Alibaba Cloud Model Studio"
       });
     }
 
-    const videoUrl = data.result && data.result.video;
+    const taskId = data?.output?.task_id;
 
-    if (!videoUrl) {
-      console.error("Cloudflare response without video", data);
+    if (!taskId) {
+      console.error("Alibaba response without task_id", data);
+
       return res.status(502).json({
         success: false,
-        error: "Cloudflare завершил запрос, но не вернул ссылку на видео."
+        error: "Alibaba Cloud не вернул task_id."
       });
     }
 
     return res.status(200).json({
       success: true,
-      videoUrl,
-      provider: "Cloudflare Workers AI",
-      model: "Wan 2.7 I2V",
-      duration: safeDuration,
-      resolution: safeResolution
+      done: false,
+      taskId,
+      status: data?.output?.task_status || "PENDING",
+      provider: "Alibaba Cloud Model Studio",
+      model: "Wan 2.2 I2V Flash",
+      duration: 5,
+      resolution
     });
   } catch (error) {
-    console.error("Video API error:", error);
+    console.error("Alibaba video API error:", error);
 
     return res.status(500).json({
       success: false,
-      error: error && error.message ? error.message : "Ошибка видеогенерации."
+      error:
+        error && error.message
+          ? error.message
+          : "Ошибка видеогенерации."
     });
   }
 }
