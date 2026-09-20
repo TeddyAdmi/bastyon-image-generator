@@ -122,7 +122,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           model: "alibaba/wan-2.7-i2v",
           input: {
-            image: blob.url,
+            image: imageUrl,
             prompt: String(prompt).trim(),
             negative_prompt:
               "blurry, distorted face, extra limbs, deformed body, flicker, jitter, unstable background",
