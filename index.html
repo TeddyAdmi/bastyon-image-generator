@@ -5193,12 +5193,10 @@ ${cinematicEnhancement}`;
 
   async function animateEditorImage() {
 
-    // For video we use the image currently visible in the editor.
-    // After editing this is the edited result; for a fresh upload it is the source image.
     const resultImage = $("editorResultImage");
     const sourceImage = $("editorSource");
 
-    let videoImage =
+    const videoImage =
       resultImage &&
       !resultImage.classList.contains("hidden") &&
       resultImage.src
@@ -5216,48 +5214,63 @@ ${cinematicEnhancement}`;
       $("editPrompt").value.trim() ||
       "The subject gently moves naturally, subtle facial expression and realistic breathing, cinematic camera movement, realistic lighting and detailed textures.";
 
+    if (!window.MiyaGradio || !window.MiyaGradio.Client || !window.MiyaGradio.handle_file) {
+      showError($("editorError"), "Модуль видео ещё не загрузился. Обновите страницу и попробуйте снова.");
+      return;
+    }
+
     $("animateEditedBtn").disabled = true;
     showError($("editorError"), "");
 
     setLoading(
       true,
       "Miya AI создаёт видео",
-      "Wan 2.7 I2V · Cloudflare Workers AI…"
+      "Wan 2.2 I2V · Hugging Face ZeroGPU…"
     );
 
     try {
-      const response = await fetch("/api/video", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          prompt,
-          imageBase64: videoImage,
-          ratio: editorRatio,
-          duration: 5,
-          resolution: "720P"
-        })
-      });
+      const client = await window.MiyaGradio.Client.connect(
+        "Saravutw/WAN2.2_I2V_LIGHTNING_4-8step_custom"
+      );
 
-      const text = await response.text();
-      let data;
+      const imageInput = await window.MiyaGradio.handle_file(videoImage);
 
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Сервер видео вернул не JSON (" + response.status + ").");
-      }
+      const result = await client.predict(
+        imageInput,
+        null,
+        prompt,
+        4,
+        "static, motionless, frozen motion, blurry, low quality, deformed, extra fingers, fused fingers, subtitles, text, overexposed, jpeg artifacts",
+        3.5,
+        1,
+        1,
+        Math.floor(Math.random() * 2147483647),
+        true,
+        5,
+        "UniPCMultistep",
+        6,
+        16,
+        false,
+        true,
+        { api_name: "/generate_video" }
+      );
 
-      if (!response.ok || !data.videoUrl) {
-        throw new Error(
-          data.error ||
-          ("Ошибка видеогенерации (" + response.status + ")")
-        );
+      const output = result?.data?.[0] || result?.[0];
+      const videoUrl =
+        typeof output === "string"
+          ? output
+          : output?.url ||
+            output?.path ||
+            output?.video ||
+            output?.data ||
+            "";
+
+      if (!videoUrl) {
+        throw new Error("Hugging Face не вернул видеофайл.");
       }
 
       const video = $("editorVideoResult");
-      video.src = data.videoUrl;
+      video.src = videoUrl;
       video.classList.remove("hidden");
       $("editorResultImage").classList.add("hidden");
       $("editorResultPlaceholder").classList.add("hidden");
@@ -5277,7 +5290,6 @@ ${cinematicEnhancement}`;
       $("animateEditedBtn").disabled = false;
     }
   }
-
 
   $("animateEditedBtn")
     .addEventListener(
