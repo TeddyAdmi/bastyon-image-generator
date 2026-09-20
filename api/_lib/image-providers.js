@@ -12,9 +12,27 @@ const HF_MODELS = {
   "hf-flux-dev": "black-forest-labs/FLUX.1-dev"
 };
 
-function cleanDataUrl(value) {
-  const text = String(value || "");
-  return text.startsWith("data:image/") ? text : "";
+function normalizeImageInput(value) {
+  const text = String(value || "").trim();
+
+  if (text.startsWith("data:image/") && text.includes(";base64,")) {
+    return {
+      dataUrl: text,
+      base64: text.split(",").slice(1).join(",")
+    };
+  }
+
+  const raw = text.replace(/^base64,/, "").replace(/\s+/g, "");
+  if (!raw || raw.length < 100) return null;
+
+  let mediaType = "image/png";
+  if (raw.startsWith("/9j/")) mediaType = "image/jpeg";
+  else if (raw.startsWith("UklGR")) mediaType = "image/webp";
+
+  return {
+    dataUrl: `data:${mediaType};base64,${raw}`,
+    base64: raw
+  };
 }
 
 function ratioToSize(ratio) {
@@ -362,12 +380,13 @@ export async function editImage(options) {
     outputFormat = "png"
   } = options;
 
-  const imageDataUrl = cleanDataUrl(imageBase64);
+  const normalized = normalizeImageInput(imageBase64);
 
-  if (!imageDataUrl) {
-    throw new Error("Редактор получил изображение не в формате data:image/...;base64.");
+  if (!normalized) {
+    throw new Error("Редактор не смог распознать изображение. Поддерживается data:image/...;base64 или обычный base64.");
   }
 
+  const imageDataUrl = normalized.dataUrl;
   const selection = String(model || "auto");
 
   if (selection.startsWith("or-")) {
@@ -388,13 +407,16 @@ export async function editImage(options) {
     // Редактор AUTO: сначала основной рабочий FLUX Editor.
     // Платные/дополнительные провайдеры используются только как fallback.
     try {
+      const normalized = normalizeImageInput(imageBase64);
+      if (!normalized) throw new Error("Не удалось распознать исходное изображение.");
+
       const response = await fetch("https://ahm7xmakki.com/api/pti", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt,
           ratio,
-          imageBase64
+          imageBase64: normalized.base64
         })
       });
 
