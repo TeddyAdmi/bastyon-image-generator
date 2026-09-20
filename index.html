@@ -5218,32 +5218,7 @@ ${cinematicEnhancement}`;
     );
 
     try {
-      const spaceName = "Lightricks/ltx-video-distilled";
-      const spaceBase = "https://lightricks-ltx-video-distilled.hf.space";
-
-      const app = await Gradio.Client.connect(spaceName, {
-        events: ["data", "status"]
-      });
-
-      const apiInfo = await app.view_api();
-      console.log("LTX View API:", apiInfo);
-
-      const endpoints = apiInfo?.named_endpoints || {};
-      const endpointName =
-        endpoints["/image_to_video"]
-          ? "/image_to_video"
-          : Object.keys(endpoints).find((name) =>
-              /image.?to.?video/i.test(name)
-            );
-
-      if (!endpointName) {
-        throw new Error("LTX API не содержит endpoint image_to_video.");
-      }
-
-      const endpoint = endpoints[endpointName];
-      const parameters = endpoint?.parameters || [];
-
-      console.log("LTX endpoint:", endpointName, parameters);
+      const app = await Gradio.Client.connect("Lightricks/ltx-video-distilled");
 
       const response = await fetch($("editorSource").src);
       if (!response.ok) {
@@ -5259,155 +5234,55 @@ ${cinematicEnhancement}`;
         "4:3": [576, 768]
       };
 
-      const [height, width] =
-        ratioMap[editorRatio] || [640, 640];
+      const [height, width] = ratioMap[editorRatio] || [640, 640];
 
-      const positional = [
-        prompt,
-        "worst quality, inconsistent motion, blurry, jittery, distorted",
-        Gradio.handle_file(imageBlob),
-        null,
-        height,
-        width,
-        "image-to-video",
-        2,
-        9,
-        42,
-        true,
-        3,
-        false
-      ];
+      const result = await app.predict(
+        "/image_to_video",
+        [
+          prompt,
+          "worst quality, inconsistent motion, blurry, jittery, distorted",
+          Gradio.handle_file(imageBlob),
+          null,
+          height,
+          width,
+          "image-to-video",
+          2,
+          9,
+          42,
+          true,
+          3,
+          false
+        ]
+      );
 
-      /*
-       * LTX has changed its Gradio output format between versions.
-       * We keep the known endpoint payload, but use submit() so the
-       * final data event is captured instead of assuming predict()
-       * immediately contains the finished video.
-       */
-      const submission = app.submit(endpointName, positional);
-
-      let finalData = null;
-      let lastStatus = null;
-
-      for await (const message of submission) {
-        if (message.type === "status") {
-          lastStatus = message;
-          console.log("LTX status:", message);
-
-          if (message.stage === "pending" && message.position != null) {
-            setLoading(
-              true,
-              "Miya AI создаёт видео",
-              "LTX Video · позиция в очереди: " + message.position
-            );
-          } else if (message.stage === "generating") {
-            setLoading(
-              true,
-              "Miya AI создаёт видео",
-              "LTX Video · генерация…"
-            );
-          }
-        }
-
-        if (message.type === "data") {
-          finalData = message.data;
-          console.log("LTX data event:", finalData);
-        }
-      }
-
-      const dataArray = Array.isArray(finalData)
-        ? finalData
-        : [finalData];
-
-      const output = dataArray.find((item) => {
-        if (typeof item === "string") {
-          return /\\.(mp4|webm|mov)(\\?|$)/i.test(item) ||
-                 /hf\\.space|huggingface/i.test(item);
-        }
-
-        if (!item || typeof item !== "object") {
-          return false;
-        }
-
-        const type = String(
-          item.mime_type ||
-          item.mimeType ||
-          item.type ||
-          ""
-        ).toLowerCase();
-
-        const name = String(
-          item.path ||
-          item.url ||
-          item.video ||
-          item.name ||
-          ""
-        );
-
-        return (
-          type.startsWith("video/") ||
-          /\\.(mp4|webm|mov)(\\?|$)/i.test(name)
-        );
-      }) || dataArray[0];
-
+      const videoData = result?.data?.[0];
       let videoUrl = "";
 
-      if (typeof output === "string") {
-        videoUrl = output;
-      } else if (output && typeof output === "object") {
-        videoUrl =
-          output.url ||
-          output.video ||
-          output.path ||
-          output.name ||
-          output.file ||
-          "";
-      }
-
-      /*
-       * Gradio FileData can return a server-relative path such as
-       * /tmp/gradio/... or a plain filename. Convert it to the
-       * public Space file route when necessary.
-       */
-      if (
-        videoUrl &&
-        !/^https?:\\/\\//i.test(videoUrl) &&
-        !/^blob:/i.test(videoUrl) &&
-        !/^data:/i.test(videoUrl)
-      ) {
-        const cleanPath = videoUrl
-          .replace(/^\\.\\//, "")
-          .replace(/^\\//, "");
-
-        videoUrl =
-          spaceBase +
-          "/file=" +
-          cleanPath;
+      if (typeof videoData === "string") {
+        videoUrl = videoData;
+      } else if (videoData && typeof videoData === "object") {
+        videoUrl = videoData.url || videoData.path || "";
       }
 
       if (!videoUrl) {
-        console.log("LTX final status:", lastStatus);
-        console.log("LTX final data:", finalData);
-        throw new Error("LTX завершил запрос, но URL видео не найден.");
+        throw new Error("LTX не вернул видео.");
       }
-
-      console.log("LTX video URL:", videoUrl);
 
       $("editorVideoResult").src = videoUrl;
       $("editorVideoResult").classList.remove("hidden");
       $("editorResultImage").classList.add("hidden");
       $("editorResultPlaceholder").classList.add("hidden");
 
-      $("editorVideoResult").load();
-
     } catch (error) {
       console.error("LTX video error:", error);
       const message = String(error?.message || error || "");
 
-      if (/quota|GPU|queue|exceeded|limit|capacity|busy/i.test(message)) {
+      if (
+        /quota|GPU|queue|exceeded|limit/i.test(message)
+      ) {
         showError(
           $("editorError"),
-          "Hugging Face ZeroGPU сейчас занят или достигнут лимит. Попробуйте ещё раз позже."
+          "Hugging Face ZeroGPU сейчас занят или достигнут дневной лимит. Попробуйте позже."
         );
       } else {
         showError(
