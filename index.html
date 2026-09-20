@@ -1396,6 +1396,7 @@
     .seo-content h1,.seo-content h2{color:var(--text);letter-spacing:-.03em}.seo-content h1{font-size:28px;margin:0 0 10px}.seo-content h2{font-size:18px;margin:22px 0 8px}.seo-content p{margin:8px 0}.seo-content ul{padding-left:22px}.seo-faq details{border-top:1px solid var(--border);padding:12px 0}.seo-faq summary{cursor:pointer;color:var(--text);font-weight:700}
   </style>
   <script src="https://js.puter.com/v2/"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js"></script>
 
 </head>
 
@@ -2263,6 +2264,15 @@
             Результат появится здесь.
           </div>
 
+          <video
+            id="editorVideoResult"
+            class="hidden"
+            controls
+            playsinline
+            preload="metadata"
+            style="width:100%;height:100%;object-fit:contain;border-radius:18px;background:#111"
+          ></video>
+
         </div>
 
 
@@ -2289,6 +2299,14 @@
             id="sendEditedToGeneratorBtn"
           >
             ✨ В генератор
+          </button>
+
+          <button
+            type="button"
+            class="small-button hidden"
+            id="animateEditedBtn"
+          >
+            🎬 Анимировать
           </button>
 
         </div>
@@ -4546,6 +4564,19 @@ ${cinematicEnhancement}`;
         "hidden"
       );
 
+    $("animateEditedBtn")
+      .classList
+      .add(
+        "hidden"
+      );
+
+    $("editorVideoResult").src = "";
+    $("editorVideoResult")
+      .classList
+      .add(
+        "hidden"
+      );
+
 
     showError(
       $("editorError"),
@@ -4973,6 +5004,7 @@ ${cinematicEnhancement}`;
         $("editorResultPlaceholder").classList.add("hidden");
         $("downloadEditedBtn").classList.remove("hidden");
         $("sendEditedToGeneratorBtn").classList.remove("hidden");
+        $("animateEditedBtn").classList.remove("hidden");
 
         $("downloadEditedBtn").onclick = () => downloadImage(resultUrl, "miya-edited.png");
         $("sendEditedToGeneratorBtn").onclick = () => {
@@ -5082,6 +5114,12 @@ ${cinematicEnhancement}`;
           "hidden"
         );
 
+      $("animateEditedBtn")
+        .classList
+        .remove(
+          "hidden"
+        );
+
 
       $("downloadEditedBtn").onclick =
         () => {
@@ -5147,6 +5185,121 @@ ${cinematicEnhancement}`;
     }
 
   }
+
+
+
+  async function animateEditorImage() {
+
+    if (!editorImageBase64) {
+      showError($("editorError"), "Сначала загрузите изображение.");
+      return;
+    }
+
+    const prompt =
+      $("editPrompt").value.trim() ||
+      "The subject gently moves naturally, subtle facial expression and realistic breathing, cinematic camera movement, realistic lighting and detailed textures.";
+
+    const Gradio = window.gradio;
+    if (!Gradio || !Gradio.Client || !Gradio.handle_file) {
+      showError($("editorError"), "Gradio Client ещё не загрузился. Обновите страницу и попробуйте снова.");
+      return;
+    }
+
+    $("animateEditedBtn").disabled = true;
+    showError($("editorError"), "");
+
+    setLoading(
+      true,
+      "Miya AI создаёт видео",
+      "LTX Video · Hugging Face ZeroGPU…"
+    );
+
+    try {
+      const app = await Gradio.Client.connect("Lightricks/ltx-video-distilled");
+
+      const response = await fetch($("editorSource").src);
+      if (!response.ok) {
+        throw new Error("Не удалось подготовить исходное изображение.");
+      }
+
+      const imageBlob = await response.blob();
+
+      const ratioMap = {
+        "1:1": [640, 640],
+        "16:9": [576, 1024],
+        "9:16": [1024, 576],
+        "4:3": [576, 768]
+      };
+
+      const [height, width] = ratioMap[editorRatio] || [640, 640];
+
+      const result = await app.predict(
+        "/image_to_video",
+        [
+          prompt,
+          "worst quality, inconsistent motion, blurry, jittery, distorted",
+          Gradio.handle_file(imageBlob),
+          null,
+          height,
+          width,
+          "image-to-video",
+          2,
+          9,
+          42,
+          true,
+          3,
+          false
+        ]
+      );
+
+      const videoData = result?.data?.[0];
+      let videoUrl = "";
+
+      if (typeof videoData === "string") {
+        videoUrl = videoData;
+      } else if (videoData && typeof videoData === "object") {
+        videoUrl = videoData.url || videoData.path || "";
+      }
+
+      if (!videoUrl) {
+        throw new Error("LTX не вернул видео.");
+      }
+
+      $("editorVideoResult").src = videoUrl;
+      $("editorVideoResult").classList.remove("hidden");
+      $("editorResultImage").classList.add("hidden");
+      $("editorResultPlaceholder").classList.add("hidden");
+
+    } catch (error) {
+      console.error("LTX video error:", error);
+      const message = String(error?.message || error || "");
+
+      if (
+        /quota|GPU|queue|exceeded|limit/i.test(message)
+      ) {
+        showError(
+          $("editorError"),
+          "Hugging Face ZeroGPU сейчас занят или достигнут дневной лимит. Попробуйте позже."
+        );
+      } else {
+        showError(
+          $("editorError"),
+          "Не удалось создать видео: " + message
+        );
+      }
+
+    } finally {
+      setLoading(false);
+      $("animateEditedBtn").disabled = false;
+    }
+  }
+
+
+  $("animateEditedBtn")
+    .addEventListener(
+      "click",
+      animateEditorImage
+    );
 
 
   $("editBtn")
