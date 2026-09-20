@@ -1,3 +1,30 @@
+import { put } from "@vercel/blob";
+
+function parseImageData(imageBase64) {
+  const value = String(imageBase64 || "");
+  const match = value.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
+
+  if (!match) {
+    throw new Error("Изображение должно быть передано в формате data:image/...;base64,...");
+  }
+
+  const mimeType = match[1].toLowerCase();
+  const base64 = match[2].replace(/\s/g, "");
+
+  const extensionMap = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "image/gif": "gif"
+  };
+
+  return {
+    mimeType,
+    extension: extensionMap[mimeType] || "png",
+    buffer: Buffer.from(base64, "base64")
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -42,6 +69,15 @@ export default async function handler(req, res) {
       });
     }
 
+    const { mimeType, extension, buffer } = parseImageData(imageBase64);
+
+    if (!buffer.length) {
+      return res.status(400).json({
+        success: false,
+        error: "Не удалось прочитать исходное изображение."
+      });
+    }
+
     const safeDuration = Math.min(
       15,
       Math.max(2, Number(duration) || 5)
@@ -49,6 +85,18 @@ export default async function handler(req, res) {
 
     const safeResolution =
       resolution === "1080P" ? "1080P" : "720P";
+
+    // Wan 2.7 requires image to be a public URL.
+    // Upload the editor image to the connected Vercel Blob store first.
+    const blob = await put(
+      `miya-video-input/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`,
+      buffer,
+      {
+        access: "public",
+        contentType: mimeType,
+        addRandomSuffix: false
+      }
+    );
 
     const response = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/run`,
@@ -61,7 +109,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           model: "alibaba/wan-2.7-i2v",
           input: {
-            image: imageBase64,
+            image: blob.url,
             prompt: String(prompt).trim(),
             negative_prompt:
               "blurry, distorted face, extra limbs, deformed body, flicker, jitter, unstable background",
