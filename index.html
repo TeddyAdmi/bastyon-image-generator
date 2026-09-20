@@ -5192,7 +5192,6 @@ ${cinematicEnhancement}`;
 
 
   async function animateEditorImage() {
-
     const resultImage = $("editorResultImage");
     const sourceImage = $("editorSource");
 
@@ -5214,76 +5213,101 @@ ${cinematicEnhancement}`;
       $("editPrompt").value.trim() ||
       "The subject gently moves naturally, subtle facial expression and realistic breathing, cinematic camera movement, realistic lighting and detailed textures.";
 
-    if (!window.MiyaGradio || !window.MiyaGradio.Client || !window.MiyaGradio.handle_file) {
-      showError($("editorError"), "Модуль видео ещё не загрузился. Обновите страницу и попробуйте снова.");
-      return;
-    }
-
     $("animateEditedBtn").disabled = true;
     showError($("editorError"), "");
 
     setLoading(
       true,
       "Miya AI создаёт видео",
-      "Wan 2.2 I2V · Hugging Face ZeroGPU…"
+      "Wan 2.2 I2V Flash · Alibaba Cloud…"
     );
 
     try {
-      const client = await window.MiyaGradio.Client.connect(
-        "Saravutw/WAN2.2_I2V_LIGHTNING_4-8step_custom"
-      );
+      // Alibaba needs a public image URL. The backend uploads data URLs to Vercel Blob.
+      const createResponse = await fetch("/api/video", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          imageBase64: videoImage,
+          prompt,
+          resolution: "480P"
+        })
+      });
 
-      // Gradio JS Client expects predict(api_name, inputs).
-      // A data URL is converted to Blob first; handle_file() then uploads it correctly.
-      let imageFile;
-      if (videoImage.startsWith("data:")) {
-        const response = await fetch(videoImage);
-        const blob = await response.blob();
-        imageFile = window.MiyaGradio.handle_file(blob);
-      } else {
-        imageFile = window.MiyaGradio.handle_file(videoImage);
+      const createText = await createResponse.text();
+      let createData;
+
+      try {
+        createData = JSON.parse(createText);
+      } catch {
+        throw new Error("Сервер вернул не JSON.");
       }
 
-      const result = await client.predict("/generate_video", [
-        imageFile,
-        null,
-        prompt,
-        4,
-        "static, motionless, frozen motion, blurry, low quality, deformed, extra fingers, fused fingers, subtitles, text, overexposed, jpeg artifacts",
-        3.5,
-        1,
-        1,
-        Math.floor(Math.random() * 2147483647),
-        true,
-        5,
-        "UniPCMultistep",
-        6,
-        16,
-        false,
-        true
-      ]);
-
-      const output = result?.data?.[0] || result?.[0];
-      const videoUrl =
-        typeof output === "string"
-          ? output
-          : output?.url ||
-            output?.path ||
-            output?.video ||
-            output?.data ||
-            "";
-
-      if (!videoUrl) {
-        throw new Error("Hugging Face не вернул видеофайл.");
+      if (!createResponse.ok || !createData.success || !createData.taskId) {
+        throw new Error(
+          createData.error || "Не удалось запустить генерацию видео."
+        );
       }
 
-      const video = $("editorVideoResult");
-      video.src = videoUrl;
-      video.classList.remove("hidden");
-      $("editorResultImage").classList.add("hidden");
-      $("editorResultPlaceholder").classList.add("hidden");
-      video.load();
+      const taskId = createData.taskId;
+      const startedAt = Date.now();
+      const timeoutMs = 7 * 60 * 1000;
 
+      // Alibaba video generation is asynchronous. Poll every 4 seconds so
+      // Vercel does not have to keep one serverless function open for minutes.
+      while (Date.now() - startedAt < timeoutMs) {
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+
+        const statusResponse = await fetch(
+          "/api/video?taskId=" + encodeURIComponent(taskId),
+          { cache: "no-store" }
+        );
+
+        const statusText = await statusResponse.text();
+        let statusData;
+
+        try {
+          statusData = JSON.parse(statusText);
+        } catch {
+          throw new Error("Сервер вернул неверный статус задачи.");
+        }
+
+        if (!statusResponse.ok) {
+          throw new Error(
+            statusData.error || "Ошибка проверки видео."
+          );
+        }
+
+        if (statusData.done) {
+          if (!statusData.success || !statusData.videoUrl) {
+            throw new Error(
+              statusData.error || "Alibaba Cloud не смог создать видео."
+            );
+          }
+
+          const video = $("editorVideoResult");
+          video.src = statusData.videoUrl;
+          video.classList.remove("hidden");
+          $("editorResultImage").classList.add("hidden");
+          $("editorResultPlaceholder").classList.add("hidden");
+          video.load();
+          break;
+        }
+
+        setLoading(
+          true,
+          "Miya AI создаёт видео",
+          "Wan 2.2 I2V Flash · Alibaba Cloud · " +
+            String(statusData.status || "в очереди") +
+            "…"
+        );
+      }
+
+      if ($("editorVideoResult").classList.contains("hidden")) {
+        throw new Error("Alibaba Cloud слишком долго обрабатывает видео. Попробуйте ещё раз.");
+      }
     } catch (error) {
       console.error("Video generation error:", error);
       const message = String(error?.message || error || "");
@@ -5292,7 +5316,6 @@ ${cinematicEnhancement}`;
         $("editorError"),
         "Не удалось создать видео: " + message
       );
-
     } finally {
       setLoading(false);
       $("animateEditedBtn").disabled = false;
