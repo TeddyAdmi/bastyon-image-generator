@@ -4897,7 +4897,6 @@ ${cinematicEnhancement}`;
             recognition.start();
 
           } catch (error) {
-
             console.error(
               error
             );
@@ -4909,6 +4908,79 @@ ${cinematicEnhancement}`;
 
 
     recognition.onstart =
+      () => {
+
+        listening =
+          true;
+
+
+        $("voiceBtn")
+          .classList
+          .add(
+            "listening"
+          );
+
+
+        $("voiceBtn").textContent =
+          "🔴 Слушаю…";
+
+
+        $("voiceBtn").title =
+          "Нажмите, чтобы остановить";
+
+      };
+
+
+    recognition.onresult =
+      (event) => {
+
+        let transcript =
+          "";
+
+
+        for (
+          let i = event.resultIndex;
+          i < event.results.length;
+          i++
+        ) {
+
+          transcript +=
+            event.results[i][0]
+              .transcript;
+
+        }
+
+
+        transcript =
+          transcript.trim();
+
+
+        if (!transcript) {
+          return;
+        }
+
+
+        const textarea =
+          $("prompt");
+
+
+        const current =
+          textarea.value.trim();
+
+
+        textarea.value =
+          current
+            ? `${current} ${transcript}`
+            : transcript;
+
+
+        updateCounters();
+
+        textarea.focus();
+
+      };
+
+
       () => {
 
         listening =
@@ -5010,3 +5082,134 @@ ${cinematicEnhancement}`;
 
           message =
             "Речь не была распознана. Попробуйте говорить немного громче.";
+
+        } else if (
+          event.error ===
+          "audio-capture"
+        ) {
+
+          message =
+            "Микрофон не найден или занят другим приложением.";
+
+        } else if (
+          event.error ===
+          "network"
+        ) {
+
+          message =
+            "Браузер не смог выполнить распознавание речи. Попробуйте Chrome или Edge.";
+
+        }
+
+
+        showError(
+          $("generatorError"),
+          message
+        );
+
+      };
+
+
+    recognition.onend =
+      () => {
+
+        listening =
+          false;
+
+
+        $("voiceBtn")
+          .classList
+          .remove(
+            "listening"
+          );
+
+
+        $("voiceBtn").textContent =
+          "🎙 Микрофон";
+
+
+        $("voiceBtn").title =
+          "Голосовой ввод";
+
+      };
+
+  } else {
+
+    /*
+     * Firefox currently may not expose
+     * SpeechRecognition.
+     *
+     * We don't fake support here.
+     * The rest of the application continues
+     * working normally.
+     */
+
+    $("voiceBtn")
+      .addEventListener(
+        "click",
+        () => {
+
+          showError(
+            $("generatorError"),
+            "Этот браузер не предоставляет API распознавания речи. В Firefox используйте Chrome/Edge для голосового ввода или можно подключить локальный Whisper без внешнего сервиса."
+          );
+
+        }
+      );
+
+  }
+
+
+  /* =====================================================
+     KEYBOARD SHORTCUT
+  ====================================================== */
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+
+      if (
+        (event.ctrlKey ||
+          event.metaKey) &&
+        event.key === "Enter"
+      ) {
+
+        if (
+          !$("generatorMode")
+            .classList
+            .contains(
+              "hidden"
+            )
+        ) {
+
+          generateImages();
+
+        } else {
+
+          editImage();
+
+        }
+
+      }
+
+    }
+  );
+
+
+  /* =====================================================
+     INIT
+  ====================================================== */
+
+  renderQuickIdeas();
+
+  updateCounters();
+
+  updateCanvasRatio();
+
+  renderHistory();
+
+})();
+</script>
+
+</body>
+</html>
