@@ -5255,23 +5255,77 @@ ${cinematicEnhancement}`;
         ]
       );
 
-      const videoData = result?.data?.[0];
-      let videoUrl = "";
+      console.log("LTX raw result:", result);
 
-      if (typeof videoData === "string") {
-        videoUrl = videoData;
-      } else if (videoData && typeof videoData === "object") {
-        videoUrl = videoData.url || videoData.path || "";
+      const videoData = result?.data?.[0];
+
+      function findVideoUrl(value) {
+        if (!value) return "";
+
+        if (typeof value === "string") {
+          if (/^(https?:|blob:|data:)/i.test(value)) return value;
+          if (/\.(mp4|webm|mov)(\?|$)/i.test(value)) return value;
+          if (value.startsWith("/file=")) {
+            return "https://lightricks-ltx-video-distilled.hf.space" + value;
+          }
+          if (value.startsWith("/")) {
+            return "https://lightricks-ltx-video-distilled.hf.space/file=" + value.replace(/^\/+/, "");
+          }
+          return "";
+        }
+
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            const found = findVideoUrl(item);
+            if (found) return found;
+          }
+          return "";
+        }
+
+        if (typeof value === "object") {
+          const directKeys = [
+            "url",
+            "path",
+            "video",
+            "file",
+            "name",
+            "src"
+          ];
+
+          for (const key of directKeys) {
+            if (value[key]) {
+              const found = findVideoUrl(value[key]);
+              if (found) return found;
+            }
+          }
+
+          for (const key of Object.keys(value)) {
+            const found = findVideoUrl(value[key]);
+            if (found) return found;
+          }
+        }
+
+        return "";
       }
+
+      const videoUrl = findVideoUrl(videoData);
+
+      console.log("LTX video data:", videoData);
+      console.log("LTX resolved video URL:", videoUrl);
 
       if (!videoUrl) {
-        throw new Error("LTX не вернул видео.");
+        throw new Error(
+          "LTX вернул результат, но браузер не смог найти ссылку на видео. Откройте консоль — там будет LTX raw result."
+        );
       }
 
-      $("editorVideoResult").src = videoUrl;
-      $("editorVideoResult").classList.remove("hidden");
+      const video = $("editorVideoResult");
+      video.src = videoUrl;
+      video.classList.remove("hidden");
       $("editorResultImage").classList.add("hidden");
       $("editorResultPlaceholder").classList.add("hidden");
+
+      video.load();
 
     } catch (error) {
       console.error("LTX video error:", error);
