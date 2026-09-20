@@ -1,5 +1,3 @@
-import { put } from "@vercel/blob";
-
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/images";
 
 const OPENROUTER_MODELS = {
@@ -60,6 +58,8 @@ async function storeImage(dataUrl, prefix = "miya") {
   const bytes = Buffer.from(base64, "base64");
   const filename =
     `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extensionForType(mediaType)}`;
+
+  const { put } = await import("@vercel/blob");
 
   const blob = await put(filename, bytes, {
     access: "public",
@@ -126,7 +126,10 @@ async function openRouterImage({
   }
 
   if (imageDataUrl) {
-    body.input_references = [imageDataUrl];
+    body.input_references = [{
+      type: "image_url",
+      image_url: { url: imageDataUrl }
+    }];
   }
 
   const response = await fetch(OPENROUTER_URL, {
