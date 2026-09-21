@@ -412,7 +412,7 @@ async function runAIEdit(){
     const dataUrl=await sourceAsDataUrl(source);
     const d=await api('/api/edit',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt,imageBase64:dataUrl,ratio:state.editRatio,model:'auto',quality:'auto',size:'auto',outputFormat:'png'})
+      body:JSON.stringify({prompt,imageBase64:dataUrl,ratio:state.editRatio,model:'legacy-flux',quality:'auto',size:'auto',outputFormat:'png'})
     });
     if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');
     state.editorImage=d.imageUrl;
@@ -426,7 +426,7 @@ $('editAI')?.addEventListener('click',runAIEdit);
 
 function openVideo(source){
   if(!source)return errorBox('editError','Сначала загрузите изображение.');
-  state.videoImage=source;
+  state.videoImage=source; window.__miyaCurrentVideoImage=source;
   setImage('videoImage','videoEmpty',source);
   $('videoResult')?.classList.add('hidden');
   $('videoResult')?.removeAttribute('src');
