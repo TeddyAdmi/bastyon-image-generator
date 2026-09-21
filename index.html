@@ -6,7 +6,7 @@
 <title>Miya AI — Image & Video Studio</title>
 <meta name="description" content="Miya AI — генератор изображений, отдельный фото-редактор и image-to-video редактор.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237040ef'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Arial' font-size='32' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E">
-<script src="https://js.puter.com/v2/"></script>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 :root{--bg:#f7f5fb;--card:#fff;--ink:#19151f;--muted:#77717f;--line:#e7e2ee;--violet:#7040ef;--violet2:#a06cff;--soft:#f1ebff;--danger:#c82f49;--ok:#139766;--shadow:0 18px 60px rgba(35,20,60,.08)}
@@ -69,12 +69,12 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
  <div class="canvas-head"><div><div class="title">Photo Canvas</div><div class="sub">Отдельный холст фото-редактора</div></div><button id="editorClear" class="btn small">Очистить</button></div>
  <div id="editCanvas" class="canvas"><div id="editEmpty" class="empty"><div class="emoji">🖼️</div><b>Загрузите изображение</b><p>Выберите файл, перетащите его на холст или откройте результат генерации.</p><button id="editorChoose" class="btn primary">Выбрать изображение</button></div><img id="editorSource" class="hidden" alt="Source image"><img id="editResult" class="hidden" alt="Edited result"></div>
  <input id="editorFile" type="file" accept="image/*" hidden>
- <div class="row" style="margin-top:12px"><button id="editorAnimate" class="btn primary">🎬 Анимировать изображение</button><button id="editUseResult" class="btn hidden">Использовать результат</button></div>
+ <div class="row" style="margin-top:12px"><button id="editorAnimate" class="btn primary">🎬 Открыть видеоредактор</button><button id="editUseResult" class="btn hidden">Использовать результат</button></div>
 </div>
 <div class="side">
  <div class="card control"><h3>Что изменить?</h3><textarea id="editPrompt" placeholder="Например: добавь лёгкий ветер в волосы, сохрани лицо, одежду, композицию и освещение..."></textarea><div id="editError" class="error"></div><button id="editBtn" class="btn primary full" style="margin-top:10px">Применить изменение</button></div>
- <div class="card control"><h3>Модель редактора</h3><select id="editModel"><option value="puter-grok">Grok Imagine Quality · Puter</option><option value="puter-nano">Nano Banana Pro · Puter</option><option value="puter-gpt">GPT Image 2 · Puter</option><option value="auto">Auto</option></select><div class="hint" style="margin-top:9px">Редактор не вызывает /api/edit Legacy FLUX автоматически — это устраняет ошибку HTTP 403.</div></div>
- <div class="card control"><h3>🎬 Видео</h3><button id="editorAnimateBig" class="btn dark full">Анимировать этот кадр</button><div class="hint" style="margin-top:9px">Видео — отдельный редактор. Фото-редактор не нужен для подготовки видео.</div></div>
+ <div class="card control"><h3>Модель редактора</h3><select id="editModel"><option value="or-nano-banana-2">Nano Banana 2 · OpenRouter</option><option value="or-gpt-image-2">GPT Image 2 · OpenRouter</option><option value="or-flux-klein">FLUX.2 Klein · OpenRouter</option></select><div class="hint" style="margin-top:9px">Редактор больше не использует Puter и не вызывает Legacy FLUX 403. Для AI-редактирования нужен OPENROUTER_API_KEY в Vercel.</div></div>
+ <div class="card control"><h3>🎬 Видео</h3><button id="editorAnimateBig" class="btn dark full">🎬 Открыть в видеоредакторе</button><div class="hint" style="margin-top:9px">Видео — отдельный редактор. Фото-редактор не нужен для подготовки видео.</div></div>
 </div>
 </div>
 </section>
@@ -117,9 +117,9 @@ const modelMapGen={
 'or-nano-banana-2':'or-nano-banana-2','or-gpt-image-2':'or-gpt-image-2','or-flux-klein':'or-flux-klein'
 };
 const modelMapEdit={
-'puter-grok':'grok-imagine-image-quality',
-'puter-nano':'google/gemini-3-pro-image-preview',
-'puter-gpt':'gpt-image-2'
+'or-nano-banana-2':'or-nano-banana-2',
+'or-gpt-image-2':'or-gpt-image-2',
+'or-flux-klein':'or-flux-klein'
 };
 function textError(e){
  if(!e)return 'Неизвестная ошибка';
@@ -171,19 +171,18 @@ function puterModel(){
  const v=$('editModel').value;
  return modelMapEdit[v]||'grok-imagine-image-quality';
 }
-async function editWithPuter(){
- if(!window.puter?.ai?.txt2img)throw new Error('Puter AI ещё не загрузился. Обновите страницу.');
- const source=state.editorImage;
+async function editWithServer(){
  const prompt=$('editPrompt').value.trim();
- const model=puterModel();
- const result=await window.puter.ai.txt2img(prompt,{
-   model,
-   input_image:source,
-   quality:'high'
- });
- const url=result?.src||result?.url||String(result||'');
- if(!url)throw new Error('Puter не вернул изображение.');
- return url;
+ const model=modelMapEdit[$('editModel').value]||'or-nano-banana-2';
+ const d=await api('/api/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+   prompt,
+   imageBase64:state.editorImage.startsWith('data:image/')?state.editorImage:'',
+   imageUrl:state.editorImage.startsWith('data:image/')?'':state.editorImage,
+   ratio:state.editRatio||'1:1',
+   model
+ })});
+ if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');
+ return d.imageUrl;
 }
 $('editBtn')?.addEventListener('click',async()=>{
  showError('editError','');
@@ -191,7 +190,7 @@ $('editBtn')?.addEventListener('click',async()=>{
  if(!$('editPrompt').value.trim())return showError('editError','Введите описание изменения.');
  $('editBtn').disabled=true;loading(true,'Miya AI редактирует','Редактируем исходный кадр…');
  try{
-  const url=await editWithPuter();
+  const url=await editWithServer();
   state.editorImage=url;setImage('editorSource','editEmpty',url);$('editResult').src=url;$('editResult').classList.remove('hidden');$('editUseResult').classList.remove('hidden');
  }catch(e){console.error(e);showError('editError',e)}
  finally{$('editBtn').disabled=false;loading(false)}
@@ -255,7 +254,7 @@ $('videoGenerate')?.addEventListener('click',async()=>{
 });
 
 async function backend(){
- try{const d=await api('/api/video?health=1');$('videoBackend').textContent=d.ltxConfigured?'LTX GPU подключён':'LTX GPU пока не подключён — добавьте LTX_SERVER_URL в Vercel.';if(!d.ltxConfigured)$('videoBackend').style.background='#fff4e5';}
+ try{const d=await api('/api/video?health=1');$('videoBackend').textContent=d.reachable?'LTX GPU онлайн · '+(d.model||'LTX'):(d.ltxConfigured?('LTX GPU настроен, но недоступен: '+(d.message||'проверьте Cloud Studio')):'LTX GPU не подключён — добавьте LTX_SERVER_URL в Vercel.');if(!d.reachable)$('videoBackend').style.background='#fff4e5';}
  catch(e){$('videoBackend').textContent='Не удалось проверить LTX GPU';}
 }
 backend();
