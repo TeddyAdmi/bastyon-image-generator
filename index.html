@@ -57,7 +57,7 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 </div>
 <div class="side">
  <div class="card control"><h3>Что создать?</h3><button id="aiPromptBtn" class="btn primary full" type="button" style="margin-bottom:8px">✨ AI Prompt</button><textarea id="genPrompt" placeholder="Например: два реалистичных животных на лесной поляне, мягкий вечерний свет, cinematic photography..."></textarea><div class="row" style="margin-top:8px"><button id="genRandom" class="btn">Случайная идея</button><button id="genClearPrompt" class="btn">Очистить</button></div><div id="genError" class="error"></div><button id="generateBtn" class="btn primary full" style="margin-top:10px">✨ Создать изображение</button></div>
- <div class="card control"><h3>Параметры</h3><div class="row"><div><label class="label">Модель</label><select id="genModel"><option value="auto">Auto · FLUX</option><option value="legacy-flux">FLUX Dev · Free</option><option value="or-nano-banana-2">Nano Banana 2</option><option value="or-gpt-image-2">GPT Image 2</option><option value="or-flux-klein">FLUX.2 Klein</option></select></div><div><label class="label">Качество</label><select id="genQuality"><option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div></div><label class="label" style="margin-top:10px">Формат</label><div id="genRatios" class="ratios"><button class="ratio active" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
+ <div class="card control"><h3>Параметры</h3><div style="padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#faf8ff"><div class="label" style="margin:0 0 3px">Модель</div><b>FLUX Dev · Free</b><div class="hint" style="margin-top:3px">Один стабильный генератор без переключения моделей.</div></div><label class="label" style="margin-top:10px">Формат</label><div id="genRatios" class="ratios"><button class="ratio active" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
  <div class="card control"><h3>Быстрые идеи</h3><div id="quickIdeas" class="quick"></div></div>
 </div>
 </div>
@@ -69,18 +69,18 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
  <div class="canvas-head"><div><div class="title">Photo Canvas</div><div class="sub">Отдельный холст фото-редактора</div></div><button id="editorClear" class="btn small">Очистить</button></div>
  <div id="editCanvas" class="canvas"><div id="editEmpty" class="empty"><div class="emoji">🖼️</div><b>Загрузите изображение</b><p>Выберите файл, перетащите его на холст или откройте результат генерации.</p><button id="editorChoose" class="btn primary">Выбрать изображение</button></div><img id="editorSource" class="hidden" alt="Source image"><img id="editResult" class="hidden" alt="Edited result"></div>
  <input id="editorFile" type="file" accept="image/*" hidden>
- <div class="row" style="margin-top:12px"><button type="button" id="editorAnimate" class="btn primary animate-action">🎬 Анимировать изображение</button><button id="editUseResult" class="btn hidden">Использовать результат</button></div>
+ <div class="row" style="margin-top:12px"><button type="button" id="editorAnimate" class="btn primary animate-action">🎬 Анимировать</button><button id="editUseResult" class="btn hidden">Использовать результат</button></div>
 </div>
 <div class="side">
- <div class="card control"><h3>Что изменить?</h3><textarea id="editPrompt" placeholder="Например: добавь лёгкий ветер в волосы, сохрани лицо, одежду, композицию и освещение..."></textarea><div id="editError" class="error"></div><button id="editBtn" class="btn primary full" style="margin-top:10px">Применить изменение</button></div>
+ <div class="card control"><h3>Редактирование</h3><div class="hint">Здесь оставлен простой браузерный редактор без внешних AI-моделей: яркость, контраст и насыщенность.</div><div id="editError" class="error"></div></div>
  <div class="card control"><h3>Редактор изображения</h3>
   <div class="hint" style="margin-bottom:10px">Базовое редактирование работает прямо в браузере и не требует API или кредитов.</div>
   <label class="label">Яркость</label><input id="editBrightness" type="range" min="60" max="140" value="100">
   <label class="label" style="margin-top:9px">Контраст</label><input id="editContrast" type="range" min="60" max="140" value="100">
   <label class="label" style="margin-top:9px">Насыщенность</label><input id="editSaturation" type="range" min="0" max="180" value="100">
   <div class="row" style="margin-top:10px"><button id="editApplyLocal" class="btn primary">Применить</button><button id="editResetLocal" class="btn">Сбросить</button></div>
-  <div class="hint" style="margin-top:9px">AI-редактирование через OpenRouter доступно только при наличии рабочего баланса API.</div>
-  <select id="editModel" class="hidden"><option value="or-nano-banana-2">Nano Banana 2</option></select>
+  
+  
  </div>
  <div class="card control"><h3>🎬 Видео</h3><button type="button" id="editorAnimateBig" class="btn primary full animate-action">🎬 Анимировать это изображение</button><div class="hint" style="margin-top:9px">Видео — отдельный редактор. Фото-редактор не нужен для подготовки видео.</div></div>
 </div>
@@ -103,7 +103,7 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 </div>
 </section>
 
-<div class="footer">Miya AI · Photo Canvas + Video Canvas</div>
+<div class="footer">Miya AI · FLUX Dev · Photo Canvas + Video Canvas</div>
 </div>
 <div id="loading" class="loading"><div class="loader"><div class="spinner"></div><b id="loadingTitle">Miya AI работает</b><div id="loadingText" style="font-size:12px;color:#777181;margin-top:5px">Подождите…</div></div></div>
 
@@ -120,15 +120,7 @@ const ideas=[
 'Маленький медвежонок возле озера, туманное утро, cinematic realism',
 'Кот-путешественник на старинном вокзале, объёмный свет, 35mm photography'
 ];
-const modelMapGen={
-'auto':'legacy-flux','legacy-flux':'legacy-flux',
-'or-nano-banana-2':'or-nano-banana-2','or-gpt-image-2':'or-gpt-image-2','or-flux-klein':'or-flux-klein'
-};
-const modelMapEdit={
-'or-nano-banana-2':'or-nano-banana-2',
-'or-gpt-image-2':'or-gpt-image-2',
-'or-flux-klein':'or-flux-klein'
-};
+const modelMapGen={legacy:'legacy-flux'};
 function textError(e){
  if(!e)return 'Неизвестная ошибка';
  if(typeof e==='string')return e;
@@ -200,31 +192,17 @@ $('generateBtn')?.addEventListener('click',async()=>{
  const prompt=$('genPrompt').value.trim();showError('genError','');if(!prompt)return showError('genError','Введите промпт.');
  state.busy=true;$('generateBtn').disabled=true;loading(true,'Miya AI создаёт изображение','Запускаем выбранный image backend…');
  try{
-  const d=await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,ratio:state.genRatio,model:modelMapGen[$('genModel').value]||'auto',quality:$('genQuality').value})});
+  const d=await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,ratio:state.genRatio,model:'legacy-flux',quality:'auto'})});
   if(!d.imageUrl)throw new Error('Генератор не вернул imageUrl.');
   state.genImage=d.imageUrl;setImage('genImage','genEmpty',d.imageUrl);$('openEditor').classList.remove('hidden');$('openVideo').classList.remove('hidden');
  }catch(e){console.error(e);showError('genError',e)}
  finally{state.busy=false;$('generateBtn').disabled=false;loading(false)}
 });
 
-function puterModel(){
- const v=$('editModel').value;
- return modelMapEdit[v]||'grok-imagine-image-quality';
-}
 async function editWithServer(){
- const prompt=$('editPrompt').value.trim();
- const model=modelMapEdit[$('editModel').value]||'or-nano-banana-2';
- const d=await api('/api/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-   prompt,
-   imageBase64:state.editorImage.startsWith('data:image/')?state.editorImage:'',
-   imageUrl:state.editorImage.startsWith('data:image/')?'':state.editorImage,
-   ratio:state.editRatio||'1:1',
-   model
- })});
- if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');
- return d.imageUrl;
-}
-function renderLocalEdit(){
+  throw new Error('AI-редактор отключён. Используйте локальные настройки изображения.');
+ }
+ function renderLocalEdit(){
  const source = state.editorImage || $('editorSource')?.src || '';
  if(!source) throw new Error('Сначала загрузите изображение.');
 
@@ -275,32 +253,18 @@ $('editResetLocal')?.addEventListener('click',()=>{
  ['editBrightness','editContrast','editSaturation'].forEach((id)=>{if($(id))$(id).value=id==='editSaturation'?100:100});
  if(state.editorImage)setImage('editorSource','editEmpty',state.editorImage);
 });
-$('editBtn')?.addEventListener('click',async()=>{
- showError('editError','');
- if(!state.editorImage)return showError('editError','Сначала загрузите изображение.');
- if(!$('editPrompt').value.trim())return showError('editError','Введите описание изменения.');
- $('editBtn').disabled=true;
- loading(true,'Miya AI','Пробуем AI-редактирование…');
- try{
-   const url=await editWithServer();
-   state.editorImage=url;
-   setImage('editorSource','editEmpty',url);
-   $('editResult').src=url;
-   $('editResult').classList.remove('hidden');
-   $('editUseResult').classList.remove('hidden');
- }catch(e){
-   console.warn('AI edit unavailable:',e);
-   showError('editError','AI-редактор сейчас недоступен. Для яркости, контраста и насыщенности используйте «Применить» ниже.');
- }finally{
-   $('editBtn').disabled=false;
-   loading(false);
- }
-});
 $('editUseResult')?.addEventListener('click',()=>{state.editorImage=$('editResult').src;setImage('editorSource','editEmpty',state.editorImage);$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden')});
 
 function openVideo(src){
  if(!src)return showError('editError','Сначала загрузите изображение.');
- state.videoImage=src;setImage('videoImage','videoEmpty',src);show('video');showError('videoError','');
+ state.videoImage=src;
+ setImage('videoImage','videoEmpty',src);
+ $('videoResult')?.classList.add('hidden');
+ $('videoResult')?.removeAttribute('src');
+ $('videoStatus').classList.add('show');
+ $('videoStatus').textContent='Кадр загружен. Введите движение и нажмите «Создать видео».';
+ show('video');
+ showError('videoError','');
 }
 $('openEditor')?.addEventListener('click',()=>{state.editorImage=state.genImage;setImage('editorSource','editEmpty',state.genImage);show('edit')});
 $('openVideo')?.addEventListener('click',()=>openVideo(state.genImage));
