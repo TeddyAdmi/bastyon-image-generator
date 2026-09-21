@@ -111,17 +111,6 @@ export default async function handler(req, res) {
       }
     }
 
-    if (req.method === "GET" && String(req.query?.health || "") === "1") {
-      const ltx = getLtxBaseUrl();
-      return res.status(200).json({
-        success: true,
-        ltxConfigured: Boolean(ltx),
-        reachable: Boolean(ltx),
-        model: "ltxv-2b-0.9.8-distilled",
-        message: ltx ? "LTX_SERVER_URL настроен." : "LTX_SERVER_URL не настроен. Запустите GPU-сервер и добавьте URL в Vercel."
-      });
-    }
-
     if (req.method === "GET") {
       const taskId = String(req.query?.taskId || "");
       if (!taskId.startsWith("ltx:")) {
