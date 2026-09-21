@@ -319,7 +319,8 @@ export default async function handler(req, res) {
           code: "LEGACY_EDITOR_ERROR",
           error:
             "Flux Kontext Dev сейчас не ответил: " +
-            (legacyError?.message || String(legacyError))
+            (legacyError?.message || String(legacyError)) +
+            ". Исходное изображение при этом было получено сервером корректно."
         });
       }
     }
