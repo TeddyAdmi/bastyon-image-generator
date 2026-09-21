@@ -4780,6 +4780,100 @@
      EDIT IMAGE
   ====================================================== */
 
+  async function prepareEditorImageForUpload(source) {
+    const text = String(source || "").trim();
+
+    if (!text.startsWith("data:image/")) {
+      return text;
+    }
+
+    const MAX_PAYLOAD_BYTES = 3_500_000;
+    const MAX_DIMENSION = 2048;
+
+    function dataUrlBytes(dataUrl) {
+      const comma = dataUrl.indexOf(",");
+      if (comma === -1) return 0;
+      const base64 = dataUrl.slice(comma + 1);
+      return Math.floor(base64.length * 0.75);
+    }
+
+    if (dataUrlBytes(text) <= MAX_PAYLOAD_BYTES) {
+      return text;
+    }
+
+    const image = new Image();
+
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () =>
+        reject(new Error("Не удалось подготовить изображение для редактора."));
+      image.src = text;
+    });
+
+    const sourceWidth = image.naturalWidth || image.width;
+    const sourceHeight = image.naturalHeight || image.height;
+
+    if (!sourceWidth || !sourceHeight) {
+      throw new Error("Не удалось определить размер исходного изображения.");
+    }
+
+    const scale = Math.min(
+      1,
+      MAX_DIMENSION / Math.max(sourceWidth, sourceHeight)
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+    canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+
+    const ctx = canvas.getContext("2d", { alpha: false });
+
+    if (!ctx) {
+      throw new Error("Браузер не смог подготовить изображение.");
+    }
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    const qualities = [0.82, 0.76, 0.70, 0.64, 0.58];
+    const dimensions = [
+      [canvas.width, canvas.height],
+      [
+        Math.round(canvas.width * 0.88),
+        Math.round(canvas.height * 0.88)
+      ],
+      [
+        Math.round(canvas.width * 0.76),
+        Math.round(canvas.height * 0.76)
+      ]
+    ];
+
+    for (const [width, height] of dimensions) {
+      if (width !== canvas.width || height !== canvas.height) {
+        canvas.width = Math.max(1, width);
+        canvas.height = Math.max(1, height);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      }
+
+      for (const quality of qualities) {
+        const compressed = canvas.toDataURL("image/jpeg", quality);
+
+        if (dataUrlBytes(compressed) <= MAX_PAYLOAD_BYTES) {
+          return compressed;
+        }
+      }
+    }
+
+    throw new Error(
+      "Изображение слишком большое даже после автоматического сжатия. Выберите изображение меньшего размера."
+    );
+  }
+
   async function editImage() {
     if (!editorImageBase64) {
       showError(
@@ -4810,6 +4904,12 @@
     );
 
     try {
+      // Vercel Functions accept request bodies up to 4.5 MB.
+      // Large camera/PNG images can exceed that limit, so compress
+      // them in the browser before sending them to /api/edit.
+      const uploadImageBase64 =
+        await prepareEditorImageForUpload(editorImageBase64);
+
       const response = await fetch("/api/edit", {
         method: "POST",
         headers: {
@@ -4817,7 +4917,7 @@
         },
         body: JSON.stringify({
           prompt,
-          imageBase64: editorImageBase64,
+          imageBase64: uploadImageBase64,
           ratio: editorRatio,
           model: $("editorModel").value,
           quality: $("editorQuality").value,
