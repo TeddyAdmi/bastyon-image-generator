@@ -5963,5 +5963,216 @@
   });
 })();
 </script>
-<div id="miyaVideoBackendNote" style="position:fixed;left:16px;bottom:16px;z-index:9998;display:none;padding:10px 14px;border-radius:14px;background:#17131f;color:#fff;font:600 12px Manrope,system-ui;box-shadow:0 10px 30px rgba(0,0,0,.18)">Видео: LTX GPU</div></body>
+<div id="miyaVideoBackendNote" style="position:fixed;left:16px;bottom:16px;z-index:9998;display:none;padding:10px 14px;border-radius:14px;background:#17131f;color:#fff;font:600 12px Manrope,system-ui;box-shadow:0 10px 30px rgba(0,0,0,.18)">Видео: LTX GPU</div>
+<style id="miya-stable-ui-v3">
+#animateEditedBtn{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  min-height:44px!important;
+  padding:11px 16px!important;
+  border:1px solid #d8c8fa!important;
+  border-radius:14px!important;
+  background:#f4efff!important;
+  color:#5b2cc9!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+}
+#animateEditedBtn:hover{background:#eadfff!important;transform:translateY(-1px)}
+.miya-animate-floating{
+  display:flex;
+  width:100%;
+  margin:12px 0 0;
+}
+.miya-animate-floating button{
+  width:100%;
+  min-height:48px;
+  border:0;
+  border-radius:15px;
+  background:linear-gradient(135deg,#7044f5,#9b6cff);
+  color:#fff;
+  font:800 14px Manrope,system-ui,sans-serif;
+  box-shadow:0 10px 25px rgba(112,68,245,.22);
+  cursor:pointer;
+}
+</style>
+<script id="miya-stable-ui-v3">
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id);
+
+  function readable(e){
+    if(!e) return "Неизвестная ошибка";
+    if(typeof e==="string") return e;
+    if(e.message) return e.message;
+    try{return JSON.stringify(e)}catch{return String(e)}
+  }
+
+  // Prevent a broken provider response from becoming an uncaught [object Object].
+  window.addEventListener("unhandledrejection",function(ev){
+    const msg=readable(ev.reason);
+    console.error("Miya unhandled rejection:",ev.reason);
+    const box=$("editorError")||$("videoStandaloneError")||$("generatorError");
+    if(box && msg && msg!=="undefined"){
+      box.textContent=msg;
+      box.classList.add("show");
+    }
+    ev.preventDefault();
+  });
+
+  function switchModeSafe(name){
+    const panels={
+      generator:$("generatorMode"),
+      editor:$("editorMode"),
+      video:$("videoMode")
+    };
+    const buttons={
+      generator:$("generatorModeBtn"),
+      editor:$("editorModeBtn"),
+      video:$("videoModeBtn")
+    };
+    Object.values(panels).forEach(x=>x?.classList.add("hidden"));
+    Object.values(buttons).forEach(x=>x?.classList.remove("active"));
+    panels[name]?.classList.remove("hidden");
+    buttons[name]?.classList.add("active");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  // Make the three main tabs work even if an earlier handler failed.
+  $("generatorModeBtn")?.addEventListener("click",e=>{
+    e.preventDefault();e.stopPropagation();switchModeSafe("generator");
+  },true);
+  $("editorModeBtn")?.addEventListener("click",e=>{
+    e.preventDefault();e.stopPropagation();switchModeSafe("editor");
+  },true);
+  $("videoModeBtn")?.addEventListener("click",e=>{
+    e.preventDefault();e.stopPropagation();switchModeSafe("video");
+  },true);
+
+  // Guarantee a visible Animate button in the photo editor.
+  const editorCard=$("editorMode");
+  const animate=$("animateEditedBtn");
+  if(editorCard && !animate){
+    const wrap=document.createElement("div");
+    wrap.className="miya-animate-floating";
+    wrap.innerHTML='<button type="button" id="miyaAnimateFallback">🎬 Анимировать изображение</button>';
+    const target=$("editBtn")||editorCard.querySelector("button");
+    if(target?.parentNode) target.parentNode.insertBefore(wrap,target.nextSibling);
+    else editorCard.appendChild(wrap);
+  }
+
+  function getCurrentImage(){
+    const result=$("editorResultImage");
+    const source=$("editorSource");
+    if(result && !result.classList.contains("hidden") && result.src) return result.src;
+    if(source && !source.classList.contains("hidden") && source.src) return source.src;
+    return "";
+  }
+
+  function animateToVideo(){
+    const src=getCurrentImage();
+    const error=$("editorError");
+    if(!src){
+      if(error){error.textContent="Сначала загрузите изображение в редактор.";error.classList.add("show")}
+      return;
+    }
+    const videoImage=$("videoSourceImage");
+    const empty=$("videoCanvasEmpty");
+    const result=$("videoResult");
+    const file=$("videoFile");
+    if(file) file.value="";
+    if(videoImage){videoImage.src=src;videoImage.classList.remove("hidden")}
+    empty?.classList.add("hidden");
+    result?.classList.add("hidden");
+    window.__miyaVideoSourceUrl=src;
+    switchModeSafe("video");
+  }
+
+  $("animateEditedBtn")?.addEventListener("click",e=>{
+    e.preventDefault();e.stopPropagation();animateToVideo();
+  },true);
+  $("miyaAnimateFallback")?.addEventListener("click",animateToVideo);
+
+  // If a result is generated, keep the animation button visible.
+  const resultImg=$("editorResultImage");
+  if(resultImg){
+    const mo=new MutationObserver(()=>{
+      $("animateEditedBtn")?.classList.remove("hidden");
+    });
+    mo.observe(resultImg,{attributes:true,attributeFilter:["class","src"]});
+  }
+
+  // Harden the standalone video button and produce a readable error.
+  const videoBtn=$("createVideoStandaloneBtn");
+  if(videoBtn){
+    const clone=videoBtn.cloneNode(true);
+    videoBtn.replaceWith(clone);
+    clone.addEventListener("click",async function(){
+      const prompt=($("videoPromptStandalone")?.value||"").trim();
+      const err=$("videoStandaloneError");
+      const source=$("videoSourceImage");
+      const src=source?.src||window.__miyaVideoSourceUrl||"";
+      if(!src){if(err){err.textContent="Сначала загрузите изображение.";err.classList.add("show")}return}
+      if(!prompt){if(err){err.textContent="Введите промпт для видео.";err.classList.add("show")}return}
+
+      clone.disabled=true;
+      if(err){err.textContent="";err.classList.remove("show")}
+      try{
+        let imageBase64="";
+        if(src.startsWith("data:image/")) imageBase64=src;
+
+        const response=await fetch("/api/video",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","Accept":"application/json"},
+          body:JSON.stringify({
+            imageBase64,
+            imageUrl:imageBase64?"":src,
+            prompt,
+            aspect:window.__miyaVideoRatio||"16:9"
+          })
+        });
+        const raw=await response.text();
+        let data={};
+        try{data=raw?JSON.parse(raw):{}}catch{throw new Error("Видео API вернул не JSON (HTTP "+response.status+")")}
+        if(!response.ok||!data.taskId) throw new Error(data.error||data.message||("HTTP "+response.status));
+        const loading=$("loading");
+        loading?.classList.add("show");
+        for(let i=0;i<540;i++){
+          await new Promise(r=>setTimeout(r,4000));
+          const sr=await fetch("/api/video?taskId="+encodeURIComponent(data.taskId),{cache:"no-store"});
+          const stRaw=await sr.text();let st={};
+          try{st=stRaw?JSON.parse(stRaw):{}}catch{throw new Error("Статус видео вернул не JSON")}
+          if(!sr.ok) throw new Error(st.error||st.message||("HTTP "+sr.status));
+          if(st.done){
+            if(!st.success||!st.videoUrl) throw new Error(st.error||"Видео не создано");
+            const v=$("videoResult");
+            if(v){v.src=st.videoUrl;v.classList.remove("hidden");source?.classList.add("hidden");$("videoCanvasEmpty")?.classList.add("hidden");v.load()}
+            $("videoDownloadBtn")?.classList.remove("hidden");
+            $("videoDownloadBtn").onclick=()=>window.open(st.videoUrl,"_blank","noopener");
+            loading?.classList.remove("show");
+            return;
+          }
+        }
+        throw new Error("Видео слишком долго обрабатывается.");
+      }catch(e){
+        console.error("Miya video error:",e);
+        $("loading")?.classList.remove("show");
+        if(err){err.textContent="Ошибка видео: "+readable(e);err.classList.add("show")}
+      }finally{clone.disabled=false}
+    });
+  }
+
+  // If no video source exists, make the empty canvas itself clickable.
+  $("videoCanvas")?.addEventListener("click",function(e){
+    if(e.target.closest("button,input,textarea")) return;
+    const source=$("videoSourceImage");
+    if(source?.classList.contains("hidden")) $("videoFile")?.click();
+  });
+
+  // Initial safe state.
+  switchModeSafe("generator");
+})();
+</script>
+</body>
 </html>
