@@ -43,6 +43,9 @@ function getPixazoKey() {
 const PIXAZO_CREATE_URL =
   "https://gateway.pixazo.ai/ltx-video/v1/image-to-video";
 
+// LTX 2.5 Free: explicitly request native synchronized audio.
+const PIXAZO_GENERATE_AUDIO = true;
+
 const PIXAZO_STATUS_URL =
   "https://gateway.pixazo.ai/v2/requests/status/";
 
@@ -308,7 +311,7 @@ export default async function handler(req, res) {
           duration: 6,
           fps: 25,
           aspect_ratio: body.aspect || "16:9",
-          generate_audio: true
+          generate_audio: PIXAZO_GENERATE_AUDIO
         })
       }
     );
