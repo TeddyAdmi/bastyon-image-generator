@@ -117,124 +117,52 @@ async function legacyPixelSterGenerate({ prompt, ratio }) {
 export async function generateImage(options) {
   const {
     prompt,
-    ratio = "1:1",
-    model = "auto",
-    quality = "auto",
-    size = "auto",
-    outputFormat = "png"
+    ratio = "1:1"
   } = options;
 
-  const selection = String(model || "auto");
-
-  if (selection === "auto") {
-    const errors = [];
-
-    // AUTO deliberately starts with the existing FLUX service.
-    // This keeps the current free/working generation path in front of
-    // paid OpenRouter image generation.
-    try {
-      return await legacyPixelSterGenerate({ prompt, ratio });
-    } catch (error) {
-      errors.push("FLUX Legacy: " + error.message);
-    }
-
-    throw new Error(
-      "Не удалось создать изображение. " + errors.join(" | ")
-    );
+  if (!String(prompt || "").trim()) {
+    throw new Error("Введите промпт.");
   }
 
-  throw new Error("Неизвестная модель генерации.");
+  return legacyPixelSterGenerate({ prompt, ratio });
 }
 
 export async function editImage(options) {
   const {
     prompt,
     imageBase64,
-    ratio = "1:1",
-    model = "auto",
-    quality = "auto",
-    size = "auto",
-    outputFormat = "png"
+    ratio = "1:1"
   } = options;
 
   const normalized = normalizeImageInput(imageBase64);
 
   if (!normalized) {
-    throw new Error("Редактор не смог распознать изображение. Поддерживается data:image/...;base64 или обычный base64.");
-  }
-
-  const imageDataUrl = normalized.dataUrl;
-  const selection = String(model || "auto");
-
-  if (selection === "auto") {
-    const errors = [];
-
-    // Редактор AUTO: сначала основной рабочий FLUX Editor.
-    // Платные/дополнительные провайдеры используются только как fallback.
-    try {
-      const normalized = normalizeImageInput(imageBase64);
-      if (!normalized) throw new Error("Не удалось распознать исходное изображение.");
-
-      const response = await fetch("https://ahm7xmakki.com/api/pti", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          ratio,
-          imageBase64: normalized.base64
-        })
-      });
-
-      const data = await readJsonResponse(response, "Legacy editor");
-
-      if (!data.imageUrl) {
-        throw new Error("Legacy editor не вернул imageUrl.");
-      }
-
-      return {
-        imageUrl: data.imageUrl,
-        provider: "Legacy PixelSter",
-        model: "Flux Kontext Dev"
-      };
-    } catch (error) {
-      errors.push("Основной FLUX Editor: " + error.message);
-    }
-
-    if (process.env.HF_TOKEN) {
-      try {
-        throw new Error("Hugging Face image editing не подключён для этого редактора.");
-      } catch (error) {
-        errors.push("Hugging Face: " + error.message);
-      }
-    }
-
-    // Legacy PixelSter can return 403. If OpenRouter is configured,
-    // use the selected image-editing model instead of leaving the editor dead.
-    if (process.env.OPENROUTER_API_KEY) {
-      try {
-        return await openRouterImage({
-          model: OPENROUTER_MODELS["or-nano-banana-2"],
-          prompt,
-          ratio,
-          quality,
-          size,
-          outputFormat,
-          imageDataUrl
-        });
-      } catch (error) {
-        errors.push("OpenRouter: " + error.message);
-      }
-    }
-
     throw new Error(
-      "Редактор сейчас недоступен. Основной Flux Kontext вернул ошибку, а резервный провайдер не настроен. " +
-      errors.join(" | ")
+      "Редактор не смог распознать изображение. Поддерживается data:image/...;base64 или обычный base64."
     );
   }
 
-  throw new Error(
-    "Эта модель не поддерживает редактирование. Выберите OpenRouter или Auto."
-  );
+  const response = await fetch("https://ahm7xmakki.com/api/pti", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt: String(prompt || "").trim(),
+      ratio,
+      imageBase64: normalized.base64
+    })
+  });
+
+  const data = await readJsonResponse(response, "PixelSter editor");
+
+  if (!data.imageUrl) {
+    throw new Error("PixelSter editor не вернул imageUrl.");
+  }
+
+  return {
+    imageUrl: data.imageUrl,
+    provider: "PixelSter",
+    model: "Flux Kontext Dev"
+  };
 }
 
 export function getProviderStatus() {
