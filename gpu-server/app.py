@@ -36,6 +36,9 @@ class GenerateRequest(BaseModel):
     imageBase64: str
     prompt: str
     seed: int | None = None
+    duration: float = 5.0
+    width: int | None = None
+    height: int | None = None
 
 
 def decode_data_url(value: str, destination: Path):
@@ -63,7 +66,7 @@ def decode_data_url(value: str, destination: Path):
     return destination
 
 
-def run_generation(job_id: str, image_path: Path, prompt: str, seed: int):
+def run_generation(job_id: str, image_path: Path, prompt: str, seed: int, duration: float, width: int, height: int):
     job = jobs[job_id]
     output_dir = OUTPUT_DIR / job_id
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -136,10 +139,10 @@ def run_generation(job_id: str, image_path: Path, prompt: str, seed: int):
         job["finishedAt"] = time.time()
 
 
-def start_job(job_id: str, image_path: Path, prompt: str, seed: int):
+def start_job(job_id: str, image_path: Path, prompt: str, seed: int, duration: float, width: int, height: int):
     thread = threading.Thread(
         target=run_generation,
-        args=(job_id, image_path, prompt, seed),
+        args=(job_id, image_path, prompt, seed, duration, width, height),
         daemon=True,
     )
     thread.start()
@@ -223,7 +226,11 @@ def generate(payload: GenerateRequest):
             "seed": seed,
         }
 
-    start_job(job_id, image_path, prompt, seed)
+    duration = min(10.0, max(1.0, float(payload.duration or 5.0)))
+    width = int(payload.width or WIDTH)
+    height = int(payload.height or HEIGHT)
+    frames = max(9, round(duration * FPS / 8) * 8 + 1)
+    start_job(job_id, image_path, prompt, seed, duration, width, height)
 
     return {
         "success": True,
@@ -231,7 +238,7 @@ def generate(payload: GenerateRequest):
         "status": "queued",
         "provider": "LTX-Video",
         "model": "ltxv-2b-0.9.8-distilled",
-        "duration": FRAMES / FPS,
+        "duration": frames / FPS,
     }
 
 
