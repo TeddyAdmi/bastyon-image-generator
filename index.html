@@ -36,7 +36,13 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 @media(max-width:950px){.layout{grid-template-columns:1fr}.side{order:2}.canvas{min-height:540px}.canvas img,.canvas video{max-height:515px}}
 @media(max-width:620px){.app{padding:10px}.top{align-items:flex-start;flex-direction:column}.tabs{width:100%}.tab{flex:1;padding:10px 5px;font-size:12px}.row{grid-template-columns:1fr}.ratios{grid-template-columns:repeat(2,1fr)}.canvas{min-height:430px}}
 </style>
-</head>
+<style id="miya-editor-polish">
+.edit-prompt{width:100%;min-height:125px;resize:vertical;font:inherit;line-height:1.5;padding:13px 14px;background:#fff;color:#17131f;border:1px solid #e5dfec;border-radius:16px}
+.edit-prompt::placeholder{color:#aaa2b2}
+#editCanvas,#videoCanvas,#genCanvas{min-height:620px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#editorSource,#editResult,#genImage,#videoImage,#videoResult{max-width:100%;max-height:620px;width:auto;height:auto;object-fit:contain}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+</style></head>
 <body>
 <div class="app">
 <header class="top">
@@ -72,16 +78,23 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
  <div class="row" style="margin-top:12px"><button type="button" id="editorAnimate" class="btn primary animate-action">🎬 Анимировать</button><button id="editUseResult" class="btn hidden">Использовать результат</button></div>
 </div>
 <div class="side">
- <div class="card control"><h3>Редактирование</h3><div class="hint">Здесь оставлен простой браузерный редактор без внешних AI-моделей: яркость, контраст и насыщенность.</div><div id="editError" class="error"></div></div>
- <div class="card control"><h3>Редактор изображения</h3>
-  <div class="hint" style="margin-bottom:10px">Базовое редактирование работает прямо в браузере и не требует API или кредитов.</div>
+ <div class="card control">
+  <h3>✨ AI редактирование</h3>
+  <div class="hint">Опишите, что изменить на выбранном изображении.</div>
+  <textarea id="editPrompt" class="edit-prompt" rows="5" placeholder="Например: добавь дождь, сохрани животное, лицо и композицию."></textarea>
+  <div class="row" style="margin-top:9px">
+    <button id="editAI" type="button" class="btn primary">✨ Изменить изображение</button>
+    <button id="editApplyLocal" type="button" class="btn">Цвет/свет</button>
+  </div>
+  <div id="editError" class="error"></div>
+</div>
+<div class="card control">
+  <h3>🎛 Настройки</h3>
   <label class="label">Яркость</label><input id="editBrightness" type="range" min="60" max="140" value="100">
   <label class="label" style="margin-top:9px">Контраст</label><input id="editContrast" type="range" min="60" max="140" value="100">
   <label class="label" style="margin-top:9px">Насыщенность</label><input id="editSaturation" type="range" min="0" max="180" value="100">
-  <div class="row" style="margin-top:10px"><button id="editApplyLocal" class="btn primary">Применить</button><button id="editResetLocal" class="btn">Сбросить</button></div>
-  
-  
- </div>
+  <div class="row" style="margin-top:10px"><button id="editResetLocal" type="button" class="btn">Сбросить</button></div>
+</div>
  <div class="card control"><h3>🎬 Видео</h3><button type="button" id="editorAnimateBig" class="btn primary full animate-action">🎬 Анимировать это изображение</button><div class="hint" style="margin-top:9px">Видео — отдельный редактор. Фото-редактор не нужен для подготовки видео.</div></div>
 </div>
 </div>
@@ -387,6 +400,29 @@ $('editorClear')?.addEventListener('click',()=>{
   $('editUseResult')?.classList.add('hidden');
   errorBox('editError','');
 });
+
+async function runAIEdit(){
+  const source=state.editorImage||$('editorSource')?.src||'';
+  const prompt=$('editPrompt')?.value.trim()||'';
+  if(!source)return errorBox('editError','Сначала загрузите изображение.');
+  if(!prompt)return errorBox('editError','Введите, что нужно изменить.');
+  const button=$('editAI'); if(button)button.disabled=true;
+  errorBox('editError',''); busy(true,'Фото-редактор','AI редактирует исходное изображение…');
+  try{
+    const dataUrl=await sourceAsDataUrl(source);
+    const d=await api('/api/edit',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt,imageBase64:dataUrl,ratio:state.editRatio,model:'auto',quality:'auto',size:'auto',outputFormat:'png'})
+    });
+    if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');
+    state.editorImage=d.imageUrl;
+    setImage('editorSource','editEmpty',d.imageUrl);
+    $('editResult')?.classList.add('hidden'); $('editUseResult')?.classList.add('hidden');
+  }catch(e){console.error('AI edit:',e);errorBox('editError',e)}
+  finally{if(button)button.disabled=false;busy(false)}
+}
+
+$('editAI')?.addEventListener('click',runAIEdit);
 
 function openVideo(source){
   if(!source)return errorBox('editError','Сначала загрузите изображение.');
