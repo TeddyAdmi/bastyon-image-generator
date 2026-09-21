@@ -4720,23 +4720,45 @@
     const resultImage = $("editorResultImage");
     const sourceImage = $("editorSource");
 
-    const videoImage =
+    // Prefer a real public HTTPS URL from the generated/edited image.
+    // For a locally uploaded image, keep the original data URL separately.
+    const resultSrc =
       resultImage &&
       !resultImage.classList.contains("hidden") &&
       resultImage.src
         ? resultImage.src
-        : sourceImage && sourceImage.src
-          ? sourceImage.src
-          : "";
+        : "";
 
-    if (!videoImage) {
-      showError($("editorError"), "Сначала загрузите или отредактируйте изображение.");
+    const sourceSrc =
+      sourceImage && sourceImage.src
+        ? sourceImage.src
+        : "";
+
+    let videoImageUrl = "";
+    let videoImageBase64 = "";
+
+    if (/^https?:\\/\\//i.test(resultSrc)) {
+      videoImageUrl = resultSrc;
+    } else if (
+      editorImageBase64 &&
+      /^data:image\\//i.test(editorImageBase64)
+    ) {
+      videoImageBase64 = editorImageBase64;
+    } else if (/^https?:\\/\\//i.test(sourceSrc)) {
+      videoImageUrl = sourceSrc;
+    }
+
+    if (!videoImageUrl && !videoImageBase64) {
+      showError(
+        $("editorError"),
+        "Для видео нужно изображение. После генерации/редактирования используйте результат с публичным HTTPS URL."
+      );
       return;
     }
 
     const prompt =
       $("editPrompt").value.trim() ||
-      "The subject gently moves naturally, subtle facial expression and realistic breathing, cinematic camera movement, realistic lighting and detailed textures.";
+      "The subject naturally moves and breathes, subtle realistic motion, gentle facial movement, slight movement of hair and clothing, cinematic camera push-in, realistic lighting, photorealistic, smooth natural motion, no distortion.";
 
     $("animateEditedBtn").disabled = true;
     showError($("editorError"), "");
@@ -4748,15 +4770,15 @@
     );
 
     try {
-      // Alibaba needs a public image URL. The backend uploads data URLs to Vercel Blob.
       const createResponse = await fetch("/api/video", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Accept": "application/json"
         },
         body: JSON.stringify({
-          imageUrl: videoImage,
-          imageBase64: videoImage,
+          imageUrl: videoImageUrl,
+          imageBase64: videoImageBase64,
           prompt,
           aspect: "9:16"
         })
@@ -4766,14 +4788,34 @@
       let createData;
 
       try {
-        createData = JSON.parse(createText);
+        createData = createText
+          ? JSON.parse(createText)
+          : {};
       } catch {
-        throw new Error("Сервер вернул не JSON.");
+        console.error(
+          "Pixazo /api/video raw response:",
+          createText
+        );
+
+        throw new Error(
+          "Сервер /api/video вернул не JSON (HTTP " +
+          createResponse.status +
+          "). " +
+          createText.slice(0, 300)
+        );
       }
 
-      if (!createResponse.ok || !createData.success || !createData.taskId) {
+      if (
+        !createResponse.ok ||
+        !createData.success ||
+        !createData.taskId
+      ) {
         throw new Error(
-          createData.error || "Не удалось запустить генерацию видео."
+          createData.error ||
+          createData.message ||
+          "Не удалось запустить генерацию видео (HTTP " +
+          createResponse.status +
+          ")."
         );
       }
 
@@ -4781,44 +4823,84 @@
       const startedAt = Date.now();
       const timeoutMs = 7 * 60 * 1000;
 
-      // Alibaba video generation is asynchronous. Poll every 4 seconds so
-      // Vercel does not have to keep one serverless function open for minutes.
       while (Date.now() - startedAt < timeoutMs) {
-        await new Promise((resolve) => setTimeout(resolve, 4000));
+        await new Promise((resolve) =>
+          setTimeout(resolve, 5000)
+        );
 
         const statusResponse = await fetch(
-          "/api/video?taskId=" + encodeURIComponent(taskId),
-          { cache: "no-store" }
+          "/api/video?taskId=" +
+            encodeURIComponent(taskId),
+          {
+            method: "GET",
+            headers: {
+              "Accept": "application/json"
+            },
+            cache: "no-store"
+          }
         );
 
         const statusText = await statusResponse.text();
         let statusData;
 
         try {
-          statusData = JSON.parse(statusText);
+          statusData = statusText
+            ? JSON.parse(statusText)
+            : {};
         } catch {
-          throw new Error("Сервер вернул неверный статус задачи.");
+          console.error(
+            "Pixazo status raw response:",
+            statusText
+          );
+
+          throw new Error(
+            "Сервер статуса вернул не JSON (HTTP " +
+            statusResponse.status +
+            "). " +
+            statusText.slice(0, 300)
+          );
         }
 
         if (!statusResponse.ok) {
           throw new Error(
-            statusData.error || "Ошибка проверки видео."
+            statusData.error ||
+            statusData.message ||
+            "Ошибка проверки видео (HTTP " +
+            statusResponse.status +
+            ")."
           );
         }
 
         if (statusData.done) {
-          if (!statusData.success || !statusData.videoUrl) {
+          if (
+            !statusData.success ||
+            !statusData.videoUrl
+          ) {
             throw new Error(
-              statusData.error || "Alibaba Cloud не смог создать видео."
+              statusData.error ||
+              "Pixazo не смог создать видео."
             );
           }
 
           const video = $("editorVideoResult");
           video.src = statusData.videoUrl;
           video.classList.remove("hidden");
-          $("editorResultImage").classList.add("hidden");
-          $("editorResultPlaceholder").classList.add("hidden");
+
+          $("editorResultImage").classList.add(
+            "hidden"
+          );
+          $("editorResultPlaceholder").classList.add(
+            "hidden"
+          );
+
           video.load();
+
+          setLoading(
+            true,
+            "Видео готово",
+            "LTX 2.5 Free · Pixazo"
+          );
+
           break;
         }
 
@@ -4826,27 +4908,44 @@
           true,
           "Miya AI создаёт видео",
           "LTX 2.5 Free · Pixazo · " +
-            String(statusData.status || "в очереди") +
+            String(
+              statusData.status || "QUEUED"
+            ) +
             "…"
         );
       }
 
-      if ($("editorVideoResult").classList.contains("hidden")) {
-        throw new Error("Pixazo слишком долго обрабатывает видео. Попробуйте ещё раз.");
+      if (
+        $("editorVideoResult").classList.contains(
+          "hidden"
+        )
+      ) {
+        throw new Error(
+          "Pixazo слишком долго обрабатывает видео. Попробуйте ещё раз."
+        );
       }
     } catch (error) {
-      console.error("Video generation error:", error);
-      const message = String(error?.message || error || "");
+      console.error(
+        "Video generation error:",
+        error
+      );
+
+      const message = String(
+        error?.message ||
+        error ||
+        "Неизвестная ошибка"
+      );
 
       showError(
         $("editorError"),
-        "Не удалось создать видео через Pixazo: " + message
+        "Ошибка видео: " + message
       );
     } finally {
       setLoading(false);
       $("animateEditedBtn").disabled = false;
     }
   }
+
   $("animateEditedBtn")
     .addEventListener(
       "click",
