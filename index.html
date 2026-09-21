@@ -1524,181 +1524,7 @@ textarea:focus,input:focus,select:focus{
 }
 </style>
 
-</head><script id="miya-video-final-fix">
-(function(){
-  "use strict";
-
-  const btn=document.getElementById("createVideoStandaloneBtn");
-  if(!btn) return;
-
-  // Remove every previous click handler by replacing the button node.
-  const fresh=btn.cloneNode(true);
-  btn.replaceWith(fresh);
-
-  const q=id=>document.getElementById(id);
-  const wait=ms=>new Promise(r=>setTimeout(r,ms));
-
-  async function asDataUrlIfNeeded(){
-    const img=q("videoSourceImage");
-    if(!img) return "";
-
-    const src=img.getAttribute("src")||"";
-    if(src.startsWith("data:image/")) return src;
-
-    // The selected local file is already represented by sourceBase64 in the
-    // standalone editor. This fallback handles generated/public image URLs.
-    if(window.__miyaVideoSourceBase64) return window.__miyaVideoSourceBase64;
-
-    return "";
-  }
-
-  async function run(){
-    const prompt=(q("videoPromptStandalone")?.value||"").trim();
-    const errorBox=q("videoStandaloneError");
-    const loading=q("loading");
-
-    if(!prompt){
-      if(errorBox){errorBox.textContent="Введите промпт для движения.";errorBox.classList.add("show")}
-      return;
-    }
-
-    const imageBase64=await asDataUrlIfNeeded();
-    const image=q("videoSourceImage");
-    const imageUrl=image?.src||"";
-
-    if(!imageBase64 && !imageUrl){
-      if(errorBox){errorBox.textContent="Сначала загрузите изображение в видеоредактор.";errorBox.classList.add("show")}
-      return;
-    }
-
-    fresh.disabled=true;
-    if(errorBox){errorBox.textContent="";errorBox.classList.remove("show")}
-    if(loading) loading.classList.add("show");
-
-    const setLoad=(title,text)=>{
-      const a=q("loadingTitle"),b=q("loadingText");
-      if(a)a.textContent=title;
-      if(b)b.textContent=text;
-    };
-
-    try{
-      setLoad("Miya AI создаёт видео","Передаём исходный кадр напрямую в LTX-Video GPU…");
-
-      const response=await fetch("/api/video",{
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "Accept":"application/json"
-        },
-        body:JSON.stringify({
-          imageBase64:imageBase64||"",
-          imageUrl:imageBase64?"":imageUrl,
-          prompt,
-          aspect:(window.__miyaVideoRatio||"16:9")
-        })
-      });
-
-      const text=await response.text();
-      let data={};
-      try{data=text?JSON.parse(text):{}}catch{
-        throw new Error("Сервер видео вернул не JSON (HTTP "+response.status+").");
-      }
-      if(!response.ok||!data.success||!data.taskId){
-        throw new Error(data.error||data.message||"Не удалось запустить видеогенерацию.");
-      }
-
-      const started=Date.now();
-      while(Date.now()-started<35*60*1000){
-        await wait(4000);
-
-        const statusResponse=await fetch(
-          "/api/video?taskId="+encodeURIComponent(data.taskId),
-          {cache:"no-store",headers:{"Accept":"application/json"}}
-        );
-        const statusText=await statusResponse.text();
-        let status={};
-        try{status=statusText?JSON.parse(statusText):{}}catch{
-          throw new Error("Сервер статуса видео вернул не JSON.");
-        }
-
-        if(!statusResponse.ok){
-          throw new Error(status.error||status.message||"Ошибка проверки видео.");
-        }
-
-        if(status.done){
-          if(!status.success||!status.videoUrl){
-            throw new Error(status.error||"Видео не было создано.");
-          }
-
-          const video=q("videoResult");
-          if(video){
-            video.src=status.videoUrl;
-            video.classList.remove("hidden");
-            video.style.aspectRatio=(window.__miyaVideoRatio||"16:9")==="9:16"?"9 / 16":"16 / 9";
-            video.load();
-          }
-
-          q("videoSourceImage")?.classList.add("hidden");
-          q("videoCanvasEmpty")?.classList.add("hidden");
-          q("videoDownloadBtn")?.classList.remove("hidden");
-          q("videoSendGeneratorBtn")?.classList.remove("hidden");
-
-          if(q("videoDownloadBtn")){
-            q("videoDownloadBtn").onclick=()=>window.open(status.videoUrl,"_blank","noopener");
-          }
-
-          setLoad(
-            "Видео готово",
-            (status.provider||"LTX-Video GPU")+" · "+(status.model||"")
-          );
-
-          setTimeout(()=>{if(loading)loading.classList.remove("show")},700);
-          return;
-        }
-
-        setLoad(
-          "Miya AI создаёт видео",
-          (status.provider||"LTX-Video GPU")+" · "+(status.status||"RUNNING")+"…"
-        );
-      }
-
-      throw new Error("Видео слишком долго обрабатывается. Попробуйте ещё раз.");
-    }catch(error){
-      console.error("Miya video error:",error);
-      if(errorBox){
-        errorBox.textContent="Ошибка видео: "+(error?.message||error);
-        errorBox.classList.add("show");
-      }
-      if(loading) loading.classList.remove("show");
-    }finally{
-      fresh.disabled=false;
-    }
-  }
-
-  fresh.addEventListener("click",run);
-
-  // Keep the current standalone editor state available to the final handler.
-  const oldOpen=window.__miyaVideoOpen;
-  window.__miyaVideoOpen=oldOpen;
-
-  // The original standalone code keeps these values in a closure. We mirror
-  // them whenever the user chooses a file by reading the file input here.
-  const file=document.getElementById("videoFile");
-  if(file){
-    file.addEventListener("change",async()=>{
-      const selected=file.files&&file.files[0];
-      if(!selected)return;
-      const reader=new FileReader();
-      reader.onload=()=>{window.__miyaVideoSourceBase64=reader.result};
-      reader.readAsDataURL(selected);
-    });
-  }
-
-  document.querySelectorAll("#videoRatiosStandalone .ratio-button").forEach(b=>{
-    b.addEventListener("click",()=>{window.__miyaVideoRatio=b.dataset.ratio||"16:9"});
-  });
-})();
-</script>
+</head>
 
 
 <body>
@@ -5595,51 +5421,83 @@ textarea:focus,input:focus,select:focus{
   }
 
   async function animateEditorImage() {
-    const resultImage = $("editorResultImage");
-    const sourceImage = $("editorSource");
+  const resultImage = $("editorResultImage");
+  const sourceImage = $("editorSource");
+  const resultSrc = resultImage && !resultImage.classList.contains("hidden") ? resultImage.src : "";
+  const sourceSrc = sourceImage ? sourceImage.src : "";
 
-    // Prefer a real public HTTPS URL from the generated/edited image.
-    // For a locally uploaded image, keep the original data URL separately.
-    const resultSrc =
-      resultImage &&
-      !resultImage.classList.contains("hidden") &&
-      resultImage.src
-        ? resultImage.src
-        : "";
+  let imageUrl = "";
+  let imageBase64 = "";
 
-    const sourceSrc =
-      sourceImage && sourceImage.src
-        ? sourceImage.src
-        : "";
+  if (resultSrc.indexOf("https://") === 0 || resultSrc.indexOf("http://") === 0) imageUrl = resultSrc;
+  else if (editorImageBase64 && editorImageBase64.indexOf("data:image/") === 0) imageBase64 = editorImageBase64;
+  else if (sourceSrc.indexOf("https://") === 0 || sourceSrc.indexOf("http://") === 0) imageUrl = sourceSrc;
 
-    let videoImageUrl = "";
-    let videoImageBase64 = "";
+  if (!imageUrl && !imageBase64) {
+    showError($("editorError"), "Для видео сначала загрузите или отредактируйте изображение.");
+    return;
+  }
 
-    if (/^https?:\/\//i.test(resultSrc)) {
-      videoImageUrl = resultSrc;
-    } else if (
-      editorImageBase64 &&
-      /^data:image\//i.test(editorImageBase64)
-    ) {
-      videoImageBase64 = editorImageBase64;
-    } else if (/^https?:\/\//i.test(sourceSrc)) {
-      videoImageUrl = sourceSrc;
+  const prompt =
+    ($("videoPromptStandalone") && $("videoPromptStandalone").value.trim()) ||
+    $("editPrompt").value.trim() ||
+    "Natural realistic motion, subtle breathing, natural facial movement, gentle movement of hair and clothing, cinematic camera movement.";
+
+  $("animateEditedBtn").disabled = true;
+  showError($("editorError"), "");
+  setLoading(true, "Miya AI создаёт видео", "Изображение отправляется напрямую в LTX-Video GPU…");
+
+  try {
+    const response = await fetch("/api/video", {
+      method:"POST",
+      headers:{"Content-Type":"application/json","Accept":"application/json"},
+      body:JSON.stringify({imageUrl,imageBase64,prompt,aspect:editorRatio||"16:9"})
+    });
+
+    const text = await response.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; }
+    catch { throw new Error("Сервер видео вернул не JSON (HTTP " + response.status + ")."); }
+
+    if (!response.ok || !data.taskId) {
+      throw new Error(data.error || data.message || "Не удалось запустить видеогенерацию.");
     }
 
-    if (!videoImageUrl && !videoImageBase64) {
-      showError(
-        $("editorError"),
-        "Для видео нужно изображение. После генерации/редактирования используйте результат с публичным HTTPS URL."
-      );
-      return;
+    const started = Date.now();
+    while (Date.now() - started < 30 * 60 * 1000) {
+      await new Promise(r => setTimeout(r, 4000));
+      const sr = await fetch("/api/video?taskId=" + encodeURIComponent(data.taskId), {cache:"no-store",headers:{"Accept":"application/json"}});
+      const st = await sr.text();
+      let status = {};
+      try { status = st ? JSON.parse(st) : {}; }
+      catch { throw new Error("Сервер статуса видео вернул не JSON."); }
+
+      if (!sr.ok) throw new Error(status.error || status.message || "Ошибка проверки видео.");
+
+      if (status.done) {
+        if (!status.success || !status.videoUrl) throw new Error(status.error || "LTX не вернул видео.");
+        showVideoInEditor(status.videoUrl, editorRatio || "16:9");
+        saveVideoHistory(status.videoUrl, prompt, editorRatio || "16:9");
+        renderHistory();
+        setLoading(true, "Видео готово", (status.provider || "LTX-Video GPU") + " · " + (status.model || "LTX-Video"));
+        await new Promise(r => setTimeout(r, 500));
+        return;
+      }
+
+      setLoading(true, "Miya AI создаёт видео", (status.provider || "LTX-Video GPU") + " · " + (status.status || "RUNNING") + "…");
     }
 
-    const prompt =
-      $("videoPrompt")?.value.trim() ||
-      $("editPrompt").value.trim() ||
-      "Animate the reference naturally with subtle realistic motion, breathing, gentle facial movement, natural movement of hair and clothing, cinematic camera movement, photorealistic lighting.";
+    throw new Error("LTX слишком долго обрабатывает видео. Проверьте GPU-сервер.");
+  } catch (error) {
+    console.error("Video generation error:", error);
+    showError($("editorError"), "Ошибка видео: " + (error.message || error));
+  } finally {
+    setLoading(false);
+    $("animateEditedBtn").disabled = false;
+  }
+}
 
-    $("animateEditedBtn").disabled = true;
+$("animateEditedBtn").disabled = true;
     showError($("editorError"), "");
 
     setLoading(
@@ -6282,7 +6140,7 @@ let ratio="16:9", sourceBase64="", sourceUrl="";
 function err(m){const e=q("videoStandaloneError");e.textContent=m||"";e.classList.toggle("show",!!m)}
 function show(){q("generatorMode").classList.add("hidden");q("editorMode").classList.add("hidden");q("videoMode").classList.remove("hidden");q("generatorModeBtn").classList.remove("active");q("editorModeBtn").classList.remove("active");q("videoModeBtn").classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
 q("videoModeBtn").addEventListener("click",show);
-const old=q("videoPrompt");if(old){if(old.previousElementSibling)old.previousElementSibling.style.display="none";old.style.display="none";if(old.nextElementSibling)old.nextElementSibling.style.display="none"}["animateEditedBtn","editorVideoResult","downloadVideoBtn","sendVideoToGeneratorBtn"].forEach(id=>{const e=q(id);if(e)e.style.display="none"});
+const old=q("videoPrompt");if(old){if(old.previousElementSibling)old.previousElementSibling.style.display="none";old.style.display="none";if(old.nextElementSibling)old.nextElementSibling.style.display="none"}
 function dataUrl(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
 async function compress(s){if(!s||s.length<=3500000)return s;const im=new Image();im.src=s;await new Promise((a,b)=>{im.onload=a;im.onerror=b});let m=Math.min(2048,Math.max(im.naturalWidth,im.naturalHeight));for(let i=0;i<5;i++){const sc=Math.min(1,m/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(im.naturalWidth*sc);c.height=Math.round(im.naturalHeight*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);const o=c.toDataURL("image/jpeg",.82);if(o.length<=3500000)return o;m=Math.round(m*.8)}return s}
 function setSource(d,u=""){sourceBase64=d||"";sourceUrl=u||"";q("videoSourceImage").src=d||u;q("videoSourceImage").classList.remove("hidden");q("videoCanvasEmpty").classList.add("hidden");q("videoResult").classList.add("hidden");q("videoCanvas").classList.toggle("vertical",ratio==="9:16")}
@@ -6355,14 +6213,26 @@ async function download(url){try{const r=await fetch(url);const b=await r.blob()
 q("createVideoStandaloneBtn").onclick=async()=>{
 if(!sourceBase64&&!sourceUrl){err("Загрузите изображение или выберите изображение из генератора.");return}
 const prompt=q("videoPromptStandalone").value.trim();if(!prompt){err("Введите промпт для видео.");return}
-const btn=q("createVideoStandaloneBtn"),load=q("loading");btn.disabled=true;err("");q("loadingTitle").textContent="Miya AI готовит кадр для видео";q("loadingText").textContent="Сначала применяем ваш промпт к референсу…";load.classList.add("show");
+const btn=q("createVideoStandaloneBtn"),load=q("loading");btn.disabled=true;err("");
+q("loadingTitle").textContent="Miya AI создаёт видео";q("loadingText").textContent="Изображение отправляется напрямую в LTX-Video GPU…";load.classList.add("show");
 try{
-const prepared=await compress(sourceBase64);const er=await fetch("/api/edit",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({prompt,imageBase64:prepared,ratio,model:"legacy-flux",quality:"auto",size:"auto",outputFormat:"jpeg"})});const et=await er.text();let ed={};try{ed=et?JSON.parse(et):{}}catch{throw Error("Сервер подготовки кадра вернул не JSON (HTTP "+er.status+").")}if(!er.ok||!ed.imageUrl)throw Error(ed.error||"Не удалось подготовить кадр по промпту.");
-q("videoSourceImage").src=ed.imageUrl;q("videoSourceImage").classList.remove("hidden");q("videoCanvasEmpty").classList.add("hidden");q("loadingTitle").textContent="Miya AI создаёт видео";q("loadingText").textContent="Кадр подготовлен · LTX 2.5 Free · Pixazo…";
-const cr=await fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({imageUrl:ed.imageUrl,imageBase64:"",prompt,aspect:ratio})});const ct=await cr.text();let cd={};try{cd=ct?JSON.parse(ct):{}}catch{throw Error("Сервер видео вернул не JSON (HTTP "+cr.status+").")}if(!cr.ok||!cd.success||!cd.taskId)throw Error(cd.error||cd.message||"Не удалось запустить видео.");
-const start=Date.now();while(Date.now()-start<420000){await new Promise(r=>setTimeout(r,5000));const sr=await fetch("/api/video?taskId="+encodeURIComponent(cd.taskId),{cache:"no-store"}),st=await sr.text();let sd={};try{sd=st?JSON.parse(st):{}}catch{throw Error("Сервер статуса видео вернул не JSON.")}if(!sr.ok)throw Error(sd.error||sd.message||"Ошибка проверки видео.");if(sd.done){if(!sd.success||!sd.videoUrl)throw Error(sd.error||"Pixazo не вернул видео.");const v=q("videoResult");v.src=sd.videoUrl;v.classList.remove("hidden");v.style.aspectRatio=ratio==="9:16"?"9 / 16":"16 / 9";q("videoSourceImage").classList.add("hidden");q("videoDownloadBtn").classList.remove("hidden");q("videoSendGeneratorBtn").classList.remove("hidden");q("videoDownloadBtn").onclick=()=>download(sd.videoUrl);q("videoSendGeneratorBtn").onclick=()=>{window.__miyaShowGeneratedVideo?.(sd.videoUrl,ratio)};q("loadingTitle").textContent="Видео готово";q("loadingText").textContent="LTX 2.5 Free · Pixazo";setTimeout(()=>load.classList.remove("show"),500);return}q("loadingText").textContent="LTX 2.5 Free · Pixazo · "+(sd.status||"QUEUED")+"…"}throw Error("Pixazo слишком долго обрабатывает видео.");
+const cr=await fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({imageUrl:sourceUrl.indexOf("blob:")===0?"":sourceUrl,imageBase64:sourceBase64,prompt,aspect:ratio})});
+const ct=await cr.text();let cd={};try{cd=ct?JSON.parse(ct):{}}catch{throw Error("Сервер видео вернул не JSON (HTTP "+cr.status+").")}
+if(!cr.ok||!cd.success||!cd.taskId)throw Error(cd.error||cd.message||"Не удалось запустить видео.");
+const started=Date.now();
+while(Date.now()-started<30*60*1000){
+await new Promise(r=>setTimeout(r,4000));
+const sr=await fetch("/api/video?taskId="+encodeURIComponent(cd.taskId),{cache:"no-store",headers:{"Accept":"application/json"}});
+const st=await sr.text();let sd={};try{sd=st?JSON.parse(st):{}}catch{throw Error("Сервер статуса видео вернул не JSON.")}
+if(!sr.ok)throw Error(sd.error||sd.message||"Ошибка проверки видео.");
+if(sd.done){
+if(!sd.success||!sd.videoUrl)throw Error(sd.error||"LTX не вернул видео.");
+const v=q("videoResult");v.src=sd.videoUrl;v.classList.remove("hidden");v.style.aspectRatio=ratio==="9:16"?"9 / 16":"16 / 9";q("videoSourceImage").classList.add("hidden");q("videoCanvasEmpty").classList.add("hidden");q("videoDownloadBtn").classList.remove("hidden");q("videoSendGeneratorBtn").classList.remove("hidden");q("videoDownloadBtn").onclick=()=>download(sd.videoUrl);q("videoSendGeneratorBtn").onclick=()=>{window.__miyaShowGeneratedVideo?.(sd.videoUrl,ratio)};q("loadingTitle").textContent="Видео готово";q("loadingText").textContent=(sd.provider||"LTX-Video GPU")+" · "+(sd.model||"");setTimeout(()=>load.classList.remove("show"),500);return}
+q("loadingText").textContent=(sd.provider||"LTX-Video GPU")+" · "+(sd.status||"RUNNING")+"…"}
+throw Error("LTX слишком долго обрабатывает видео. Проверьте GPU-сервер.");
 }catch(e){console.error(e);err("Ошибка видео: "+(e.message||e));load.classList.remove("show")}finally{btn.disabled=false}
 };
+
 window.__miyaLastImages=[];window.__miyaShowGeneratedVideo=(url,a)=>{show();q("videoCanvasEmpty").classList.add("hidden");q("videoSourceImage").classList.add("hidden");const v=q("videoResult");v.src=url;v.classList.remove("hidden");v.style.aspectRatio=a==="9:16"?"9 / 16":"16 / 9";q("videoDownloadBtn").classList.remove("hidden");q("videoDownloadBtn").onclick=()=>download(url)};
 })();
 </script>
