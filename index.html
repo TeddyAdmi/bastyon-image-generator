@@ -19,13 +19,13 @@ button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{
 .view{display:none}.view.active{display:block;animation:fade .2s ease}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 365px;gap:18px}.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
 .canvas-card{padding:16px;min-width:0}.canvas-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.title{font-size:15px;font-weight:800}.sub{font-size:11px;color:var(--muted);margin-top:3px}
-.canvas{min-height:650px;border:1px solid #e5deef;border-radius:22px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 40%,#eee8fb,transparent 45%),linear-gradient(145deg,#fff,#f3eff8);transition:.15s}
+.canvas{min-height:680px;border:1px solid #e5deef;border-radius:22px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 40%,#eee8fb,transparent 45%),linear-gradient(145deg,#fff,#f3eff8);transition:.15s}
 .canvas.drag{border:2px dashed var(--violet);background:var(--soft)}
 .canvas img,.canvas video{display:block;max-width:100%;max-height:625px;width:auto;height:auto;object-fit:contain;border-radius:17px}
 .empty{text-align:center;max-width:440px;padding:40px 25px;color:var(--muted)}.empty .emoji{font-size:55px;margin-bottom:14px}.empty b{display:block;color:var(--ink);font-size:17px}.empty p{font-size:13px;line-height:1.6}
-.side{display:flex;flex-direction:column;gap:14px}.control{padding:17px}.control h3{margin:0 0 11px;font-size:14px}.label{display:block;font-size:11px;color:var(--muted);font-weight:800;margin:0 0 6px}
+.side{display:flex;flex-direction:column;gap:14px}.control{padding:18px}.control h3{letter-spacing:-.01em}.control h3{margin:0 0 11px;font-size:14px}.label{display:block;font-size:11px;color:var(--muted);font-weight:800;margin:0 0 6px}
 textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;outline:none;color:var(--ink)}textarea{min-height:130px;resize:vertical}textarea:focus,input:focus,select:focus{border-color:#b9a3f4;box-shadow:0 0 0 4px #7040ef12}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btn{border:1px solid var(--line);background:#fff;border-radius:13px;padding:11px 13px;font-weight:800;color:var(--ink);transition:.16s}.btn:hover{transform:translateY(-1px)}.btn.primary{border:0;color:#fff;background:linear-gradient(135deg,var(--violet),var(--violet2));box-shadow:0 10px 25px #7040ef32}.btn.dark{background:#19151f;color:#fff;border-color:#19151f}.btn.full{width:100%}.btn.small{padding:8px 10px;font-size:12px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btn{border:1px solid var(--line);min-height:44px;background:#fff;border-radius:13px;padding:11px 13px;font-weight:800;color:var(--ink);transition:.16s}.btn:hover{transform:translateY(-1px)}.btn.primary{border:0;color:#fff;background:linear-gradient(135deg,var(--violet),var(--violet2));box-shadow:0 10px 25px #7040ef32}.btn.dark{background:#19151f;color:#fff;border-color:#19151f}.btn.full{width:100%}.btn.small{padding:8px 10px;font-size:12px}
 .ratios{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.ratio{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 4px;font-size:12px;font-weight:800}.ratio.active{background:var(--soft);border-color:#9c7af0;color:#5b2bd4}
 .quick{display:flex;flex-wrap:wrap;gap:7px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 10px;font-size:11px;color:var(--muted)}
 .error{display:none;margin-top:9px;padding:10px 12px;border-radius:12px;background:#fff0f3;color:var(--danger);font-size:12px;line-height:1.5}.error.show{display:block}
@@ -73,7 +73,15 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 </div>
 <div class="side">
  <div class="card control"><h3>Что изменить?</h3><textarea id="editPrompt" placeholder="Например: добавь лёгкий ветер в волосы, сохрани лицо, одежду, композицию и освещение..."></textarea><div id="editError" class="error"></div><button id="editBtn" class="btn primary full" style="margin-top:10px">Применить изменение</button></div>
- <div class="card control"><h3>Модель редактора</h3><select id="editModel"><option value="or-nano-banana-2">Nano Banana 2 · OpenRouter</option><option value="or-gpt-image-2">GPT Image 2 · OpenRouter</option><option value="or-flux-klein">FLUX.2 Klein · OpenRouter</option></select><div class="hint" style="margin-top:9px">Редактор больше не использует Puter и не вызывает Legacy FLUX 403. Для AI-редактирования нужен OPENROUTER_API_KEY в Vercel.</div></div>
+ <div class="card control"><h3>Редактор изображения</h3>
+  <div class="hint" style="margin-bottom:10px">Базовое редактирование работает прямо в браузере и не требует API или кредитов.</div>
+  <label class="label">Яркость</label><input id="editBrightness" type="range" min="60" max="140" value="100">
+  <label class="label" style="margin-top:9px">Контраст</label><input id="editContrast" type="range" min="60" max="140" value="100">
+  <label class="label" style="margin-top:9px">Насыщенность</label><input id="editSaturation" type="range" min="0" max="180" value="100">
+  <div class="row" style="margin-top:10px"><button id="editApplyLocal" class="btn primary">Применить</button><button id="editResetLocal" class="btn">Сбросить</button></div>
+  <div class="hint" style="margin-top:9px">AI-редактирование через OpenRouter доступно только при наличии рабочего баланса API.</div>
+  <select id="editModel" class="hidden"><option value="or-nano-banana-2">Nano Banana 2</option></select>
+ </div>
  <div class="card control"><h3>🎬 Видео</h3><button id="editorAnimateBig" class="btn dark full">🎬 Анимировать это изображение</button><div class="hint" style="margin-top:9px">Видео — отдельный редактор. Фото-редактор не нужен для подготовки видео.</div></div>
 </div>
 </div>
@@ -184,16 +192,50 @@ async function editWithServer(){
  if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');
  return d.imageUrl;
 }
+function renderLocalEdit(){
+ const src=$('editorSource');
+ if(!src||!src.src||src.classList.contains('hidden')) throw new Error('Сначала загрузите изображение.');
+ const canvas=document.createElement('canvas');
+ const ctx=canvas.getContext('2d');
+ const img=new Image();
+ img.onload=()=>{
+   canvas.width=img.naturalWidth||img.width; canvas.height=img.naturalHeight||img.height;
+   ctx.filter='brightness('+($('editBrightness')?.value||100)+'%) contrast('+($('editContrast')?.value||100)+'%) saturate('+($('editSaturation')?.value||100)+'%)';
+   ctx.drawImage(img,0,0,canvas.width,canvas.height);
+   state.editorImage=canvas.toDataURL('image/jpeg',0.92);
+   setImage('editorSource','editEmpty',state.editorImage);
+   $('editResult').src=state.editorImage;
+   $('editResult').classList.remove('hidden');
+   $('editUseResult').classList.remove('hidden');
+ };
+ img.onerror=()=>showError('editError','Не удалось обработать изображение.');
+ img.src=src.src;
+}
+$('editApplyLocal')?.addEventListener('click',()=>{showError('editError','');try{renderLocalEdit()}catch(e){showError('editError',e)}});
+$('editResetLocal')?.addEventListener('click',()=>{
+ ['editBrightness','editContrast','editSaturation'].forEach((id)=>{if($(id))$(id).value=id==='editSaturation'?100:100});
+ if(state.editorImage)setImage('editorSource','editEmpty',state.editorImage);
+});
 $('editBtn')?.addEventListener('click',async()=>{
  showError('editError','');
  if(!state.editorImage)return showError('editError','Сначала загрузите изображение.');
  if(!$('editPrompt').value.trim())return showError('editError','Введите описание изменения.');
- $('editBtn').disabled=true;loading(true,'Miya AI редактирует','Редактируем исходный кадр…');
+ $('editBtn').disabled=true;
+ loading(true,'Miya AI','Пробуем AI-редактирование…');
  try{
-  const url=await editWithServer();
-  state.editorImage=url;setImage('editorSource','editEmpty',url);$('editResult').src=url;$('editResult').classList.remove('hidden');$('editUseResult').classList.remove('hidden');
- }catch(e){console.error(e);showError('editError',e)}
- finally{$('editBtn').disabled=false;loading(false)}
+   const url=await editWithServer();
+   state.editorImage=url;
+   setImage('editorSource','editEmpty',url);
+   $('editResult').src=url;
+   $('editResult').classList.remove('hidden');
+   $('editUseResult').classList.remove('hidden');
+ }catch(e){
+   console.warn('AI edit unavailable:',e);
+   showError('editError','AI-редактор сейчас недоступен: '+textError(e)+' Можно использовать ползунки выше — они работают без API.');
+ }finally{
+   $('editBtn').disabled=false;
+   loading(false);
+ }
 });
 $('editUseResult')?.addEventListener('click',()=>{state.editorImage=$('editResult').src;setImage('editorSource','editEmpty',state.editorImage);$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden')});
 
@@ -228,37 +270,97 @@ async function sourceForVideo(src){
  if(src.startsWith('data:image/'))return src;
  return src;
 }
+async function makeLocalVideo(){
+ const src=state.videoImage;
+ if(!src) throw new Error('Сначала добавьте изображение.');
+ const img=new Image();
+ img.crossOrigin='anonymous';
+ await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=src});
+ const canvas=document.createElement('canvas');
+ const ratio=state.videoRatio;
+ if(ratio==='9:16'){canvas.width=720;canvas.height=1280}
+ else if(ratio==='1:1'){canvas.width=720;canvas.height=720}
+ else if(ratio==='4:3'){canvas.width=960;canvas.height=720}
+ else {canvas.width=1280;canvas.height=720}
+ const ctx=canvas.getContext('2d');
+ const stream=canvas.captureStream(24);
+ const rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'});
+ const chunks=[];
+ rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+ const done=new Promise((resolve,reject)=>{rec.onstop=resolve;rec.onerror=reject});
+ rec.start();
+ const duration=5000,start=performance.now();
+ function frame(now){
+   const p=Math.min(1,(now-start)/duration);
+   const zoom=1+0.06*p;
+   const iw=img.naturalWidth,ih=img.naturalHeight;
+   const scale=Math.max(canvas.width/iw,canvas.height/ih)*zoom;
+   const w=iw*scale,h=ih*scale;
+   const x=(canvas.width-w)/2-(p-.5)*canvas.width*.025;
+   const y=(canvas.height-h)/2;
+   ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
+   ctx.drawImage(img,x,y,w,h);
+   if(p<1)requestAnimationFrame(frame);else rec.stop();
+ }
+ requestAnimationFrame(frame);
+ await done;
+ return URL.createObjectURL(new Blob(chunks,{type:'video/webm'}));
+}
 $('videoGenerate')?.addEventListener('click',async()=>{
  if(state.busy)return;
  showError('videoError','');
  const prompt=$('videoPrompt').value.trim();
  if(!state.videoImage)return showError('videoError','Сначала добавьте изображение.');
  if(!prompt)return showError('videoError','Введите сценарий движения.');
- state.busy=true;$('videoGenerate').disabled=true;$('videoStatus').classList.add('show');$('videoStatus').textContent='Запускаем LTX-Video…';
+ state.busy=true;$('videoGenerate').disabled=true;$('videoStatus').classList.add('show');
  try{
-  const src=await sourceForVideo(state.videoImage);
-  const d=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:src.startsWith('data:image/')?src:'',imageUrl:src.startsWith('data:image/')?'':src,prompt,aspect:state.videoRatio})});
-  if(!d.taskId)throw new Error(d.error||'Видеосервер не вернул taskId.');
-  for(let i=0;i<540;i++){
-   await new Promise(r=>setTimeout(r,4000));
-   const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId),{cache:'no-store'});
-   $('videoStatus').textContent=(s.provider||'LTX-Video GPU')+' · '+(s.status||'RUNNING')+'…';
-   if(s.done){
-    if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
-    $('videoResult').src=s.videoUrl;$('videoResult').classList.remove('hidden');$('videoDownload').classList.remove('hidden');$('videoDownload').onclick=()=>window.open(s.videoUrl,'_blank','noopener');$('videoStatus').textContent='Готово · '+(s.model||'LTX-Video');return;
+   let d=null;
+   try{
+     d=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+       imageBase64:state.videoImage.startsWith('data:image/')?state.videoImage:'',
+       imageUrl:state.videoImage.startsWith('data:image/')?'':state.videoImage,
+       prompt,aspect:state.videoRatio
+     })});
+   }catch(e){
+     if(!String(e.message||e).includes('LTX_SERVER_URL')) throw e;
    }
-  }
-  throw new Error('Видео слишком долго обрабатывается.');
- }catch(e){console.error(e);showError('videoError',e);$('videoStatus').classList.remove('show')}
- finally{state.busy=false;$('videoGenerate').disabled=false}
+   if(d?.taskId){
+     $('videoStatus').textContent='LTX-Video GPU · RUNNING…';
+     for(let i=0;i<540;i++){
+       await new Promise(r=>setTimeout(r,4000));
+       const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId),{cache:'no-store'});
+       $('videoStatus').textContent=(s.provider||'LTX-Video GPU')+' · '+(s.status||'RUNNING')+'…';
+       if(s.done){
+         if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
+         $('videoResult').src=s.videoUrl;$('videoResult').classList.remove('hidden');$('videoDownload').classList.remove('hidden');$('videoDownload').onclick=()=>window.open(s.videoUrl,'_blank','noopener');
+         $('videoStatus').textContent='Готово · '+(s.model||'LTX-Video');return;
+       }
+     }
+     throw new Error('Видео слишком долго обрабатывается.');
+   }
+   throw new Error('LTX_SERVER_URL отсутствует');
+ }catch(e){
+   // No GPU backend? Still produce a local motion video instead of a dead button.
+   try{
+     $('videoStatus').classList.add('show');
+     $('videoStatus').textContent='LTX GPU не подключён — создаём локальное видео…';
+     const url=await makeLocalVideo();
+     $('videoResult').src=url;$('videoResult').classList.remove('hidden');$('videoDownload').classList.remove('hidden');
+     $('videoDownload').onclick=()=>{const a=document.createElement('a');a.href=url;a.download='miya-animation.webm';a.click()};
+     $('videoStatus').textContent='Готово · локальная 5-секундная анимация';
+   }catch(localError){
+     console.error(localError);showError('videoError','Видео: '+textError(localError));$('videoStatus').classList.remove('show');
+   }
+ }finally{
+   state.busy=false;$('videoGenerate').disabled=false;
+ }
 });
-
 async function backend(){
  try{const d=await api('/api/video?health=1');$('videoBackend').textContent=d.reachable?'LTX GPU онлайн · '+(d.model||'LTX'):(d.ltxConfigured?('LTX GPU настроен, но недоступен: '+(d.message||'проверьте Cloud Studio')):'LTX GPU не подключён — добавьте LTX_SERVER_URL в Vercel.');if(!d.reachable)$('videoBackend').style.background='#fff4e5';}
  catch(e){$('videoBackend').textContent='Не удалось проверить LTX GPU';}
 }
 backend();
-console.log('Miya AI UI ready');
+console.log("Miya AI UI ready");
 })();
 </script>
 <script id="miya-runtime-hardening">
