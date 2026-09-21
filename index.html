@@ -1239,7 +1239,8 @@
     .video-workspace{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(340px,.75fr);gap:18px;align-items:stretch}
     .video-panel{min-height:650px;display:flex;flex-direction:column;overflow:hidden}
     .video-canvas-area{flex:1;display:flex;align-items:center;justify-content:center;padding:22px;background:radial-gradient(circle at center,rgba(124,58,237,.025),transparent 55%)}
-    .video-canvas{width:min(100%,760px);max-height:720px;aspect-ratio:16/9;position:relative;overflow:hidden;border:1px solid #e6e1eb;border-radius:22px;background:#111;display:flex;align-items:center;justify-content:center}
+    .video-canvas{width:min(100%,760px);max-height:720px;aspect-ratio:16/9;position:relative;overflow:hidden;border:1px solid #e6e1eb;border-radius:22px;background:#111;display:flex;align-items:center;justify-content:center;transition:border-color .2s ease,box-shadow .2s ease}
+    .video-canvas.dragover{border-color:var(--purple);box-shadow:0 0 0 4px rgba(124,58,237,.10)}
     .video-canvas.vertical{aspect-ratio:9/16;max-width:430px}
     .video-canvas img,.video-canvas video{width:100%;height:100%;object-fit:contain;display:block;background:#111}
     .video-canvas-empty{text-align:center;color:#aaa;padding:30px}
@@ -6012,8 +6013,66 @@ const old=q("videoPrompt");if(old){if(old.previousElementSibling)old.previousEle
 function dataUrl(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
 async function compress(s){if(!s||s.length<=3500000)return s;const im=new Image();im.src=s;await new Promise((a,b)=>{im.onload=a;im.onerror=b});let m=Math.min(2048,Math.max(im.naturalWidth,im.naturalHeight));for(let i=0;i<5;i++){const sc=Math.min(1,m/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(im.naturalWidth*sc);c.height=Math.round(im.naturalHeight*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);const o=c.toDataURL("image/jpeg",.82);if(o.length<=3500000)return o;m=Math.round(m*.8)}return s}
 function setSource(d,u=""){sourceBase64=d||"";sourceUrl=u||"";q("videoSourceImage").src=d||u;q("videoSourceImage").classList.remove("hidden");q("videoCanvasEmpty").classList.add("hidden");q("videoResult").classList.add("hidden");q("videoCanvas").classList.toggle("vertical",ratio==="9:16")}
-q("videoChooseImageBtn").onclick=()=>q("videoFile").click();
-q("videoFile").onchange=async e=>{const f=e.target.files?.[0];if(f){err("");setSource(await dataUrl(f))}};
+const videoFileInput=q("videoFile");
+const videoCanvas=q("videoCanvas");
+
+function handleVideoFile(file){
+  if(!file) return;
+  if(!file.type || !file.type.startsWith("image/")){
+    err("Нужно выбрать изображение: JPG, PNG, WEBP или другой файл изображения.");
+    return;
+  }
+
+  err("");
+
+  // Сразу показываем выбранный файл через object URL.
+  // Это работает даже для очень больших изображений и не ждёт FileReader.
+  const objectUrl=URL.createObjectURL(file);
+  sourceUrl=objectUrl;
+  sourceBase64="";
+
+  const image=q("videoSourceImage");
+  image.onload=()=>URL.revokeObjectURL(objectUrl);
+  image.onerror=()=>{
+    URL.revokeObjectURL(objectUrl);
+    err("Не удалось открыть выбранное изображение.");
+  };
+  image.src=objectUrl;
+  image.classList.remove("hidden");
+  q("videoCanvasEmpty").classList.add("hidden");
+  q("videoResult").classList.add("hidden");
+
+  // Base64 подготавливаем отдельно для отправки на сервер.
+  dataUrl(file).then(d=>{
+    sourceBase64=d;
+  }).catch(()=>{
+    err("Файл выбран, но не удалось подготовить его для обработки.");
+  });
+}
+
+q("videoChooseImageBtn").onclick=()=>videoFileInput.click();
+q("videoCanvasUploadBtn").onclick=()=>videoFileInput.click();
+
+videoFileInput.onchange=e=>{
+  const f=e.target.files && e.target.files[0];
+  handleVideoFile(f);
+};
+
+videoCanvas.addEventListener("dragover",e=>{
+  e.preventDefault();
+  videoCanvas.classList.add("dragover");
+});
+
+videoCanvas.addEventListener("dragleave",()=>{
+  videoCanvas.classList.remove("dragover");
+});
+
+videoCanvas.addEventListener("drop",e=>{
+  e.preventDefault();
+  videoCanvas.classList.remove("dragover");
+  const f=e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  handleVideoFile(f);
+});;
 q("videoUseGeneratorBtn").onclick=async()=>{const a=window.__miyaLastImages||[];if(!a.length){err("Сначала создайте изображение в генераторе.");return}show();try{const r=await fetch(a[0]);setSource(await dataUrl(await r.blob()),a[0])}catch{setSource("",a[0])}};
 q("videoClearPromptBtn").onclick=()=>{q("videoPromptStandalone").value="";q("videoStandaloneCounter").textContent="0 / 5000"};
 q("videoPromptStandalone").oninput=()=>q("videoStandaloneCounter").textContent=q("videoPromptStandalone").value.length+" / 5000";
