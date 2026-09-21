@@ -29,7 +29,7 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 .footer-note{text-align:center;color:#a19aa9;font-size:11px;margin-top:18px}
 @media(max-width:980px){.layout{grid-template-columns:1fr}.canvas-card{min-height:560px}.canvas{min-height:500px}.side{order:2}}@media(max-width:620px){.app{padding:12px 10px 30px}.top{align-items:flex-start;flex-direction:column}.tabs{width:100%}.tab{flex:1;padding:10px 7px;font-size:12px}.row,.row3{grid-template-columns:1fr}.ratios{grid-template-columns:repeat(2,1fr)}.canvas{min-height:430px}}
 </style>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237040ef'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Arial' font-size='32' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E%3C/link></head>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237040ef'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Arial' font-size='32' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E%3C/link><script src="https://js.puter.com/v2/"></script></head>
 <body>
 <div class="app">
 <header class="top">
@@ -173,9 +173,37 @@ $('genRandom')?.addEventListener('click',()=>{$('genPrompt').value=ideas[Math.fl
 $('genClear')?.addEventListener('click',()=>{state.genImage='';setImage('genImage','genEmpty','');$('openEditor')?.classList.add('hidden');$('openVideo')?.classList.add('hidden');error('genError','')});
 
 $('generateBtn')?.addEventListener('click',async()=>{
- if(state.busy)return;const prompt=$('genPrompt').value.trim();error('genError','');if(!prompt)return error('genError','Введите промпт.');
- state.busy=true;$('generateBtn').disabled=true;load(true,'Miya AI создаёт изображение','Генерируем кадр…');
- try{const d=await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({prompt,ratio:state.genRatio,model:$('genModel')?.value||'auto',quality:$('genQuality')?.value||'auto',size:'auto',outputFormat:'png'})});if(!d.imageUrl)throw new Error('Сервер не вернул изображение.');state.genImage=d.imageUrl;setImage('genImage','genEmpty',d.imageUrl);$('openEditor')?.classList.remove('hidden');$('openVideo')?.classList.remove('hidden')}catch(e){console.error(e);error('genError',e)}finally{state.busy=false;$('generateBtn').disabled=false;load(false)}
+ if(state.busy)return;
+ const prompt=$('genPrompt').value.trim();
+ error('genError','');
+ if(!prompt)return error('genError','Введите промпт.');
+ state.busy=true;$('generateBtn').disabled=true;
+ load(true,'Miya AI создаёт изображение','Генерируем через Puter AI…');
+ try{
+   if(!window.puter?.ai?.txt2img) throw new Error('Puter AI ещё не загрузился. Обновите страницу.');
+   const modelMap={
+     'auto':'black-forest-labs/flux-2-klein-4b',
+     'legacy-flux':'black-forest-labs/flux-2-klein-4b',
+     'or-nano-banana-2':'google/gemini-3-pro-image-preview',
+     'or-gpt-image-2':'gpt-image-2',
+     'or-flux-klein':'black-forest-labs/flux-2-klein-4b'
+   };
+   const model=modelMap[$('genModel')?.value||'auto']||modelMap.auto;
+   const ratio=state.genRatio;
+   const ratioHint=ratio==='9:16'?' vertical 9:16':ratio==='16:9'?' landscape 16:9':ratio==='4:3'?' 4:3':' square 1:1';
+   const image=await window.puter.ai.txt2img(prompt+ratioHint,{model,quality:$('genQuality')?.value||'auto'});
+   const url=image?.src||image?.url||String(image||'');
+   if(!url)throw new Error('Puter не вернул изображение.');
+   state.genImage=url;
+   setImage('genImage','genEmpty',url);
+   $('openEditor')?.classList.remove('hidden');
+   $('openVideo')?.classList.remove('hidden');
+ }catch(e){
+   console.error('Miya image:',e);
+   error('genError',msg(e));
+ }finally{
+   state.busy=false;$('generateBtn').disabled=false;load(false);
+ }
 });
 $('openEditor')?.addEventListener('click',()=>{state.editorImage=state.genImage;setImage('editorSource','editEmpty',state.genImage);show('edit')});
 $('openVideo')?.addEventListener('click',()=>openVideo(state.genImage));
@@ -188,18 +216,39 @@ $('editCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('editCan
 $('editorClear')?.addEventListener('click',()=>{state.editorImage='';$('editorFile').value='';setImage('editorSource','editEmpty','');$('editResult')?.classList.add('hidden');$('editUseResult')?.classList.add('hidden');error('editError','')});
 
 $('editBtn')?.addEventListener('click',async()=>{
- const prompt=$('editPrompt')?.value.trim();error('editError','');if(!state.editorImage)return error('editError','Сначала загрузите изображение.');if(!prompt)return error('editError','Введите описание изменения.');
- $('editBtn').disabled=true;load(true,'Miya AI редактирует','Обрабатываем исходный кадр…');
- try{const d=await api('/api/edit',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({
-  prompt,
-  imageBase64:state.editorImage.startsWith('data:image/')?state.editorImage:'',
-  imageUrl:state.editorImage.startsWith('data:image/')?'':state.editorImage,
-  ratio:state.editRatio,
-  model:$('editModel')?.value||'auto',
-  quality:$('editQuality')?.value||'auto',
-  size:'auto',
-  outputFormat:'png'
-})});if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');state.editorImage=d.imageUrl;$('editResult').src=d.imageUrl;$('editResult').classList.remove('hidden');$('editUseResult')?.classList.remove('hidden')}catch(e){console.error(e);error('editError',e)}finally{$('editBtn').disabled=false;load(false)}
+ const prompt=$('editPrompt')?.value.trim();
+ error('editError','');
+ if(!state.editorImage)return error('editError','Сначала загрузите изображение.');
+ if(!prompt)return error('editError','Введите описание изменения.');
+ if(!window.puter?.ai?.txt2img)return error('editError','Puter AI ещё не загрузился. Обновите страницу.');
+ $('editBtn').disabled=true;
+ load(true,'Miya AI редактирует','Изменяем исходный кадр…');
+ try{
+   const modelMap={
+     'auto':'grok-imagine-image-quality',
+     'legacy-flux':'grok-imagine-image-quality',
+     'or-nano-banana-2':'google/gemini-3-pro-image-preview',
+     'or-gpt-image-2':'gpt-image-2',
+     'or-flux-klein':'black-forest-labs/flux-2-klein-4b'
+   };
+   const model=modelMap[$('editModel')?.value||'auto']||modelMap.auto;
+   const source=state.editorImage;
+   const result=await window.puter.ai.txt2img(prompt,{model,input_image:source,quality:$('editQuality')?.value||'auto'});
+   const url=result?.src||result?.url||String(result||'');
+   if(!url)throw new Error('Puter не вернул отредактированное изображение.');
+   state.editorImage=url;
+   $('editorSource').src=url;
+   $('editorSource').classList.remove('hidden');
+   $('editEmpty').classList.add('hidden');
+   $('editResult').src=url;
+   $('editResult').classList.remove('hidden');
+   $('editUseResult')?.classList.remove('hidden');
+ }catch(e){
+   console.error('Miya edit:',e);
+   error('editError',msg(e));
+ }finally{
+   $('editBtn').disabled=false;load(false);
+ }
 });
 $('editUseResult')?.addEventListener('click',()=>{const s=$('editResult').src;if(s){state.editorImage=s;setImage('editorSource','editEmpty',s);$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden')}});
 function animateCurrentFrame(){
