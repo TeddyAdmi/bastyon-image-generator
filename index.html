@@ -4737,14 +4737,14 @@
     let videoImageUrl = "";
     let videoImageBase64 = "";
 
-    if (/^https?:\\/\\//i.test(resultSrc)) {
+    if (/^https?:\/\//i.test(resultSrc)) {
       videoImageUrl = resultSrc;
     } else if (
       editorImageBase64 &&
-      /^data:image\\//i.test(editorImageBase64)
+      /^data:image\//i.test(editorImageBase64)
     ) {
       videoImageBase64 = editorImageBase64;
-    } else if (/^https?:\\/\\//i.test(sourceSrc)) {
+    } else if (/^https?:\/\//i.test(sourceSrc)) {
       videoImageUrl = sourceSrc;
     }
 
