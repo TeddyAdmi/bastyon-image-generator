@@ -304,12 +304,11 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           prompt,
           image_url: publicImageUrl,
-          strength: 1.0,
-          aspect: body.aspect || "16:9",
-          num_frames: 121,
-          frame_rate: 24,
-          steps: 8,
-          cfg: 3.0
+          resolution: "1080p",
+          duration: 6,
+          fps: 25,
+          aspect_ratio: body.aspect || "16:9",
+          generate_audio: true
         })
       }
     );
