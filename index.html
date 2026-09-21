@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded',function(){
  </div>
  <div class="side">
   <div class="card control"><h3>Сценарий движения</h3><textarea id="videoPrompt" placeholder="Например: животные начинают двигаться, смотрят друг на друга, камера плавно приближается, естественная физика..."></textarea><div id="videoError" class="error"></div><div id="videoStatus" class="status"></div><button id="videoGenerate" class="btn primary full" style="margin-top:10px">🎬 Создать видео</button></div>
+  <div class="card control"><h3>Модель видео</h3><div id="videoModels" class="ratios"><button class="ratio active" data-video-model="pixelster-motion">Motion synthesis</button><button class="ratio" disabled title="Будет подключено позже">LTX 2.5 Free</button><button class="ratio" disabled title="Будет подключено позже">Wan I2V Free</button><button class="ratio" disabled title="Будет подключено позже">HunyuanVideo</button></div><div class="hint" style="margin-top:8px">Сейчас работает Motion synthesis · AHM7 PixelSter. Остальные варианты оставлены в списке для будущего подключения.</div></div>
   <div class="card control"><h3>Формат видео</h3><div id="videoRatios" class="ratios"><button class="ratio active" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="4:3">4:3</button></div><h3 style="margin-top:16px">Длительность</h3><select id="videoDuration" style="width:100%;border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff"><option value="2">2 секунды</option><option value="3">3 секунды</option><option value="4">4 секунды</option><option value="5" selected>5 секунд</option><option value="6">6 секунд</option><option value="8">8 секунд</option><option value="10">10 секунд</option></select><div class="hint" style="margin-top:7px">Длительность ограничивается возможностями подключённого GPU.</div></div>
   <div class="card control"><h3>Видеосервер</h3><div id="videoBackend" class="backend">Проверяем подключение…</div><button id="videoReplace" class="btn full" style="margin-top:8px">Заменить изображение</button></div>
  </div>
@@ -290,18 +291,22 @@ async function runVideo(){
     const body={prompt,aspect:state.videoRatio,duration:Number($('videoDuration')?.value||5)};
     if(source.startsWith('data:image/'))body.imageBase64=source;else body.imageUrl=source;
     const d=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!d.taskId)throw new Error('Видеосервер не вернул taskId.');
+    if(d.done && d.videoUrl){
+      const v=$('videoResult');if(v){v.src=d.videoUrl;v.classList.remove('hidden');v.load()}
+      if($('videoStatus'))$('videoStatus').textContent='Готово · '+(d.model||'Motion synthesis')+' · '+(d.provider||'AHM7 PixelSter');
+      setBusy(false,'Видео готово',(d.model||'Motion synthesis')+' · '+(d.provider||'AHM7 PixelSter'));
+      return;
+    }
+    if(!d.taskId)throw new Error(d.error||'Видеосервер не вернул taskId или готовое видео.');
 
-    let lastStatus='';
     for(let i=0;i<540;i++){
       await new Promise(r=>setTimeout(r,4000));
       const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId));
-      lastStatus=s.status||'RUNNING';
-      if($('videoStatus'))$('videoStatus').textContent='Статус: '+lastStatus+' · '+(s.provider||'LTX-Video');
+      if($('videoStatus'))$('videoStatus').textContent='Статус: '+(s.status||'RUNNING')+' · '+(s.provider||'AHM7 PixelSter');
       if(s.done){
         if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
         const v=$('videoResult');if(v){v.src=s.videoUrl;v.classList.remove('hidden');v.load()}
-        setBusy(false,'Видео готово','LTX-Video GPU');
+        setBusy(false,'Видео готово',(s.model||'Motion synthesis')+' · '+(s.provider||'AHM7 PixelSter'));
         return;
       }
     }
