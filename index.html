@@ -5216,14 +5216,6 @@
 
       const taskId = createData.taskId;
 
-      // Start audio generation in parallel with LTX video processing.
-      // We no longer wait for audio before showing the video.
-      const audioPromise = generateAudioTrack(prompt, 6)
-        .catch((audioError) => {
-          console.warn("Audio generation failed:", audioError);
-          return "";
-        });
-
       const startedAt = Date.now();
       const timeoutMs = 7 * 60 * 1000;
 
@@ -5324,7 +5316,7 @@
           $("downloadVideoBtn").onclick = () =>
             downloadImage(
               finalVideoUrl,
-              "miya-video-with-audio.mp4"
+              "miya-video.mp4"
             );
 
           $("sendVideoToGeneratorBtn").onclick = () => {
@@ -5352,17 +5344,10 @@
 
           video.load();
 
-          // Audio may already be ready. If not, wait for it in the background
-          // without blocking the video preview.
-          audioPromise.then((audioUrl) => {
-            if (!audioUrl) return;
-            attachVideoAudio(finalVideoUrl, audioUrl);
-          });
-
           setLoading(
             true,
             "Видео готово",
-            "LTX 2.5 Free · Pixazo · звук догружается"
+            "LTX 2.5 Free · встроенный синхронный звук"
           );
 
           break;
