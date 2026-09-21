@@ -123,7 +123,10 @@ async function openRouterImage({
 
   const body = {
     model,
-    prompt,
+    prompt: imageDataUrl
+      ? prompt +
+        "\n\nREFERENCE-IMAGE RULES: The supplied image is the authoritative reference. Keep the same main subject, identity, face, body, pose, clothing, composition, camera angle, framing, lighting and scene unless the user explicitly requests a change. Do not add another unrelated image, duplicate the subject, replace the subject, create a collage, or overlay a second scene. Make only the requested edit and return one coherent image."
+      : prompt,
     aspect_ratio: ratio || "1:1"
   };
 
