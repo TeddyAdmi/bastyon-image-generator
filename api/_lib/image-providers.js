@@ -446,10 +446,26 @@ export async function editImage(options) {
       }
     }
 
-    // AUTO editor must not silently switch to a different image model.
-    // A fallback generator can create a new/unrelated composition.
+    // Legacy PixelSter can return 403. If OpenRouter is configured,
+    // use the selected image-editing model instead of leaving the editor dead.
+    if (process.env.OPENROUTER_API_KEY) {
+      try {
+        return await openRouterImage({
+          model: OPENROUTER_MODELS["or-nano-banana-2"],
+          prompt,
+          ratio,
+          quality,
+          size,
+          outputFormat,
+          imageDataUrl
+        });
+      } catch (error) {
+        errors.push("OpenRouter: " + error.message);
+      }
+    }
+
     throw new Error(
-      "Основной FLUX Editor не смог отредактировать исходное изображение. " +
+      "Редактор сейчас недоступен. Основной Flux Kontext вернул ошибку, а резервный провайдер не настроен. " +
       errors.join(" | ")
     );
   }
