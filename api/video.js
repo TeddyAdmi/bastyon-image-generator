@@ -32,55 +32,6 @@ function parseImageData(imageBase64) {
   };
 }
 
-async function makePublicImageUrl(imageUrl, imageBase64) {
-  const directUrl = String(imageUrl || "").trim();
-
-  if (isHttpUrl(directUrl)) {
-    return directUrl;
-  }
-
-  const source = String(imageBase64 || "").trim();
-
-  if (isHttpUrl(source)) {
-    return source;
-  }
-
-  if (!source.startsWith("data:image/")) {
-    throw new Error("Pixazo требует публичный HTTPS URL исходного изображения.");
-  }
-
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error(
-      "Для загруженного изображения нужен публичный URL. В Vercel не настроен BLOB_READ_WRITE_TOKEN. Сначала сохраните/сгенерируйте изображение через Miya AI или подключите Vercel Blob."
-    );
-  }
-
-  const { mimeType, extension, buffer } = parseImageData(source);
-
-  if (!buffer.length) {
-    throw new Error("Не удалось прочитать исходное изображение.");
-  }
-
-  const { put } = await import("@vercel/blob");
-
-  const blob = await put(
-    "miya-video-input/" +
-      Date.now() +
-      "-" +
-      Math.random().toString(36).slice(2) +
-      "." +
-      extension,
-    buffer,
-    {
-      access: "public",
-      contentType: mimeType,
-      addRandomSuffix: false
-    }
-  );
-
-  return blob.url;
-}
-
 function getPixazoKey() {
   return String(
     process.env.PIXAZO_API_KEY ||
@@ -100,7 +51,7 @@ async function pixazoRequest(url, options = {}) {
 
   if (!key) {
     throw new Error(
-      "PIXAZO_API_KEY не настроен в Vercel. Добавьте ваш Primary API key Pixazo."
+      "PIXAZO_API_KEY не настроен в Vercel. Добавьте Primary API key Pixazo."
     );
   }
 
@@ -115,12 +66,15 @@ async function pixazoRequest(url, options = {}) {
 
   const text = await response.text();
 
-  let data;
+  let data = null;
   try {
-    data = JSON.parse(text);
+    data = text ? JSON.parse(text) : {};
   } catch {
     throw new Error(
-      "Pixazo вернул не JSON (HTTP " + response.status + ")."
+      "Pixazo вернул не JSON. HTTP " +
+      response.status +
+      ". Ответ: " +
+      text.slice(0, 300)
     );
   }
 
@@ -128,7 +82,8 @@ async function pixazoRequest(url, options = {}) {
     const message =
       data?.message ||
       data?.error ||
-      "Pixazo: HTTP " + response.status;
+      data?.detail ||
+      ("Pixazo HTTP " + response.status);
 
     if (response.status === 401) {
       throw new Error("Pixazo: неверный или отсутствующий API key.");
@@ -136,8 +91,12 @@ async function pixazoRequest(url, options = {}) {
 
     if (response.status === 402) {
       throw new Error(
-        "Pixazo: недостаточно баланса. Для LTX 2.5 Free запрос должен идти через бесплатный план."
+        "Pixazo: недостаточно баланса. Проверьте, что используется бесплатный LTX 2.5 endpoint."
       );
+    }
+
+    if (response.status === 429) {
+      throw new Error("Pixazo: превышен лимит запросов. Попробуйте позже.");
     }
 
     throw new Error(String(message));
@@ -146,7 +105,90 @@ async function pixazoRequest(url, options = {}) {
   return data;
 }
 
+function getBody(req) {
+  if (!req || req.body == null) return {};
+
+  if (typeof req.body === "object") {
+    return req.body;
+  }
+
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      throw new Error("Сервер получил некорректный JSON.");
+    }
+  }
+
+  return {};
+}
+
+async function makePublicImageUrl(imageUrl, imageBase64) {
+  const directUrl = String(imageUrl || "").trim();
+
+  // Pixazo requires a publicly reachable HTTP(S) image URL.
+  if (isHttpUrl(directUrl)) {
+    return directUrl;
+  }
+
+  const source = String(imageBase64 || "").trim();
+
+  if (isHttpUrl(source)) {
+    return source;
+  }
+
+  // A browser blob: URL is not reachable by Pixazo.
+  if (source.startsWith("blob:")) {
+    throw new Error(
+      "Изображение имеет локальный blob: URL. Для видео нужен публичный HTTPS URL. Нажмите «Создать видео» после генерации/редактирования изображения или подключите Vercel Blob."
+    );
+  }
+
+  if (!source.startsWith("data:image/")) {
+    throw new Error(
+      "Pixazo требует публичный HTTPS URL исходного изображения."
+    );
+  }
+
+  // If Blob is configured, convert the data URL to a public HTTPS URL.
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { mimeType, extension, buffer } = parseImageData(source);
+
+    if (!buffer.length) {
+      throw new Error("Не удалось прочитать исходное изображение.");
+    }
+
+    const { put } = await import("@vercel/blob");
+
+    const blob = await put(
+      "miya-video-input/" +
+        Date.now() +
+        "-" +
+        Math.random().toString(36).slice(2) +
+        "." +
+        extension,
+      buffer,
+      {
+        access: "public",
+        contentType: mimeType,
+        addRandomSuffix: false
+      }
+    );
+
+    return blob.url;
+  }
+
+  throw new Error(
+    "Для видео это изображение пока недоступно по публичному HTTPS URL. Vercel Blob не настроен. Используйте изображение, которое уже имеет HTTPS URL, либо подключите BLOB_READ_WRITE_TOKEN."
+  );
+}
+
 export default async function handler(req, res) {
+  // Always return JSON, including errors, so the browser never receives
+  // an HTML error page from this function.
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+
   try {
     if (req.method === "GET") {
       const taskId = String(req.query?.taskId || "").trim();
@@ -168,6 +210,7 @@ export default async function handler(req, res) {
       );
 
       const status = String(data?.status || "").toUpperCase();
+
       const videoUrl =
         data?.output?.media_url?.[0] ||
         data?.output?.mediaUrl?.[0] ||
@@ -193,15 +236,15 @@ export default async function handler(req, res) {
         });
       }
 
-      if (
-        status === "FAILED" ||
-        status === "ERROR"
-      ) {
+      if (status === "FAILED" || status === "ERROR") {
         return res.status(200).json({
           success: false,
           done: true,
           status,
-          error: data?.error || "Pixazo не смог создать видео."
+          error:
+            data?.error ||
+            data?.message ||
+            "Pixazo не смог создать видео."
         });
       }
 
@@ -221,7 +264,8 @@ export default async function handler(req, res) {
       });
     }
 
-    const body = req.body || {};
+    const body = getBody(req);
+
     const prompt = String(body.prompt || "").trim();
     const imageUrl = String(body.imageUrl || "").trim();
     const imageBase64 = String(body.imageBase64 || "").trim();
@@ -243,7 +287,8 @@ export default async function handler(req, res) {
     if (imageBase64.length > 4_000_000) {
       return res.status(413).json({
         success: false,
-        error: "Изображение слишком большое для Vercel API."
+        error:
+          "Изображение слишком большое для передачи в Vercel API. Используйте изображение с публичным HTTPS URL."
       });
     }
 
@@ -289,11 +334,13 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("Pixazo video API error:", error);
 
-    return res.status(502).json({
+    return res.status(500).json({
       success: false,
       error:
         error?.message ||
-        "Ошибка видеогенерации через Pixazo."
+        "Ошибка видеогенерации через Pixazo.",
+      provider: "Pixazo",
+      model: "LTX 2.5 Free"
     });
   }
 }
