@@ -92,7 +92,8 @@ async function ltxRequest(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(data?.error || data?.message || "Ошибка LTX GPU сервера.");
+    const detail = data?.error?.message || data?.error || data?.message || "Ошибка LTX GPU сервера.";
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
   }
 
   return data;
