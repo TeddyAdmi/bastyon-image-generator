@@ -65,6 +65,15 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
   try {
+    if (req.method === "GET" && String(req.query?.health || "") === "1") {
+      return res.status(200).json({
+        success: true,
+        ltxConfigured: Boolean(ltxBase()),
+        provider: "LTX-Video GPU",
+        message: ltxBase() ? "LTX_SERVER_URL configured" : "LTX_SERVER_URL is missing"
+      });
+    }
+
     if (req.method === "GET") {
       const taskId = String(req.query?.taskId || "");
       if (!taskId.startsWith("ltx:")) {
@@ -111,6 +120,14 @@ export default async function handler(req, res) {
     const b = bodyOf(req);
     const prompt = String(b.prompt || "").trim();
     if (!prompt) return res.status(400).json({success:false,error:"Введите описание движения."});
+
+    if (!ltxBase()) {
+      return res.status(503).json({
+        success: false,
+        code: "LTX_NOT_CONFIGURED",
+        error: "Видео сейчас не подключено: в Vercel не задан LTX_SERVER_URL."
+      });
+    }
 
     const image = await normalizeImage(b.imageBase64, b.imageUrl);
     const d = await ltx("/generate", {
