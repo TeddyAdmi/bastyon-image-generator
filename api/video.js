@@ -40,10 +40,24 @@ async function ltx(path, options = {}) {
     throw new Error("LTX_SERVER_URL не настроен. Подключите публичный LTX GPU сервер.");
   }
 
-  const r = await fetch(base + path, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) }
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+
+  let r;
+  try {
+    r = await fetch(base + path, {
+      ...options,
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("LTX GPU сервер не отвечает за 15 секунд. Проверьте публичный URL Cloud Studio и запущенный app.py.");
+    }
+    throw new Error("Не удалось подключиться к LTX GPU серверу: " + (error?.message || error));
+  } finally {
+    clearTimeout(timer);
+  }
   const text = await r.text();
   let d = {};
   try { d = text ? JSON.parse(text) : {}; }
@@ -66,12 +80,35 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === "GET" && String(req.query?.health || "") === "1") {
-      return res.status(200).json({
-        success: true,
-        ltxConfigured: Boolean(ltxBase()),
-        provider: "LTX-Video GPU",
-        message: ltxBase() ? "LTX_SERVER_URL configured" : "LTX_SERVER_URL is missing"
-      });
+      if (!ltxBase()) {
+        return res.status(200).json({
+          success: true,
+          ltxConfigured: false,
+          reachable: false,
+          provider: "LTX-Video GPU",
+          message: "LTX_SERVER_URL is missing"
+        });
+      }
+
+      try {
+        const health = await ltx("/health", { method: "GET" });
+        return res.status(200).json({
+          success: true,
+          ltxConfigured: true,
+          reachable: true,
+          provider: "LTX-Video GPU",
+          model: health.model || "ltxv-2b-0.9.8-distilled",
+          message: "LTX GPU online"
+        });
+      } catch (error) {
+        return res.status(200).json({
+          success: true,
+          ltxConfigured: true,
+          reachable: false,
+          provider: "LTX-Video GPU",
+          message: error?.message || "LTX GPU unreachable"
+        });
+      }
     }
 
     if (req.method === "GET") {
