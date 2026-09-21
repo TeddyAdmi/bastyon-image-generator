@@ -5812,7 +5812,7 @@
 #videoCanvas{min-height:520px;border:1px dashed #d9cdec;border-radius:26px;background:linear-gradient(180deg,#fcfbff,#f5f1fb)}
 #videoCanvas.dragover{border-color:#7044f5;background:#f1ebff}
 #videoSourceImage,#videoResult{max-width:100%;max-height:680px;object-fit:contain;border-radius:20px}
-#animateEditedBtn{display:inline-flex!important}
+#animateEditedBtn{display:inline-flex!important;visibility:visible!important;opacity:1!important}
 #generatorMode.hidden,#editorMode.hidden,#videoMode.hidden{display:none!important}
 </style>
 <script id="miya-clean-controls">
@@ -5963,5 +5963,5 @@
   });
 })();
 </script>
-</body>
+<div id="miyaVideoBackendNote" style="position:fixed;left:16px;bottom:16px;z-index:9998;display:none;padding:10px 14px;border-radius:14px;background:#17131f;color:#fff;font:600 12px Manrope,system-ui;box-shadow:0 10px 30px rgba(0,0,0,.18)">Видео: LTX GPU</div></body>
 </html>
