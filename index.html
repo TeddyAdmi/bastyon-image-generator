@@ -18,6 +18,17 @@
 .video-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(340px,.65fr);gap:18px}.drop-note{padding:12px 20px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--line)}.video-source{position:absolute;inset:12px;z-index:2;display:flex;align-items:center;justify-content:center}.video-source img{max-width:100%;max-height:100%;object-fit:contain}.video-prompt textarea{min-height:200px}.loading{display:none;position:fixed;inset:0;background:#17131fcc;z-index:999;align-items:center;justify-content:center}.loading.show{display:flex}.loader{background:#fff;border-radius:22px;padding:25px;width:min(390px,calc(100% - 30px));text-align:center;box-shadow:0 25px 70px #0004}.spinner{width:35px;height:35px;border:3px solid #e9e2ff;border-top-color:var(--violet);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}@keyframes spin{to{transform:rotate(360deg)}}.loader b{font-size:14px}.loader p{font-size:11px;color:var(--muted);line-height:1.5}
 @media(max-width:980px){.layout,.editor-grid,.video-layout{grid-template-columns:1fr}.canvas-card{min-height:560px}.editor-card{padding:14px}.upload{min-height:380px}.status{display:none}}@media(max-width:600px){.app{width:min(100% - 16px,1440px);padding-top:10px}.tabs{width:100%}.tab{flex:1;padding:10px 6px}.fields{grid-template-columns:1fr}.canvas-card{min-height:500px}.canvas-wrap{padding:12px}.canvas{border-radius:18px}.card{border-radius:20px}}
 </style>
+<style id="miya-stability-ui">
+/* Miya final stability + editor/video polish */
+.view{min-height:1px}
+.tabs{position:relative;z-index:5}
+.tab,.primary,.secondary,.tool,.ratio,button{cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+.error{white-space:pre-wrap;word-break:break-word}
+#videoCanvas{min-height:560px}
+#editorUpload{min-height:420px}
+.canvas img,#editorSource,#editResult,#videoImage{max-width:100%;max-height:100%;object-fit:contain}
+</style>
 </head>
 <body>
 <div class="app">
@@ -84,7 +95,13 @@ $("generateBtn").onclick=async()=>{
  const p=$("genPrompt").value.trim();error($("genError"),"");if(!p){error($("genError"),"Введите промпт.");return}
  const b=$("generateBtn");b.disabled=true;load(true,"Miya AI создаёт изображение","Генерируем кадр…");
  try{const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({prompt:p,ratio:genRatio,model:$("genModel").value,quality:$("genQuality").value,size:"auto",outputFormat:"png"})});const raw=await r.text();let d={};try{d=raw?JSON.parse(raw):{}}catch{throw new Error("API генерации вернул не JSON (HTTP "+r.status+")")}if(!r.ok||!d.imageUrl)throw new Error(d.error||"Изображение не создано");genUrl=d.imageUrl;$("genImage").src=genUrl;$("genImage").classList.remove("hidden");$("genEmpty").classList.add("hidden");$("openInEditor").classList.remove("hidden");$("openInVideo").classList.remove("hidden");window.__miyaLastImages=[genUrl]}catch(e){error($("genError"),readable(e))}finally{b.disabled=false;load(false)}};
-$("openInEditor").onclick=()=>{editorData="";$("editorSource").src=genUrl;$("editorSource").classList.remove("hidden");$("editorEmpty").classList.add("hidden");showView("editor")};
+$("openInEditor").onclick=()=>{
+  editorData="";
+  $("editorSource").src=genUrl;
+  $("editorSource").classList.remove("hidden");
+  $("editorEmpty").classList.add("hidden");
+  showView("editor");
+};
 $("openInVideo").onclick=()=>setVideoFromUrl(genUrl);
 $("editorChoose").onclick=()=>$("editorFile").click();
 $("editorFile").onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{editorData=await compressImage(f);$("editorSource").src=editorData;$("editorSource").classList.remove("hidden");$("editorEmpty").classList.add("hidden")}catch(x){error($("editError"),readable(x))}};
@@ -92,22 +109,40 @@ $("editorUpload").ondragover=e=>{e.preventDefault();$("editorUpload").classList.
 $("editorReset").onclick=()=>{$("editorFile").value="";editorData="";$("editorSource").src="";$("editorSource").classList.add("hidden");$("editorEmpty").classList.remove("hidden");$("editResultBox").classList.add("hidden")};
 $("editBtn").onclick=async()=>{
  const p=$("editPrompt").value.trim();error($("editError"),"");if(!p)return error($("editError"),"Введите описание изменения.");
- let img=editorData||$("editorSource").src;if(!img)return error($("editError"),"Сначала загрузите изображение.");
- if(img.startsWith("http")){try{const rr=await fetch(img);const blob=await rr.blob();img=await compressImage(blob)}catch{error($("editError"),"Не удалось получить изображение для редактирования.");return}}
+ let img=editorData||$("editorSource").src;
+ if(!img)return error($("editError"),"Сначала загрузите изображение.");
+ const imageUrl=img.startsWith("http")?img:"";
  const b=$("editBtn");b.disabled=true;load(true,"Miya AI редактирует фото","Сохраняем исходный кадр и применяем изменение…");
- try{const r=await fetch("/api/edit",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({prompt:p,imageBase64:img,ratio:genRatio,model:$("editModel").value,quality:$("editQuality").value,size:"auto",outputFormat:"png"})});const raw=await r.text();let d={};try{d=raw?JSON.parse(raw):{}}catch{throw new Error("API редактора вернул не JSON (HTTP "+r.status+")")}if(!r.ok||!d.imageUrl)throw new Error(d.error||"Редактор не вернул изображение");$("editResult").src=d.imageUrl;$("editResultBox").classList.remove("hidden");$("editResult").onclick=()=>{editorData=d.imageUrl};$("editorAnimate").dataset.result=d.imageUrl}catch(e){error($("editError"),readable(e))}finally{b.disabled=false;load(false)}
+ try{const r=await fetch("/api/edit",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({prompt:p,imageBase64:img.startsWith("data:image/")?img:"",imageUrl,ratio:genRatio,model:$("editModel").value,quality:$("editQuality").value,size:"auto",outputFormat:"png"})});const raw=await r.text();let d={};try{d=raw?JSON.parse(raw):{}}catch{throw new Error("API редактора вернул не JSON (HTTP "+r.status+")")}if(!r.ok||!d.imageUrl)throw new Error(d.error||"Редактор не вернул изображение");$("editResult").src=d.imageUrl;$("editResultBox").classList.remove("hidden");$("editResult").onclick=()=>{editorData=d.imageUrl};$("editorAnimate").dataset.result=d.imageUrl}catch(e){error($("editError"),readable(e))}finally{b.disabled=false;load(false)}
 };
 $("editorAnimate").onclick=()=>{const src=$("editResult").src&&!$("editResultBox").classList.contains("hidden")?$("editResult").src:($("editorSource").src||"");if(!src)return error($("editError"),"Сначала загрузите или создайте изображение.");setVideoFromUrl(src)};
 $("videoChoose").onclick=()=>$("videoFile").click();
 $("videoFile").onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const d=await compressImage(f);setVideoImage(d)}catch(x){error($("videoError"),readable(x))}};
 $("videoCanvas").ondragover=e=>{e.preventDefault();$("videoCanvas").classList.add("drag")};$("videoCanvas").ondragleave=()=>$("videoCanvas").classList.remove("drag");$("videoCanvas").ondrop=async e=>{e.preventDefault();$("videoCanvas").classList.remove("drag");const f=e.dataTransfer.files?.[0];if(f){try{setVideoImage(await compressImage(f))}catch(x){error($("videoError"),readable(x))}}};
-function setVideoImage(src){$("videoImage").src=src;$("videoImage").classList.remove("hidden");$("videoResult").classList.add("hidden");$("videoEmpty").classList.add("hidden");window.__miyaVideoSource=src;setCanvasRatio($("videoCanvas"),videoRatio)}
-async function setVideoFromUrl(url){try{const rr=await fetch(url);const blob=await rr.blob();setVideoImage(await compressImage(blob));showView("video")}catch{setVideoImage(url);showView("video")}}
-$("videoReset").onclick=()=>{$("videoFile").value="";$("videoImage").src="";$("videoImage").classList.add("hidden");$("videoResult").src="";$("videoResult").classList.add("hidden");$("videoEmpty").classList.remove("hidden");$("videoDownload").classList.add("hidden");error($("videoError"),"");window.__miyaVideoSource=""};
+function setVideoImage(src){
+  $("videoImage").src=src;
+  $("videoImage").classList.remove("hidden");
+  $("videoResult").classList.add("hidden");
+  $("videoEmpty").classList.add("hidden");
+  window.__miyaVideoSource=src;
+  window.__miyaVideoSourceUrl=src.startsWith("http")?src:"";
+  setCanvasRatio($("videoCanvas"),videoRatio);
+}
+async function setVideoFromUrl(url){
+  if(!url)return;
+  // Keep the public URL. Do not fetch it in the browser: external image
+  // hosts such as Replicate can reject browser CORS requests.
+  setVideoImage(url);
+  window.__miyaVideoSourceUrl=url;
+  showView("video");
+}
+$("videoReset").onclick=()=>{$("videoFile").value="";$("videoImage").src="";$("videoImage").classList.add("hidden");$("videoResult").src="";$("videoResult").classList.add("hidden");$("videoEmpty").classList.remove("hidden");$("videoDownload").classList.add("hidden");error($("videoError"),"");window.__miyaVideoSource="";
+window.__miyaVideoSourceUrl="";
+};
 $("videoGenerate").onclick=async()=>{
  const p=$("videoPrompt").value.trim();error($("videoError"),"");const img=window.__miyaVideoSource||"";if(!img)return error($("videoError"),"Сначала загрузите исходное изображение.");if(!p)return error($("videoError"),"Введите промпт для видео.");
  const b=$("videoGenerate");b.disabled=true;load(true,"Miya AI создаёт видео","Передаём кадр в видеодвижок…");
- try{const r=await fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({imageBase64:img,imageUrl:"",prompt:p,aspect:videoRatio})});const raw=await r.text();let d={};try{d=raw?JSON.parse(raw):{}}catch{throw new Error("Video API вернул не JSON (HTTP "+r.status+")")}if(!r.ok||!d.taskId)throw new Error(d.error||d.message||"Видео не запустилось");for(let i=0;i<450;i++){await new Promise(x=>setTimeout(x,4000));const sr=await fetch("/api/video?taskId="+encodeURIComponent(d.taskId),{cache:"no-store"});const sraw=await sr.text();let s={};try{s=sraw?JSON.parse(sraw):{}}catch{throw new Error("Статус видео вернул не JSON")}if(!sr.ok)throw new Error(s.error||"Ошибка статуса видео");if(s.done){if(!s.success||!s.videoUrl)throw new Error(s.error||"Видео не создано");$("videoResult").src=s.videoUrl;$("videoResult").classList.remove("hidden");$("videoImage").classList.add("hidden");$("videoEmpty").classList.add("hidden");$("videoDownload").classList.remove("hidden");$("videoDownload").onclick=()=>window.open(s.videoUrl,"_blank","noopener");load(false);return}}throw new Error("Видео слишком долго обрабатывается.")}catch(e){error($("videoError"),readable(e));load(false)}finally{b.disabled=false}
+ try{const r=await fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({imageBase64:img.startsWith("data:image/")?img:"",imageUrl:window.__miyaVideoSourceUrl||"",prompt:p,aspect:videoRatio})});const raw=await r.text();let d={};try{d=raw?JSON.parse(raw):{}}catch{throw new Error("Video API вернул не JSON (HTTP "+r.status+")")}if(!r.ok||!d.taskId)throw new Error(d.error||d.message||"Видео не запустилось");for(let i=0;i<450;i++){await new Promise(x=>setTimeout(x,4000));const sr=await fetch("/api/video?taskId="+encodeURIComponent(d.taskId),{cache:"no-store"});const sraw=await sr.text();let s={};try{s=sraw?JSON.parse(sraw):{}}catch{throw new Error("Статус видео вернул не JSON")}if(!sr.ok)throw new Error(s.error||"Ошибка статуса видео");if(s.done){if(!s.success||!s.videoUrl)throw new Error(s.error||"Видео не создано");$("videoResult").src=s.videoUrl;$("videoResult").classList.remove("hidden");$("videoImage").classList.add("hidden");$("videoEmpty").classList.add("hidden");$("videoDownload").classList.remove("hidden");$("videoDownload").onclick=()=>window.open(s.videoUrl,"_blank","noopener");load(false);return}}throw new Error("Видео слишком долго обрабатывается.")}catch(e){error($("videoError"),readable(e));load(false)}finally{b.disabled=false}
 };
 window.addEventListener("unhandledrejection",e=>{console.error("Miya unhandled rejection",e.reason);e.preventDefault()});
 })();
