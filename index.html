@@ -43,7 +43,12 @@ textarea{width:100%;resize:vertical;min-height:125px;border:1px solid var(--line
 @media(max-width:950px){.layout{grid-template-columns:1fr}.canvas{min-height:520px}.history-grid{grid-template-columns:repeat(5,1fr)}.top{align-items:flex-start;flex-direction:column}.tabs{width:100%}.tab{flex:1;padding:10px 7px}}
 @media(max-width:600px){.app{padding:10px}.canvas{min-height:430px}.canvas img,.canvas video{max-height:430px}.history-grid{grid-template-columns:repeat(3,1fr)}.ratios{grid-template-columns:repeat(2,1fr)}}
 </style>
-</head>
+<style id="/* MIYA_BUTTON_FIX */">#editorAnimate{display:inline-flex!important;visibility:visible!important;opacity:1!important}.canvas{min-height:650px!important}.view.active{display:block!important}</style>
+<script id="miya-button-fix">
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('#editorAnimate,#openVideo').forEach(function(b){b.style.display='inline-flex';b.style.visibility='visible';});
+});
+</script></head>
 <body>
 <div class="app">
 <header class="top">
@@ -335,7 +340,7 @@ async function runGenerate() {
       body: JSON.stringify({
         prompt,
         ratio: state.genRatio,
-        model: 'legacy-flux',
+        model: 'or-nano-banana-2',
         quality: 'auto',
         size: 'auto',
         outputFormat: 'png'
@@ -374,7 +379,7 @@ async function runEdit() {
     const payload = {
       prompt,
       ratio: state.editRatio,
-      model: 'legacy-flux',
+      model: 'or-nano-banana-2',
       quality: 'auto',
       size: 'auto',
       outputFormat: 'png'
