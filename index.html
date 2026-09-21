@@ -4942,6 +4942,187 @@
   }
 
 
+  async function generateAndMuxAudio(videoUrl, prompt, duration = 6) {
+    setLoading(
+      true,
+      "Добавляем звук",
+      "Pixazo Tracks · бесплатно…"
+    );
+
+    const createResponse = await fetch("/api/audio", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        prompt:
+          "Create a realistic cinematic ambient soundscape and natural sound effects for this video. No vocals, no lyrics, no dominant music. Match the described action and environment closely. " +
+          prompt,
+        duration
+      })
+    });
+
+    const createText = await createResponse.text();
+    let createData = {};
+
+    try {
+      createData = createText ? JSON.parse(createText) : {};
+    } catch {
+      throw new Error(
+        "Сервер /api/audio вернул не JSON (HTTP " +
+        createResponse.status +
+        ")."
+      );
+    }
+
+    if (
+      !createResponse.ok ||
+      !createData.success ||
+      !createData.taskId
+    ) {
+      throw new Error(
+        createData.error ||
+        "Не удалось запустить генерацию звука."
+      );
+    }
+
+    const taskId = createData.taskId;
+    const startedAt = Date.now();
+    const timeoutMs = 4 * 60 * 1000;
+    let audioUrl = "";
+
+    while (Date.now() - startedAt < timeoutMs) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      const response = await fetch(
+        "/api/audio?taskId=" +
+          encodeURIComponent(taskId),
+        {
+          method: "GET",
+          headers: { "Accept": "application/json" },
+          cache: "no-store"
+        }
+      );
+
+      const text = await response.text();
+      let data = {};
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(
+          "Сервер статуса аудио вернул не JSON."
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+          data.message ||
+          "Ошибка проверки аудио."
+        );
+      }
+
+      if (data.done) {
+        if (!data.success || !data.audioUrl) {
+          throw new Error(
+            data.error ||
+            "Pixazo Tracks не вернул аудио."
+          );
+        }
+
+        audioUrl = data.audioUrl;
+        break;
+      }
+
+      setLoading(
+        true,
+        "Генерируем звук",
+        "Pixazo Tracks · " +
+          String(data.status || "PROCESSING") +
+          "…"
+      );
+    }
+
+    if (!audioUrl) {
+      throw new Error(
+        "Генерация звука заняла слишком много времени."
+      );
+    }
+
+    setLoading(
+      true,
+      "Синхронизируем звук",
+      "Собираем MP4 в браузере…"
+    );
+
+    // ffmpeg.wasm runs locally in the user's browser.
+    // No paid video/audio processing service is used for the muxing step.
+    const { FFmpeg } = await import(
+      "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/+esm"
+    );
+    const { fetchFile, toBlobURL } = await import(
+      "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/+esm"
+    );
+
+    const ffmpeg = new FFmpeg();
+
+    const base =
+      "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
+
+    await ffmpeg.load({
+      coreURL: await toBlobURL(
+        base + "/ffmpeg-core.js",
+        "text/javascript"
+      ),
+      wasmURL: await toBlobURL(
+        base + "/ffmpeg-core.wasm",
+        "application/wasm"
+      )
+    });
+
+    await ffmpeg.writeFile(
+      "input.mp4",
+      await fetchFile(videoUrl)
+    );
+
+    await ffmpeg.writeFile(
+      "audio.mp3",
+      await fetchFile(audioUrl)
+    );
+
+    await ffmpeg.exec([
+      "-i",
+      "input.mp4",
+      "-i",
+      "audio.mp3",
+      "-map",
+      "0:v:0",
+      "-map",
+      "1:a:0",
+      "-c:v",
+      "copy",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "128k",
+      "-shortest",
+      "-movflags",
+      "+faststart",
+      "output.mp4"
+    ]);
+
+    const output = await ffmpeg.readFile("output.mp4");
+
+    return URL.createObjectURL(
+      new Blob([output.buffer], {
+        type: "video/mp4"
+      })
+    );
+  }
+
+
   async function animateEditorImage() {
     const resultImage = $("editorResultImage");
     const sourceImage = $("editorSource");
@@ -5108,20 +5289,32 @@
             );
           }
 
-          const video = $("editorVideoResult");
           const generatedAspect =
             editorRatio || "16:9";
 
+          // Pixazo's free LTX endpoint can return a silent MP4.
+          // Generate a free ambient track with Pixazo Tracks and mux it
+          // into the final MP4 locally in the browser.
+          const finalVideoUrl =
+            await generateAndMuxAudio(
+              statusData.videoUrl,
+              prompt,
+              6
+            );
+
+          const video = $("editorVideoResult");
+
           lastVideo = {
             type: "video",
-            url: statusData.videoUrl,
-            videoUrl: statusData.videoUrl,
+            url: finalVideoUrl,
+            videoUrl: finalVideoUrl,
+            sourceVideoUrl: statusData.videoUrl,
             prompt,
             aspect: generatedAspect,
             createdAt: Date.now()
           };
 
-          video.src = statusData.videoUrl;
+          video.src = finalVideoUrl;
           video.style.aspectRatio =
             generatedAspect === "9:16"
               ? "9 / 16"
@@ -5139,8 +5332,8 @@
 
           $("downloadVideoBtn").onclick = () =>
             downloadImage(
-              statusData.videoUrl,
-              "miya-video.mp4"
+              finalVideoUrl,
+              "miya-video-with-audio.mp4"
             );
 
           $("sendVideoToGeneratorBtn").onclick = () => {
