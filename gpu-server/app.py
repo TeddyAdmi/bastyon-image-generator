@@ -13,19 +13,20 @@ from pydantic import BaseModel
 ROOT = Path("/workspace/gpu-server")
 WORK_DIR = ROOT / "jobs"
 OUTPUT_DIR = ROOT / "outputs"
+LTX_DIR = Path(os.getenv("LTX_DIR", "/workspace/LTX-Video"))
+
 WORK_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-LTX_DIR = Path("/workspace/LTX-Video")
 CONFIG = os.getenv("LTX_CONFIG", "configs/ltxv-2b-0.9.8-distilled.yaml")
 WIDTH = int(os.getenv("LTX_WIDTH", "832"))
 HEIGHT = int(os.getenv("LTX_HEIGHT", "480"))
 FRAMES = int(os.getenv("LTX_FRAMES", "121"))
 FPS = int(os.getenv("LTX_FPS", "24"))
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
-MAX_QUEUE = int(os.getenv("MAX_QUEUE", "3"))
+MAX_QUEUE = int(os.getenv("MAX_QUEUE", "1"))
 
-app = FastAPI(title="Miya LTX Video Server", version="1.0.0")
+app = FastAPI(title="Miya LTX Video Server", version="2.0.0")
 jobs = {}
 queue_lock = threading.Lock()
 generation_lock = threading.Lock()
@@ -39,19 +40,26 @@ class GenerateRequest(BaseModel):
 
 def decode_data_url(value: str, destination: Path):
     if not value.startswith("data:image/"):
-        raise ValueError("imageBase64 must be a data:image/...;base64,... URL")
+        raise ValueError("imageBase64 должен быть data:image/...;base64,...")
+
     try:
         header, encoded = value.split(",", 1)
     except ValueError as exc:
-        raise ValueError("Invalid image data URL") from exc
+        raise ValueError("Некорректный image data URL") from exc
+
     mime = header.split(";", 1)[0].lower()
     extension = {
         "data:image/png": ".png",
         "data:image/jpeg": ".jpg",
         "data:image/webp": ".webp",
     }.get(mime, ".png")
+
+    raw = base64.b64decode(encoded)
+    if len(raw) > 8_000_000:
+        raise ValueError("Исходное изображение слишком большое (максимум 8 MB).")
+
     destination = destination.with_suffix(extension)
-    destination.write_bytes(base64.b64decode(encoded))
+    destination.write_bytes(raw)
     return destination
 
 
@@ -59,8 +67,16 @@ def run_generation(job_id: str, image_path: Path, prompt: str, seed: int):
     job = jobs[job_id]
     output_dir = OUTPUT_DIR / job_id
     output_dir.mkdir(parents=True, exist_ok=True)
+
     job["status"] = "running"
     job["startedAt"] = time.time()
+
+    config_path = LTX_DIR / CONFIG
+    if not config_path.exists():
+        raise RuntimeError(
+            f"LTX config не найден: {config_path}. "
+            "Проверьте, что официальный LTX-Video был установлен."
+        )
 
     command = [
         "python3",
@@ -85,18 +101,21 @@ def run_generation(job_id: str, image_path: Path, prompt: str, seed: int):
                 cwd=str(LTX_DIR),
                 capture_output=True,
                 text=True,
-                timeout=30 * 60,
+                timeout=45 * 60,
             )
 
         log = (process.stdout or "") + "\n" + (process.stderr or "")
         (output_dir / "generation.log").write_text(log, encoding="utf-8")
 
         if process.returncode != 0:
-            raise RuntimeError("LTX inference failed. Check generation.log.")
+            tail = log[-4000:]
+            raise RuntimeError("LTX inference failed:\n" + tail)
 
         candidates = sorted(output_dir.glob("*.mp4"))
         if not candidates:
-            raise RuntimeError("LTX finished without producing an MP4.")
+            raise RuntimeError(
+                "LTX завершился без MP4. Последние строки лога:\n" + log[-3000:]
+            )
 
         generated = candidates[-1]
         output_path = output_dir / "video.mp4"
@@ -128,42 +147,76 @@ def start_job(job_id: str, image_path: Path, prompt: str, seed: int):
 
 @app.get("/health")
 def health():
+    config_exists = (LTX_DIR / CONFIG).exists()
+    inference_exists = (LTX_DIR / "inference.py").exists()
+
     return {
         "ok": True,
         "service": "miya-ltx",
         "model": "ltxv-2b-0.9.8-distilled",
+        "config": CONFIG,
+        "configExists": config_exists,
+        "inferenceExists": inference_exists,
+        "ltxDir": str(LTX_DIR),
         "width": WIDTH,
         "height": HEIGHT,
         "frames": FRAMES,
         "fps": FPS,
+        "gpu": bool(subprocess.run(
+            ["bash", "-lc", "command -v nvidia-smi >/dev/null 2>&1"],
+            capture_output=True
+        ).returncode == 0),
     }
 
 
 @app.post("/generate")
 def generate(payload: GenerateRequest):
     prompt = payload.prompt.strip()
+
     if not payload.imageBase64:
         raise HTTPException(400, "imageBase64 is required")
     if not prompt:
         raise HTTPException(400, "prompt is required")
+
+    if not (LTX_DIR / "inference.py").exists():
+        raise HTTPException(
+            503,
+            "LTX-Video не установлен. Перезапустите Cloud Studio после запуска start.sh."
+        )
+
+    if not (LTX_DIR / CONFIG).exists():
+        raise HTTPException(
+            503,
+            f"Конфигурация LTX не найдена: {CONFIG}"
+        )
 
     with queue_lock:
         active = sum(
             1 for job in jobs.values()
             if job["status"] in ("queued", "running")
         )
+
         if active >= MAX_QUEUE:
-            raise HTTPException(429, "LTX server queue is full. Try again shortly.")
+            raise HTTPException(429, "GPU сейчас занят. Подождите завершения текущего видео.")
 
         job_id = secrets.token_urlsafe(12)
         job_dir = WORK_DIR / job_id
         job_dir.mkdir(parents=True, exist_ok=True)
-        image_path = decode_data_url(payload.imageBase64, job_dir / "input.png")
+
+        try:
+            image_path = decode_data_url(
+                payload.imageBase64,
+                job_dir / "input.png"
+            )
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
         seed = (
             int(payload.seed)
             if payload.seed is not None
             else secrets.randbelow(2_147_483_647)
         )
+
         jobs[job_id] = {
             "status": "queued",
             "createdAt": time.time(),
@@ -219,10 +272,14 @@ def get_job(job_id: str):
 def output_video(job_id: str):
     path = OUTPUT_DIR / job_id / "video.mp4"
     if not path.exists():
-        raise HTTPException(404, "Video not ready")
+        raise HTTPException(404, "Видео ещё не готово")
     return FileResponse(path, media_type="video/mp4", filename="miya.mp4")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8000"))
+    )
