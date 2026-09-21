@@ -61,7 +61,7 @@ textarea{width:100%;resize:vertical;min-height:125px;border:1px solid var(--line
   <div class="card canvas-card">
    <div class="canvas-head"><div><div class="title">Холст генерации</div><div class="sub">Результат изображения</div></div><button id="genClear" class="btn small">Очистить</button></div>
    <div id="genCanvas" class="canvas"><div id="genEmpty" class="empty"><div class="emoji">✨</div><b>Создайте изображение</b><p>Введите описание справа или выберите идею.</p></div><img id="genImage" class="hidden" alt="Generated image"></div>
-   <div class="row" style="margin-top:12px"><button id="openEditor" class="btn dark hidden">Открыть в фото-редакторе</button><button id="openVideo" class="btn primary hidden">🎬 Анимировать</button></div>
+   <div class="row" style="margin-top:12px"><button id="openEditor" class="btn dark hidden">🖼️ Открыть в фото-редакторе</button><button id="openVideo" class="btn primary hidden">🎬 Анимировать</button></div>
   </div>
   <div class="history card" id="genHistory"><div class="history-head"><b>История картинок Miya AI</b><button class="btn small" data-history-clear="images">Очистить</button></div><div class="history-grid" id="imageHistory"></div></div>
  </div>
@@ -196,14 +196,14 @@ function renderHistory(){const items=historyRead();document.querySelectorAll('.h
 
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
 ratioButtons('genRatios','genRatio');ratioButtons('editRatios','editRatio');ratioButtons('videoRatios','videoRatio');
-buildIdeas();renderHistory();
+buildIdeas();renderHistory();try{const savedEditor=sessionStorage.getItem('miyaEditorImage');if(savedEditor){state.editorImage=savedEditor;setImage('editorSource','editEmpty',savedEditor)}}catch{}try{const savedVideo=sessionStorage.getItem('miyaVideoImage');if(savedVideo){state.videoImage=savedVideo;setImage('videoImage','videoEmpty',savedVideo)}}catch{}
 
 $('randomIdea')?.addEventListener('click',()=>{$('genPrompt').value=ideas[Math.floor(Math.random()*ideas.length)]});
 $('genClearPrompt')?.addEventListener('click',()=>{$('genPrompt').value='';errorBox('genError','')});
 $('aiPromptBtn')?.addEventListener('click',()=>{const p=$('genPrompt').value.trim();if(!p)return errorBox('genError','Сначала напишите идею.');$('genPrompt').value=enhancePrompt(p)});
 $('genClear')?.addEventListener('click',()=>{state.genImage='';setImage('genImage','genEmpty','');$('openEditor')?.classList.add('hidden');$('openVideo')?.classList.add('hidden');errorBox('genError','')});
 
-function openEditor(source){if(!source)return;state.editorImage=source;setImage('editorSource','editEmpty',source);$('editResult')?.classList.add('hidden');show('edit')}
+function openEditor(source){if(!source)return errorBox('genError','Сначала создайте изображение.');state.editorImage=source;sessionStorage.setItem('miyaEditorImage',source);setImage('editorSource','editEmpty',source);$('editResult')?.classList.add('hidden');show('edit')}
 $('openEditor')?.addEventListener('click',()=>openEditor(state.genImage));
 $('editorChoose')?.addEventListener('click',()=>$('editorFile')?.click());
 $('editorFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.editorImage=await fileData(f);setImage('editorSource','editEmpty',state.editorImage);errorBox('editError','')}catch(x){errorBox('editError',x)}});
@@ -216,10 +216,10 @@ $('generateBtn')?.addEventListener('click',runGenerate);
 
 $('editorClear')?.addEventListener('click',()=>{state.editorImage='';$('editorFile').value='';setImage('editorSource','editEmpty','');$('editResult')?.classList.add('hidden');errorBox('editError','')});
 $('editUseResult')?.addEventListener('click',()=>{if(state.editorImage)setImage('editorSource','editEmpty',state.editorImage)});
-async function runEdit(){const source=state.editorImage||$('editorSource').src;const prompt=$('editPrompt').value.trim();if(!source)return errorBox('editError','Сначала загрузите изображение.');if(!prompt)return errorBox('editError','Введите, что изменить.');const b=$('editAI');b.disabled=true;errorBox('editError','');busy(true,'Фото-редактор','Выполняем изменение…');try{let imageBase64=source;if(!source.startsWith('data:image/'))throw new Error('Для редактирования результата сначала откройте изображение из файла или загрузите его заново.');const d=await api('/api/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,imageBase64,ratio:state.editRatio,model:'legacy-flux',quality:'auto',size:'auto',outputFormat:'png'})});if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');state.editorImage=d.imageUrl;setImage('editorSource','editEmpty',d.imageUrl);addHistory(d.imageUrl)}catch(e){errorBox('editError',e)}finally{b.disabled=false;busy(false)}}
+async function runEdit(){const source=state.editorImage||$('editorSource').src;const prompt=$('editPrompt').value.trim();if(!source)return errorBox('editError','Сначала загрузите изображение.');if(!prompt)return errorBox('editError','Введите, что изменить.');const b=$('editAI');b.disabled=true;errorBox('editError','');busy(true,'Фото-редактор','Выполняем изменение…');try{const payload={prompt,ratio:state.editRatio,model:'legacy-flux',quality:'auto',size:'auto',outputFormat:'png'};if(String(source).startsWith('data:image/'))payload.imageBase64=source;else if(/^https?:\\/\\//i.test(String(source)))payload.imageUrl=source;else throw new Error('Не удалось определить исходное изображение.');const d=await api('/api/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');state.editorImage=d.imageUrl;setImage('editorSource','editEmpty',d.imageUrl);addHistory(d.imageUrl)}catch(e){errorBox('editError',e)}finally{b.disabled=false;busy(false)}}
 $('editAI')?.addEventListener('click',runEdit);
 
-function openVideo(source){if(!source)return errorBox('genError','Сначала создайте или загрузите изображение.');state.videoImage=source;setImage('videoImage','videoEmpty',source);$('videoResult')?.classList.add('hidden');show('video')}
+function openVideo(source){if(!source)return errorBox('genError','Сначала создайте или загрузите изображение.');state.videoImage=source;sessionStorage.setItem('miyaVideoImage',source);setImage('videoImage','videoEmpty',source);$('videoResult')?.classList.add('hidden');show('video')}
 $('openVideo')?.addEventListener('click',()=>openVideo(state.genImage));
 $('editorAnimate')?.addEventListener('click',()=>openVideo(state.editorImage||$('editorSource')?.src||''));
 $('videoChoose')?.addEventListener('click',()=>$('videoFile')?.click());
