@@ -1522,9 +1522,7 @@ textarea:focus,input:focus,select:focus{
   .canvas-panel{min-height:520px}
   .mode-button{min-width:0;flex:1}
 }
-</style>
-
-</head>
+#animateEditedBtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;}\n\n</style>\n\n</head>
 
 
 <body>
@@ -6032,42 +6030,6 @@ throw Error("LTX слишком долго обрабатывает видео. 
 window.__miyaLastImages=[];window.__miyaShowGeneratedVideo=(url,a)=>{show();q("videoCanvasEmpty").classList.add("hidden");q("videoSourceImage").classList.add("hidden");const v=q("videoResult");v.src=url;v.classList.remove("hidden");v.style.aspectRatio=a==="9:16"?"9 / 16":"16 / 9";q("videoDownloadBtn").classList.remove("hidden");q("videoDownloadBtn").onclick=()=>download(url)};
 })();
 </script>
-<script id="miya-button-safety">
-(function(){
-  "use strict";
-  const $=id=>document.getElementById(id);
 
-  function activate(mode){
-    ["generatorMode","editorMode","videoMode"].forEach(id=>{
-      const el=$(id); if(el) el.classList.toggle("hidden",id!==mode);
-    });
-    ["generatorModeBtn","editorModeBtn","videoModeBtn"].forEach(id=>{
-      const el=$(id); if(el) el.classList.toggle("active",
-        (mode==="generator"&&id==="generatorModeBtn")||
-        (mode==="editor"&&id==="editorModeBtn")||
-        (mode==="video"&&id==="videoModeBtn"));
-    });
-    window.scrollTo({top:0,behavior:"smooth"});
-  }
-
-  const gm=$("generatorModeBtn"), em=$("editorModeBtn"), vm=$("videoModeBtn");
-  if(gm) gm.onclick=()=>activate("generator");
-  if(em) em.onclick=()=>activate("editor");
-  if(vm) vm.onclick=()=>activate("video");
-
-  const animate=$("animateEditedBtn");
-  if(animate) animate.classList.remove("hidden");
-
-  const editorFile=$("editorFile");
-  if(editorFile){
-    editorFile.addEventListener("change",()=>{
-      if(animate) animate.classList.remove("hidden");
-    });
-  }
-
-  const videoBtn=$("createVideoStandaloneBtn");
-  if(videoBtn) videoBtn.classList.remove("hidden");
-})();
-</script>
 </body>
 </html>
