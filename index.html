@@ -158,7 +158,16 @@ $('editorClear')?.addEventListener('click',()=>{state.editorImage='';$('editorFi
 $('editBtn')?.addEventListener('click',async()=>{
  const prompt=$('editPrompt')?.value.trim();error('editError','');if(!state.editorImage)return error('editError','Сначала загрузите изображение.');if(!prompt)return error('editError','Введите описание изменения.');
  $('editBtn').disabled=true;load(true,'Miya AI редактирует','Обрабатываем исходный кадр…');
- try{const d=await api('/api/edit',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({prompt,imageBase64:state.editorImage,ratio:state.editRatio,model:$('editModel')?.value||'auto',quality:$('editQuality')?.value||'auto',size:'auto',outputFormat:'png'})});if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');state.editorImage=d.imageUrl;$('editResult').src=d.imageUrl;$('editResult').classList.remove('hidden');$('editUseResult')?.classList.remove('hidden')}catch(e){console.error(e);error('editError',e)}finally{$('editBtn').disabled=false;load(false)}
+ try{const d=await api('/api/edit',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({
+  prompt,
+  imageBase64:state.editorImage.startsWith('data:image/')?state.editorImage:'',
+  imageUrl:state.editorImage.startsWith('data:image/')?'':state.editorImage,
+  ratio:state.editRatio,
+  model:$('editModel')?.value||'auto',
+  quality:$('editQuality')?.value||'auto',
+  size:'auto',
+  outputFormat:'png'
+})});if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');state.editorImage=d.imageUrl;$('editResult').src=d.imageUrl;$('editResult').classList.remove('hidden');$('editUseResult')?.classList.remove('hidden')}catch(e){console.error(e);error('editError',e)}finally{$('editBtn').disabled=false;load(false)}
 });
 $('editUseResult')?.addEventListener('click',()=>{const s=$('editResult').src;if(s){state.editorImage=s;setImage('editorSource','editEmpty',s);$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden')}});
 $('editorAnimate')?.addEventListener('click',()=>openVideo(state.editorImage||$('editorSource')?.src));
