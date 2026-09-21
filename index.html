@@ -4441,6 +4441,15 @@
       );
 
     $("editorVideoResult").src = "";
+    const oldVideoAudio = $("editorVideoAudio");
+    if (oldVideoAudio) {
+      oldVideoAudio.pause();
+      oldVideoAudio.remove();
+    }
+    const oldVideoAudioLabel = $("editorVideoAudioLabel");
+    if (oldVideoAudioLabel) {
+      oldVideoAudioLabel.remove();
+    }
     $("editorVideoResult")
       .classList
       .add(
@@ -4942,13 +4951,7 @@
   }
 
 
-  async function generateAndMuxAudio(videoUrl, prompt, duration = 6) {
-    setLoading(
-      true,
-      "Добавляем звук",
-      "Pixazo Tracks · бесплатно…"
-    );
-
+  async function generateAudioTrack(prompt, duration = 6) {
     const createResponse = await fetch("/api/audio", {
       method: "POST",
       headers: {
@@ -4990,10 +4993,9 @@
     const taskId = createData.taskId;
     const startedAt = Date.now();
     const timeoutMs = 4 * 60 * 1000;
-    let audioUrl = "";
 
     while (Date.now() - startedAt < timeoutMs) {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 2500));
 
       const response = await fetch(
         "/api/audio?taskId=" +
@@ -5032,94 +5034,80 @@
           );
         }
 
-        audioUrl = data.audioUrl;
-        break;
+        return data.audioUrl;
       }
-
-      setLoading(
-        true,
-        "Генерируем звук",
-        "Pixazo Tracks · " +
-          String(data.status || "PROCESSING") +
-          "…"
-      );
     }
 
-    if (!audioUrl) {
-      throw new Error(
-        "Генерация звука заняла слишком много времени."
-      );
+    throw new Error(
+      "Генерация звука заняла слишком много времени."
+    );
+  }
+
+
+  function attachVideoAudio(videoUrl, audioUrl) {
+    const result = $("editorResult");
+    const video = $("editorVideoResult");
+
+    if (!result || !video || !audioUrl) {
+      return;
     }
 
-    setLoading(
-      true,
-      "Синхронизируем звук",
-      "Собираем MP4 в браузере…"
-    );
+    let audio = $("editorVideoAudio");
 
-    // ffmpeg.wasm runs locally in the user's browser.
-    // No paid video/audio processing service is used for the muxing step.
-    const { FFmpeg } = await import(
-      "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/+esm"
-    );
-    const { fetchFile, toBlobURL } = await import(
-      "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/+esm"
-    );
+    if (!audio) {
+      audio = document.createElement("audio");
+      audio.id = "editorVideoAudio";
+      audio.controls = true;
+      audio.preload = "auto";
+      audio.style.width = "100%";
+      audio.style.marginTop = "10px";
+      audio.setAttribute("aria-label", "Синхронный звук видео");
 
-    const ffmpeg = new FFmpeg();
+      const label = document.createElement("div");
+      label.id = "editorVideoAudioLabel";
+      label.textContent = "🔊 Звук готов — нажмите Play на видео или аудио";
+      label.style.cssText =
+        "margin-top:8px;color:#6f687b;font-size:11px;font-weight:600;";
 
-    const base =
-      "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
+      result.appendChild(label);
+      result.appendChild(audio);
 
-    await ffmpeg.load({
-      coreURL: await toBlobURL(
-        base + "/ffmpeg-core.js",
-        "text/javascript"
-      ),
-      wasmURL: await toBlobURL(
-        base + "/ffmpeg-core.wasm",
-        "application/wasm"
-      )
-    });
+      video.muted = true;
 
-    await ffmpeg.writeFile(
-      "input.mp4",
-      await fetchFile(videoUrl)
-    );
+      video.addEventListener("play", () => {
+        audio.currentTime = Math.min(
+          video.currentTime || 0,
+          Number.isFinite(audio.duration) ? audio.duration : 0
+        );
+        audio.play().catch(() => {});
+      });
 
-    await ffmpeg.writeFile(
-      "audio.mp3",
-      await fetchFile(audioUrl)
-    );
+      video.addEventListener("pause", () => {
+        audio.pause();
+      });
 
-    await ffmpeg.exec([
-      "-i",
-      "input.mp4",
-      "-i",
-      "audio.mp3",
-      "-map",
-      "0:v:0",
-      "-map",
-      "1:a:0",
-      "-c:v",
-      "copy",
-      "-c:a",
-      "aac",
-      "-b:a",
-      "128k",
-      "-shortest",
-      "-movflags",
-      "+faststart",
-      "output.mp4"
-    ]);
+      video.addEventListener("seeking", () => {
+        if (Number.isFinite(audio.duration)) {
+          audio.currentTime = Math.min(
+            video.currentTime || 0,
+            audio.duration
+          );
+        }
+      });
+    }
 
-    const output = await ffmpeg.readFile("output.mp4");
+    audio.src = audioUrl;
+    audio.load();
 
-    return URL.createObjectURL(
-      new Blob([output.buffer], {
-        type: "video/mp4"
-      })
-    );
+    lastVideo = {
+      ...(lastVideo || {}),
+      type: "video",
+      url: videoUrl,
+      videoUrl,
+      audioUrl
+    };
+
+    return audio;
   }
 
 
@@ -5227,6 +5215,15 @@
       }
 
       const taskId = createData.taskId;
+
+      // Start audio generation in parallel with LTX video processing.
+      // We no longer wait for audio before showing the video.
+      const audioPromise = generateAudioTrack(prompt, 6)
+        .catch((audioError) => {
+          console.warn("Audio generation failed:", audioError);
+          return "";
+        });
+
       const startedAt = Date.now();
       const timeoutMs = 7 * 60 * 1000;
 
@@ -5292,16 +5289,10 @@
           const generatedAspect =
             editorRatio || "16:9";
 
-          // Pixazo's free LTX endpoint can return a silent MP4.
-          // Generate a free ambient track with Pixazo Tracks and mux it
-          // into the final MP4 locally in the browser.
-          const finalVideoUrl =
-            await generateAndMuxAudio(
-              statusData.videoUrl,
-              prompt,
-              6
-            );
-
+          // Show the LTX video immediately.
+          // Audio is generated in parallel and attached separately,
+          // avoiding the slow ffmpeg.wasm browser synchronization step.
+          const finalVideoUrl = statusData.videoUrl;
           const video = $("editorVideoResult");
 
           lastVideo = {
@@ -5361,10 +5352,17 @@
 
           video.load();
 
+          // Audio may already be ready. If not, wait for it in the background
+          // without blocking the video preview.
+          audioPromise.then((audioUrl) => {
+            if (!audioUrl) return;
+            attachVideoAudio(finalVideoUrl, audioUrl);
+          });
+
           setLoading(
             true,
             "Видео готово",
-            "LTX 2.5 Free · Pixazo"
+            "LTX 2.5 Free · Pixazo · звук догружается"
           );
 
           break;
