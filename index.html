@@ -3917,67 +3917,35 @@
      MODE SWITCH
   ====================================================== */
 
-  function switchMode(
-    mode
-  ) {
+  function switchMode(mode) {
+    const generator = $("generatorMode");
+    const editor = $("editorMode");
+    const video = $("videoMode");
 
-    const generator =
-      $("generatorMode");
+    const generatorButton = $("generatorModeBtn");
+    const editorButton = $("editorModeBtn");
+    const videoButton = $("videoModeBtn");
 
-    const editor =
-      $("editorMode");
-
-    const generatorButton =
-      $("generatorModeBtn");
-
-    const editorButton =
-      $("editorModeBtn");
-
-
-    if (mode === "editor") {
-
-      generator.classList.add(
-        "hidden"
-      );
-
-      editor.classList.remove(
-        "hidden"
-      );
-
-      generatorButton.classList.remove(
-        "active"
-      );
-
-      editorButton.classList.add(
-        "active"
-      );
-
-    } else {
-
-      editor.classList.add(
-        "hidden"
-      );
-
-      generator.classList.remove(
-        "hidden"
-      );
-
-      editorButton.classList.remove(
-        "active"
-      );
-
-      generatorButton.classList.add(
-        "active"
-      );
-
-    }
-
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
+    [generator, editor, video].forEach((section) => {
+      if (section) section.classList.add("hidden");
     });
 
+    [generatorButton, editorButton, videoButton].forEach((button) => {
+      if (button) button.classList.remove("active");
+    });
+
+    if (mode === "editor") {
+      editor?.classList.remove("hidden");
+      editorButton?.classList.add("active");
+    } else if (mode === "video") {
+      video?.classList.remove("hidden");
+      videoButton?.classList.add("active");
+    } else {
+      generator?.classList.remove("hidden");
+      generatorButton?.classList.add("active");
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
 
@@ -4278,6 +4246,10 @@
       .remove(
         "hidden"
       );
+
+    $("animateEditedBtn")
+      .classList
+      .remove("hidden");
 
 
     $("useGeneratorImageBtn")
@@ -5834,9 +5806,8 @@
 const q=id=>document.getElementById(id);
 let ratio="16:9", sourceBase64="", sourceUrl="";
 function err(m){const e=q("videoStandaloneError");e.textContent=m||"";e.classList.toggle("show",!!m)}
-function show(){q("generatorMode").classList.add("hidden");q("editorMode").classList.add("hidden");q("videoMode").classList.remove("hidden");q("generatorModeBtn").classList.remove("active");q("editorModeBtn").classList.remove("active");q("videoModeBtn").classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
-q("videoModeBtn").addEventListener("click",show);
-const old=q("videoPrompt");if(old){if(old.previousElementSibling)old.previousElementSibling.style.display="none";old.style.display="none";if(old.nextElementSibling)old.nextElementSibling.style.display="none"}
+function show(){if(typeof switchMode==="function"){switchMode("video");return}q("generatorMode").classList.add("hidden");q("editorMode").classList.add("hidden");q("videoMode").classList.remove("hidden");q("generatorModeBtn").classList.remove("active");q("editorModeBtn").classList.remove("active");q("videoModeBtn").classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
+q("videoModeBtn").addEventListener("click",()=>{ if(typeof switchMode==="function") switchMode("video"); else show(); });
 function dataUrl(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
 async function compress(s){if(!s||s.length<=3500000)return s;const im=new Image();im.src=s;await new Promise((a,b)=>{im.onload=a;im.onerror=b});let m=Math.min(2048,Math.max(im.naturalWidth,im.naturalHeight));for(let i=0;i<5;i++){const sc=Math.min(1,m/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(im.naturalWidth*sc);c.height=Math.round(im.naturalHeight*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);const o=c.toDataURL("image/jpeg",.82);if(o.length<=3500000)return o;m=Math.round(m*.8)}return s}
 function setSource(d,u=""){sourceBase64=d||"";sourceUrl=u||"";q("videoSourceImage").src=d||u;q("videoSourceImage").classList.remove("hidden");q("videoCanvasEmpty").classList.add("hidden");q("videoResult").classList.add("hidden");q("videoCanvas").classList.toggle("vertical",ratio==="9:16")}
@@ -5930,6 +5901,57 @@ throw Error("LTX слишком долго обрабатывает видео. 
 };
 
 window.__miyaLastImages=[];window.__miyaShowGeneratedVideo=(url,a)=>{show();q("videoCanvasEmpty").classList.add("hidden");q("videoSourceImage").classList.add("hidden");const v=q("videoResult");v.src=url;v.classList.remove("hidden");v.style.aspectRatio=a==="9:16"?"9 / 16":"16 / 9";q("videoDownloadBtn").classList.remove("hidden");q("videoDownloadBtn").onclick=()=>download(url)};
+})();
+</script>
+
+
+<style id="miya-ui-repair">
+  .hidden{display:none !important}
+  .mode-switch{position:relative;z-index:20}
+  .mode-button{cursor:pointer;pointer-events:auto}
+  .generate-button,.small-button,.secondary-button,.tool-button,.chip,.ratio-button{cursor:pointer}
+  .video-workspace{min-height:650px}
+  .video-canvas{min-height:420px}
+  #animateEditedBtn:not(.hidden){display:inline-flex !important}
+  #videoMode.hidden,#editorMode.hidden,#generatorMode.hidden{display:none !important}
+</style>
+<script id="miya-final-controls-repair">
+(function(){
+  const q=(id)=>document.getElementById(id);
+  const safe=(fn)=>{try{fn()}catch(e){console.error("Miya UI:",e)}};
+
+  safe(()=>{
+    const g=q("generatorModeBtn"), e=q("editorModeBtn"), v=q("videoModeBtn");
+    g && (g.onclick=()=>window.miyaSwitchMode?window.miyaSwitchMode("generator"):null);
+    e && (e.onclick=()=>window.miyaSwitchMode?window.miyaSwitchMode("editor"):null);
+    v && (v.onclick=()=>window.miyaSwitchMode?window.miyaSwitchMode("video"):null);
+
+    window.miyaSwitchMode=(mode)=>{
+      [q("generatorMode"),q("editorMode"),q("videoMode")].forEach(x=>x&&x.classList.add("hidden"));
+      [g,e,v].forEach(x=>x&&x.classList.remove("active"));
+      const map={
+        generator:[q("generatorMode"),g],
+        editor:[q("editorMode"),e],
+        video:[q("videoMode"),v]
+      };
+      const pair=map[mode]||map.generator;
+      pair[0]?.classList.remove("hidden");
+      pair[1]?.classList.add("active");
+      window.scrollTo({top:0,behavior:"smooth"});
+    };
+  });
+
+  safe(()=>{
+    const choose=q("videoChooseImageBtn"), upload=q("videoCanvasUploadBtn"), file=q("videoFile");
+    choose && (choose.onclick=()=>file?.click());
+    upload && (upload.onclick=()=>file?.click());
+  });
+
+  safe(()=>{
+    const animate=q("animateEditedBtn");
+    if(!animate)return;
+    animate.title="Создать видео из текущего изображения";
+  });
 })();
 </script>
 
