@@ -52,18 +52,43 @@ async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
     body: JSON.stringify({
       prompt: String(prompt || "").trim(),
       ratio: ratio || "9:16",
-      duration: Math.min(20, Math.max(5, Number(duration) || 6)),
+      duration: Math.min(20, Math.max(5, Number(duration) || 5)),
       imageBase64
     })
   });
 
   const text = await response.text();
-  let data = {};
 
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error("PixelSter Image→Video вернул не JSON (HTTP " + response.status + ").");
+  let data = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      if (response.status === 504) {
+        const error = new Error(
+          "PixelSter сейчас не успел завершить генерацию видео (HTTP 504). Попробуйте ещё раз с длительностью 5 секунд."
+        );
+        error.code = "UPSTREAM_TIMEOUT";
+        error.statusCode = 504;
+        throw error;
+      }
+
+      const error = new Error(
+        "PixelSter вернул неожиданный ответ (HTTP " + response.status + ")."
+      );
+      error.code = "UPSTREAM_INVALID_RESPONSE";
+      error.statusCode = response.status;
+      throw error;
+    }
+  }
+
+  if (response.status === 504) {
+    const error = new Error(
+      "PixelSter сейчас не успел завершить генерацию видео (HTTP 504). Попробуйте ещё раз с длительностью 5 секунд."
+    );
+    error.code = "UPSTREAM_TIMEOUT";
+    error.statusCode = 504;
+    throw error;
   }
 
   if (!response.ok) {
@@ -73,11 +98,17 @@ async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
       data?.message ||
       "PixelSter Image→Video HTTP " + response.status;
 
-    throw new Error(String(message));
+    const error = new Error(String(message));
+    error.code = "UPSTREAM_ERROR";
+    error.statusCode = response.status;
+    throw error;
   }
 
   if (!data.videoUrl) {
-    throw new Error("PixelSter не вернул videoUrl.");
+    const error = new Error("PixelSter не вернул videoUrl.");
+    error.code = "MISSING_VIDEO_URL";
+    error.statusCode = 502;
+    throw error;
   }
 
   return data;
@@ -148,9 +179,19 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("Miya PixelSter video API:", error);
 
-    return res.status(502).json({
+    const status =
+      Number(error?.statusCode) >= 400 &&
+      Number(error?.statusCode) <= 599
+        ? Number(error.statusCode)
+        : 502;
+
+    return res.status(status).json({
       success: false,
-      error: error?.message || "Ошибка PixelSter Image→Video."
+      error: error?.message || "Ошибка PixelSter Image→Video.",
+      code: error?.code || "VIDEO_PROVIDER_ERROR",
+      provider: "AHM7 PixelSter",
+      model: "Motion synthesis",
+      retryable: status === 504
     });
   }
 }
