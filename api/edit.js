@@ -96,11 +96,14 @@ async function legacyEdit({ prompt, imageBase64, ratio }) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json"
+      "Accept": "application/json",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36",
+      "Origin": "https://www.ahm7xmakki.com",
+      "Referer": "https://www.ahm7xmakki.com/pixelster"
     },
     body: JSON.stringify({
       prompt,
-      ratio: ratio || "1:1",
+      ratio: ratio || "auto",
       imageBase64
     })
   });
