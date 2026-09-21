@@ -65,9 +65,9 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("Edit error:", error);
 
-    return res.status(502).json({
+    return res.status(503).json({
       success: false,
-      error: error.message || "Ошибка редактирования изображения"
+      error: error.message || "Редактор временно недоступен. Проверьте выбранный провайдер."
     });
   }
 }
