@@ -92,6 +92,9 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "GET") {
+      if (String(req.query?.health || "") === "1") {
+        return res.status(200).json({reachable:Boolean(getLtxBaseUrl()),model:"ltxv-2b-0.9.8-distilled"});
+      }
       const taskId = String(req.query?.taskId || "");
       if (!taskId.startsWith("ltx:")) {
         return res.status(400).json({ success: false, error: "Неизвестная задача." });
