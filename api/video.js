@@ -1,13 +1,22 @@
+function isHttpUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function parseImageData(imageBase64) {
-  const value = String(imageBase64 || "");
-  const match = value.match(/^data:(image\\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
+  const value = String(imageBase64 || "").trim();
+  const match = value.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
 
   if (!match) {
-    throw new Error("Изображение должно быть передано в формате data:image/...;base64,...");
+    throw new Error("Изображение должно быть data:image/...;base64,...");
   }
 
   const mimeType = match[1].toLowerCase();
-  const base64 = match[2].replace(/\\s/g, "");
+  const base64 = match[2].replace(/\s/g, "");
 
   const extensionMap = {
     "image/png": "png",
@@ -23,27 +32,27 @@ function parseImageData(imageBase64) {
   };
 }
 
-function isHttpUrl(value) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
+async function makePublicImageUrl(imageUrl, imageBase64) {
+  const directUrl = String(imageUrl || "").trim();
+
+  if (isHttpUrl(directUrl)) {
+    return directUrl;
   }
-}
 
-function getAlibabaBaseUrl() {
-  // The legacy DashScope domain remains supported for Wan 2.2.
-  // The API key must belong to the China (Beijing) region.
-  return "https://dashscope.aliyuncs.com";
-}
+  const source = String(imageBase64 || "").trim();
 
-async function uploadImageIfNeeded(source) {
-  if (!source.startsWith("data:image/")) {
-    if (!isHttpUrl(source)) {
-      throw new Error("Изображение должно быть URL или data:image/...;base64,...");
-    }
+  if (isHttpUrl(source)) {
     return source;
+  }
+
+  if (!source.startsWith("data:image/")) {
+    throw new Error("Pixazo требует публичный HTTPS URL исходного изображения.");
+  }
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error(
+      "Для загруженного изображения нужен публичный URL. В Vercel не настроен BLOB_READ_WRITE_TOKEN. Сначала сохраните/сгенерируйте изображение через Miya AI или подключите Vercel Blob."
+    );
   }
 
   const { mimeType, extension, buffer } = parseImageData(source);
@@ -72,96 +81,73 @@ async function uploadImageIfNeeded(source) {
   return blob.url;
 }
 
-function normalizeAlibabaError(data, fallback) {
-  const message =
-    data?.message ||
-    data?.output?.message ||
-    data?.output?.code ||
-    fallback;
-
-  if (/quota|rate.?limit|throttl/i.test(String(message))) {
-    return "Alibaba Cloud: превышен лимит запросов или бесплатная квота.";
-  }
-
-  if (/invalid.*api.?key|api.?key.*invalid|unauthorized/i.test(String(message))) {
-    return "Alibaba Cloud: неверный API-ключ. Проверьте DASHSCOPE_API_KEY и регион China (Beijing).";
-  }
-
-  if (/insufficient|balance|billing|payment|fund/i.test(String(message))) {
-    return "Alibaba Cloud: бесплатная квота исчерпана или для аккаунта требуется биллинг.";
-  }
-
-  return String(message);
+function getPixazoKey() {
+  return String(
+    process.env.PIXAZO_API_KEY ||
+    process.env.PIXAZO_SUBSCRIPTION_KEY ||
+    ""
+  ).trim();
 }
 
-function getLtxBaseUrl() {
-  return String(process.env.LTX_SERVER_URL || "").replace(/\\/$/, "");
-}
+const PIXAZO_CREATE_URL =
+  "https://gateway.pixazo.ai/ltx-video/v1/image-to-video";
 
-async function ltxRequest(path, options = {}) {
-  const base = getLtxBaseUrl();
-  if (!base) throw new Error("LTX_SERVER_URL is not configured.");
+const PIXAZO_STATUS_URL =
+  "https://gateway.pixazo.ai/v2/requests/status/";
 
-  const response = await fetch(base + path, {
+async function pixazoRequest(url, options = {}) {
+  const key = getPixazoKey();
+
+  if (!key) {
+    throw new Error(
+      "PIXAZO_API_KEY не настроен в Vercel. Добавьте ваш Primary API key Pixazo."
+    );
+  }
+
+  const response = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      "Ocp-Apim-Subscription-Key": key,
       ...(options.headers || {})
     }
   });
 
   const text = await response.text();
+
   let data;
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error("LTX server вернул не JSON.");
+    throw new Error(
+      "Pixazo вернул не JSON (HTTP " + response.status + ")."
+    );
   }
 
   if (!response.ok) {
-    throw new Error(data?.error || "Ошибка LTX GPU сервера.");
-  }
+    const message =
+      data?.message ||
+      data?.error ||
+      "Pixazo: HTTP " + response.status;
 
-  return data;
-}
-
-async function getTask(taskId) {
-  const response = await fetch(
-    getAlibabaBaseUrl() + "/api/v1/tasks/" + encodeURIComponent(taskId),
-    {
-      method: "GET",
-      headers: {
-        Authorization: "Bearer " + process.env.DASHSCOPE_API_KEY
-      }
+    if (response.status === 401) {
+      throw new Error("Pixazo: неверный или отсутствующий API key.");
     }
-  );
 
-  const text = await response.text();
+    if (response.status === 402) {
+      throw new Error(
+        "Pixazo: недостаточно баланса. Для LTX 2.5 Free запрос должен идти через бесплатный план."
+      );
+    }
 
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("Alibaba Cloud вернул не JSON при проверке задачи.");
-  }
-
-  if (!response.ok) {
-    throw new Error(normalizeAlibabaError(data, "Ошибка проверки задачи Alibaba Cloud."));
+    throw new Error(String(message));
   }
 
   return data;
 }
 
 export default async function handler(req, res) {
-  if (!process.env.DASHSCOPE_API_KEY) {
-    return res.status(503).json({
-      success: false,
-      error: "Alibaba Cloud ещё не настроен. Добавьте DASHSCOPE_API_KEY в Vercel."
-    });
-  }
-
   try {
-    // GET /api/video?taskId=... — poll Alibaba task status.
     if (req.method === "GET") {
       const taskId = String(req.query?.taskId || "").trim();
 
@@ -172,68 +158,62 @@ export default async function handler(req, res) {
         });
       }
 
-      if (taskId.startsWith("ltx:")) {
-        const ltxJobId = taskId.slice(4);
-        const data = await ltxRequest("/jobs/" + encodeURIComponent(ltxJobId));
+      const requestId = taskId.startsWith("pixazo:")
+        ? taskId.slice("pixazo:".length)
+        : taskId;
 
-        return res.status(200).json({
-          success: data.success !== false,
-          status: data.status || "RUNNING",
-          done: Boolean(data.done),
-          videoUrl: data.videoUrl || "",
-          error: data.error || "",
-          provider: "LTX-Video",
-          model: "ltxv-2b-0.9.8-distilled"
-        });
-      }
+      const data = await pixazoRequest(
+        PIXAZO_STATUS_URL + encodeURIComponent(requestId),
+        { method: "GET" }
+      );
 
-      const data = await getTask(taskId);
-      const output = data?.output || {};
-      const status = output.task_status || "UNKNOWN";
+      const status = String(data?.status || "").toUpperCase();
+      const videoUrl =
+        data?.output?.media_url?.[0] ||
+        data?.output?.mediaUrl?.[0] ||
+        "";
 
-      if (status === "SUCCEEDED") {
-        const videoUrl = output.video_url || output.results?.[0]?.video_url || "";
-
+      if (status === "COMPLETED") {
         if (!videoUrl) {
           return res.status(502).json({
             success: false,
-            error: "Alibaba Cloud завершил задачу, но не вернул видео."
+            done: true,
+            error: "Pixazo завершил задачу, но не вернул ссылку на видео."
           });
         }
 
         return res.status(200).json({
           success: true,
-          status,
           done: true,
+          status,
           videoUrl,
-          provider: "Alibaba Cloud Model Studio",
-          model: "Wan 2.2 I2V Flash",
-          duration: 5
+          provider: "Pixazo",
+          model: "LTX 2.5 Free",
+          mediaType: data?.output?.media_type || "video/mp4"
         });
       }
 
-      if (status === "FAILED" || status === "CANCELED" || status === "UNKNOWN") {
+      if (
+        status === "FAILED" ||
+        status === "ERROR"
+      ) {
         return res.status(200).json({
           success: false,
-          status,
           done: true,
-          error: normalizeAlibabaError(
-            output,
-            "Alibaba Cloud не смог создать видео."
-          )
+          status,
+          error: data?.error || "Pixazo не смог создать видео."
         });
       }
 
       return res.status(200).json({
         success: true,
-        status,
         done: false,
-        provider: "Alibaba Cloud Model Studio",
-        model: "Wan 2.2 I2V Flash"
+        status: status || "QUEUED",
+        provider: "Pixazo",
+        model: "LTX 2.5 Free"
       });
     }
 
-    // POST /api/video — create an asynchronous Alibaba video task.
     if (req.method !== "POST") {
       return res.status(405).json({
         success: false,
@@ -243,8 +223,8 @@ export default async function handler(req, res) {
 
     const body = req.body || {};
     const prompt = String(body.prompt || "").trim();
+    const imageUrl = String(body.imageUrl || "").trim();
     const imageBase64 = String(body.imageBase64 || "").trim();
-    const requestedResolution = String(body.resolution || "480P").toUpperCase();
 
     if (!prompt) {
       return res.status(400).json({
@@ -253,15 +233,13 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!imageBase64) {
+    if (!imageUrl && !imageBase64) {
       return res.status(400).json({
         success: false,
         error: "Изображение не загружено."
       });
     }
 
-    // Vercel Functions have a limited request body. Normal editor images are small
-    // enough, but protect the endpoint from accidentally huge data URLs.
     if (imageBase64.length > 4_000_000) {
       return res.status(413).json({
         success: false,
@@ -269,136 +247,53 @@ export default async function handler(req, res) {
       });
     }
 
-    // If LTX_SERVER_URL is configured, use the GPU backend first.
-    // Alibaba remains as a fallback without changing the frontend API.
-    if (getLtxBaseUrl()) {
-      const ltxData = await ltxRequest("/generate", {
-        method: "POST",
-        body: JSON.stringify({
-          imageBase64,
-          prompt
-        })
-      });
+    const publicImageUrl = await makePublicImageUrl(
+      imageUrl,
+      imageBase64
+    );
 
-      if (!ltxData.success || !ltxData.jobId) {
-        return res.status(502).json({
-          success: false,
-          error: ltxData.error || "LTX GPU сервер не запустил задачу."
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        done: false,
-        taskId: "ltx:" + ltxData.jobId,
-        status: ltxData.status || "queued",
-        provider: "LTX-Video",
-        model: "ltxv-2b-0.9.8-distilled",
-        duration: ltxData.duration || 5
-      });
-    }
-
-    const imageUrl = await uploadImageIfNeeded(imageBase64);
-
-    // Wan 2.2 I2V Flash always outputs 5 seconds.
-    // 480P is selected to keep the free/trial path as lightweight as possible.
-    const resolution =
-      requestedResolution === "1080P" || requestedResolution === "720P"
-        ? requestedResolution
-        : "480P";
-
-    const response = await fetch(
-      getAlibabaBaseUrl() +
-        "/api/v1/services/aigc/video-generation/video-synthesis",
+    const data = await pixazoRequest(
+      PIXAZO_CREATE_URL,
       {
         method: "POST",
-        headers: {
-          Authorization: "Bearer " + process.env.DASHSCOPE_API_KEY,
-          "X-DashScope-Async": "enable",
-          "Content-Type": "application/json"
-        },
         body: JSON.stringify({
-          model: "wan2.2-i2v-flash",
-          input: {
-            prompt,
-            img_url: imageUrl
-          },
-          parameters: {
-            resolution,
-            prompt_extend: false
-          }
+          prompt,
+          image_url: publicImageUrl,
+          strength: 1.0,
+          aspect: body.aspect || "9:16",
+          num_frames: 121,
+          frame_rate: 24,
+          steps: 8,
+          cfg: 3.0
         })
       }
     );
 
-    const responseText = await response.text();
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch {
-      console.error(
-        "Alibaba non-JSON response",
-        response.status,
-        responseText.slice(0, 1000)
-      );
-
+    if (!data?.request_id) {
       return res.status(502).json({
         success: false,
-        error: "Alibaba Cloud вернул не JSON.",
-        status: response.status
+        error: "Pixazo не вернул request_id."
       });
     }
 
-    if (!response.ok || data?.code) {
-      const message = normalizeAlibabaError(
-        data,
-        "Alibaba Cloud не смог запустить генерацию."
-      );
-
-      console.error("Alibaba Wan 2.2 create error", {
-        status: response.status,
-        code: data?.code,
-        message
-      });
-
-      return res.status(response.status || 502).json({
-        success: false,
-        error: message,
-        provider: "Alibaba Cloud Model Studio"
-      });
-    }
-
-    const taskId = data?.output?.task_id;
-
-    if (!taskId) {
-      console.error("Alibaba response without task_id", data);
-
-      return res.status(502).json({
-        success: false,
-        error: "Alibaba Cloud не вернул task_id."
-      });
-    }
-
-    return res.status(200).json({
+    return res.status(202).json({
       success: true,
       done: false,
-      taskId,
-      status: data?.output?.task_status || "PENDING",
-      provider: "Alibaba Cloud Model Studio",
-      model: "Wan 2.2 I2V Flash",
-      duration: 5,
-      resolution
+      taskId: "pixazo:" + data.request_id,
+      requestId: data.request_id,
+      status: data.status || "QUEUED",
+      provider: "Pixazo",
+      model: "LTX 2.5 Free",
+      pollingUrl: data.polling_url || ""
     });
   } catch (error) {
-    console.error("Alibaba video API error:", error);
+    console.error("Pixazo video API error:", error);
 
-    return res.status(500).json({
+    return res.status(502).json({
       success: false,
       error:
-        error && error.message
-          ? error.message
-          : "Ошибка видеогенерации."
+        error?.message ||
+        "Ошибка видеогенерации через Pixazo."
     });
   }
 }
