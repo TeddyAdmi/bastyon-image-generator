@@ -40,11 +40,9 @@ function getPixazoKey() {
   ).trim();
 }
 
+// Official Pixazo LTX 2.5 FREE image-to-video endpoint.
 const PIXAZO_CREATE_URL =
   "https://gateway.pixazo.ai/ltx-video/v1/image-to-video";
-
-// LTX 2.5 Free: explicitly request native synchronized audio.
-const PIXAZO_GENERATE_AUDIO = true;
 
 const PIXAZO_STATUS_URL =
   "https://gateway.pixazo.ai/v2/requests/status/";
@@ -94,7 +92,7 @@ async function pixazoRequest(url, options = {}) {
 
     if (response.status === 402) {
       throw new Error(
-        "Pixazo: недостаточно баланса. Проверьте, что используется бесплатный LTX 2.5 endpoint."
+        "Pixazo: недостаточно баланса. Проверьте бесплатный LTX 2.5 endpoint."
       );
     }
 
@@ -111,9 +109,7 @@ async function pixazoRequest(url, options = {}) {
 function getBody(req) {
   if (!req || req.body == null) return {};
 
-  if (typeof req.body === "object") {
-    return req.body;
-  }
+  if (typeof req.body === "object") return req.body;
 
   if (typeof req.body === "string") {
     try {
@@ -129,21 +125,15 @@ function getBody(req) {
 async function makePublicImageUrl(imageUrl, imageBase64) {
   const directUrl = String(imageUrl || "").trim();
 
-  // Pixazo requires a publicly reachable HTTP(S) image URL.
-  if (isHttpUrl(directUrl)) {
-    return directUrl;
-  }
+  if (isHttpUrl(directUrl)) return directUrl;
 
   const source = String(imageBase64 || "").trim();
 
-  if (isHttpUrl(source)) {
-    return source;
-  }
+  if (isHttpUrl(source)) return source;
 
-  // A browser blob: URL is not reachable by Pixazo.
   if (source.startsWith("blob:")) {
     throw new Error(
-      "Изображение имеет локальный blob: URL. Для видео нужен публичный HTTPS URL. Нажмите «Создать видео» после генерации/редактирования изображения или подключите Vercel Blob."
+      "Изображение имеет локальный blob: URL. Для видео нужен публичный HTTPS URL."
     );
   }
 
@@ -153,7 +143,6 @@ async function makePublicImageUrl(imageUrl, imageBase64) {
     );
   }
 
-  // If Blob is configured, convert the data URL to a public HTTPS URL.
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const { mimeType, extension, buffer } = parseImageData(source);
 
@@ -182,13 +171,11 @@ async function makePublicImageUrl(imageUrl, imageBase64) {
   }
 
   throw new Error(
-    "Для видео это изображение пока недоступно по публичному HTTPS URL. Vercel Blob не настроен. Используйте изображение, которое уже имеет HTTPS URL, либо подключите BLOB_READ_WRITE_TOKEN."
+    "Для видео это изображение пока недоступно по публичному HTTPS URL. Vercel Blob не настроен."
   );
 }
 
 export default async function handler(req, res) {
-  // Always return JSON, including errors, so the browser never receives
-  // an HTML error page from this function.
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
 
@@ -235,7 +222,8 @@ export default async function handler(req, res) {
           videoUrl,
           provider: "Pixazo",
           model: "LTX 2.5 Free",
-          mediaType: data?.output?.media_type || "video/mp4"
+          mediaType: data?.output?.media_type || "video/mp4",
+          hasNativeAudio: true
         });
       }
 
@@ -268,7 +256,6 @@ export default async function handler(req, res) {
     }
 
     const body = getBody(req);
-
     const prompt = String(body.prompt || "").trim();
     const imageUrl = String(body.imageUrl || "").trim();
     const imageBase64 = String(body.imageBase64 || "").trim();
@@ -291,7 +278,7 @@ export default async function handler(req, res) {
       return res.status(413).json({
         success: false,
         error:
-          "Изображение слишком большое для передачи в Vercel API. Используйте изображение с публичным HTTPS URL."
+          "Изображение слишком большое для передачи в Vercel API."
       });
     }
 
@@ -300,6 +287,8 @@ export default async function handler(req, res) {
       imageBase64
     );
 
+    // Important: use Pixazo's native synchronized audio.
+    // No second Tracks request and no browser FFmpeg muxing.
     const data = await pixazoRequest(
       PIXAZO_CREATE_URL,
       {
@@ -307,11 +296,14 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           prompt,
           image_url: publicImageUrl,
-          resolution: "1080p",
           duration: 6,
-          fps: 25,
+          fps: 24,
           aspect_ratio: body.aspect || "16:9",
-          generate_audio: PIXAZO_GENERATE_AUDIO
+          generate_audio: true,
+          num_inference_steps: 8,
+          guidance_scale: 1,
+          enable_prompt_expansion: false,
+          enable_safety_checker: true
         })
       }
     );
@@ -330,7 +322,7 @@ export default async function handler(req, res) {
       requestId: data.request_id,
       status: data.status || "QUEUED",
       provider: "Pixazo",
-      model: "LTX 2.5 Free",
+      model: "LTX 2.5 Free · native audio",
       pollingUrl: data.polling_url || ""
     });
   } catch (error) {
