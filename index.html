@@ -25,7 +25,7 @@
 <div class="grid">
 <div class="card"><div class="head"><div><b>Canvas</b><div class="sub">Результат генерации</div></div><button id="clearGenerator" class="secondary">Очистить</button></div>
 <div id="genCanvas" class="canvas"><div id="genEmpty" class="empty"><div class="icon">✦</div><b>Создайте изображение</b><p>Опишите сцену справа и нажмите «Создать изображение».</p></div><img id="genImage" class="hidden" alt="Miya AI result"></div>
-<div class="actions"><button id="openInEditor" class="secondary hidden">Открыть в редакторе</button><button id="openInVideo" class="primary hidden">🎬 Анимировать</button></div></div>
+<div class="actions"><button id="openInEditor" class="secondary hidden">Открыть в редакторе</button><button id="openInVideo" class="primary hidden">🎬 Анимировать изображение</button></div></div>
 <div>
 <div class="card control"><h3>Промпт</h3><textarea id="genPrompt" placeholder="Кинематографичный реалистичный поросёнок в парижском кафе, мягкий вечерний свет..."></textarea><div class="tools"><button id="genClear" class="tool">Очистить</button><button id="genRandom" class="tool">✦ Идея</button></div></div>
 <div class="card control"><h3>Параметры</h3><div class="fields"><div class="field"><label>Модель</label><select id="genModel" class="select"><option value="auto">Auto / Flux</option><option value="legacy-flux">Flux Dev</option><option value="or-nano-banana-2">Nano Banana 2</option><option value="or-gpt-image-2">GPT Image 2</option><option value="or-flux-klein">FLUX.2 Klein</option></select></div><div class="field"><label>Качество</label><select id="genQuality" class="select"><option>auto</option><option>low</option><option>medium</option><option>high</option></select></div></div><label style="font-size:10px;color:var(--muted);font-weight:700">Формат</label><div id="genRatios" class="ratios"><button class="ratio active" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="4:3">4:3</button></div><button id="generateBtn" class="primary" style="width:100%">Создать изображение</button><div id="genError" class="error"></div></div>
@@ -34,7 +34,7 @@
 
 <section id="editorView" class="view">
 <div class="editor-grid">
-<div class="card"><div class="head"><div><b>Исходное изображение</b><div class="sub">Файл, drag & drop или кадр из генератора</div></div></div><div id="editorUpload" class="upload"><div id="editorEmpty" class="empty"><div class="icon">＋</div><b>Загрузить фото</b><p>JPG, PNG, WEBP</p><button id="editorChoose" class="primary">Выбрать файл</button></div><img id="editorSource" class="hidden" alt="Source"></div><input id="editorFile" type="file" accept="image/*" hidden><div class="editor-tools"><button id="editorReset" class="secondary">Сбросить</button><button id="editorAnimate" class="primary">🎬 Анимировать</button></div></div>
+<div class="card"><div class="head"><div><b>Исходное изображение</b><div class="sub">Файл, drag & drop или кадр из генератора</div></div></div><div id="editorUpload" class="upload"><div id="editorEmpty" class="empty"><div class="icon">＋</div><b>Загрузить фото</b><p>JPG, PNG, WEBP</p><button id="editorChoose" class="primary">Выбрать файл</button></div><img id="editorSource" class="hidden" alt="Source"></div><input id="editorFile" type="file" accept="image/*" hidden><div class="editor-tools"><button id="editorReset" class="secondary">Сбросить</button><button id="editorAnimate" class="primary">🎬 Анимировать фото</button></div></div>
 <div class="card"><div class="head"><div><b>AI Edit</b><div class="sub">Опишите изменение исходного кадра</div></div></div><textarea id="editPrompt" placeholder="Например: замени фон на ночной Париж, сохрани лицо, одежду и композицию..."></textarea><div class="fields" style="margin-top:10px"><div><label style="font-size:10px;color:var(--muted)">Модель</label><select id="editModel" class="select"><option value="auto">Auto / Flux Kontext</option><option value="legacy-flux">Flux Kontext Dev</option><option value="or-nano-banana-2">Nano Banana 2</option><option value="or-gpt-image-2">GPT Image 2</option><option value="or-flux-klein">FLUX.2 Klein</option></select></div><div><label style="font-size:10px;color:var(--muted)">Качество</label><select id="editQuality" class="select"><option>auto</option><option>low</option><option>medium</option><option>high</option></select></div></div><button id="editBtn" class="primary" style="width:100%;margin-top:10px">Применить изменение</button><div id="editError" class="error"></div><div id="editResultBox" class="upload result hidden"><img id="editResult" alt="Edited"></div></div>
 </div>
 </section>
@@ -69,9 +69,20 @@ ratio('videoRatios',r=>{state.videoRatio=r;setRatioCanvas($('videoCanvas'),r)});
 setRatioCanvas($('genCanvas'),'1:1');setRatioCanvas($('videoCanvas'),'16:9');
 
 async function jsonFetch(url,options){
- const r=await fetch(url,options);const raw=await r.text();let d={};
- try{d=raw?JSON.parse(raw):{}}catch{throw new Error('Сервер вернул не JSON (HTTP '+r.status+').')}
- if(!r.ok)throw new Error(d.error||d.message||('HTTP '+r.status));
+ const r=await fetch(url,options);
+ const raw=await r.text();
+ let d={};
+ try{d=raw?JSON.parse(raw):{}}catch{
+   throw new Error('Сервер вернул не JSON (HTTP '+r.status+'): '+raw.slice(0,300));
+ }
+ if(!r.ok){
+   const reason=typeof d.error==='string'?d.error:
+     typeof d.message==='string'?d.message:
+     d.error?JSON.stringify(d.error):
+     d.message?JSON.stringify(d.message):
+     ('HTTP '+r.status);
+   throw new Error(reason);
+ }
  return d;
 }
 async function fileToData(file,max=1400){
