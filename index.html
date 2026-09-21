@@ -444,5 +444,176 @@ $('videoGenerate')?.addEventListener('click',async()=>{
 console.log('Miya AI UI ready');
 })();
 </script>
+
+<style id="miya-video-ui-v2">
+#videoView .video-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.75fr);gap:22px}
+#videoView .video-canvas{min-height:620px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+#videoView #videoImage,#videoView #videoResult{max-width:100%;max-height:590px;width:auto;height:auto;object-fit:contain;border-radius:22px}
+#videoView .video-side{display:flex;flex-direction:column;gap:16px}
+#videoView .video-side .card{padding:20px}
+#videoView #videoGenerate{min-height:52px;font-size:15px;font-weight:800}
+#videoView .drop-active{border-color:#7c3aed!important;background:#f3edff!important}
+#editorAnimate{min-height:44px}
+.miya-video-status{margin-top:12px;padding:12px 14px;border-radius:14px;background:#f7f3ff;color:#5c3bb3;font-size:13px;line-height:1.4;display:none}
+.miya-video-status.show{display:block}
+@media(max-width:900px){#videoView .video-grid{grid-template-columns:1fr}#videoView .video-canvas{min-height:440px}}
+</style>
+<script id="miya-stable-video-boot">
+(function(){
+  "use strict";
+  function ready(fn){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",fn,{once:true});else fn();}
+  ready(function(){
+    const $=id=>document.getElementById(id);
+    const state={source:"",ratio:"16:9",busy:false};
+
+    function err(msg){
+      const e=$("videoError"); if(!e)return;
+      e.textContent=msg||""; e.classList.toggle("show",!!msg);
+    }
+    function setLoading(on,title,text){
+      const box=$("loading"),t=$("loadingTitle"),p=$("loadingText");
+      if(t)t.textContent=title||"Miya AI";
+      if(p)p.textContent=text||"";
+      if(box)box.classList.toggle("show",!!on);
+    }
+    function setVideoSource(src){
+      state.source=src||"";
+      const img=$("videoImage"), empty=$("videoEmpty");
+      if(!img)return;
+      if(state.source){
+        img.src=state.source; img.classList.remove("hidden");
+        if(empty)empty.classList.add("hidden");
+      }else{
+        img.removeAttribute("src"); img.classList.add("hidden");
+        if(empty)empty.classList.remove("hidden");
+      }
+    }
+    function showVideoTab(){
+      document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+      const view=$("videoView"); if(view)view.classList.add("active");
+      document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.view==="video"));
+      window.scrollTo({top:0,behavior:"smooth"});
+    }
+    function sourceFromEditor(){
+      const img=$("editorSource");
+      const src=img&&img.getAttribute("src")||"";
+      return src;
+    }
+
+    // Editor -> Video button is always present and always wired here.
+    const animate=$("editorAnimate");
+    if(animate){
+      animate.addEventListener("click",function(){
+        const src=sourceFromEditor();
+        if(!src){ 
+          const e=$("editError"); if(e){e.textContent="Сначала загрузите или создайте изображение.";e.classList.add("show");}
+          return;
+        }
+        setVideoSource(src);
+        showVideoTab();
+        const p=$("videoPrompt"); if(p&&!p.value)p.value="Кадр оживает естественно: плавное движение объекта и животных, естественная физика, лёгкое движение камеры, кинематографичный реализм.";
+      });
+    }
+
+    // Video tab file picker.
+    $("videoChoose")?.addEventListener("click",()=>$("videoFile")?.click());
+    $("videoImage")?.addEventListener("click",()=>$("videoFile")?.click());
+    $("videoFile")?.addEventListener("change",function(){
+      const file=this.files&&this.files[0]; if(!file)return;
+      const reader=new FileReader();
+      reader.onload=()=>setVideoSource(String(reader.result||""));
+      reader.readAsDataURL(file);
+      err("");
+    });
+
+    // Drag & drop on video canvas.
+    const canvas=$("videoCanvas");
+    if(canvas){
+      ["dragenter","dragover"].forEach(ev=>canvas.addEventListener(ev,e=>{e.preventDefault();canvas.classList.add("drop-active")}));
+      ["dragleave","drop"].forEach(ev=>canvas.addEventListener(ev,e=>{e.preventDefault();canvas.classList.remove("drop-active")}));
+      canvas.addEventListener("drop",e=>{
+        const file=e.dataTransfer?.files?.[0];
+        if(!file||!file.type.startsWith("image/"))return err("Перетащите изображение JPG, PNG или WEBP.");
+        const reader=new FileReader();
+        reader.onload=()=>setVideoSource(String(reader.result||""));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.querySelectorAll("#videoRatios .ratio").forEach(b=>{
+      b.addEventListener("click",()=>{
+        document.querySelectorAll("#videoRatios .ratio").forEach(x=>x.classList.remove("active"));
+        b.classList.add("active"); state.ratio=b.dataset.ratio||"16:9";
+      });
+    });
+
+    $("videoReset")?.addEventListener("click",()=>{
+      state.source=""; $("videoFile").value="";
+      setVideoSource("");
+      const v=$("videoResult"); if(v){v.pause();v.removeAttribute("src");v.load();v.classList.add("hidden")}
+      $("videoDownload")?.classList.add("hidden"); err("");
+    });
+
+    $("videoGenerate")?.addEventListener("click",async()=>{
+      if(state.busy)return;
+      const prompt=($("videoPrompt")?.value||"").trim();
+      if(!state.source)return err("Сначала загрузите изображение в Video Canvas.");
+      if(!prompt)return err("Введите описание движения.");
+
+      state.busy=true;
+      const btn=$("videoGenerate"); if(btn)btn.disabled=true;
+      err("");
+      setLoading(true,"Запуск видеогенерации","Проверяем LTX GPU и отправляем исходный кадр…");
+
+      try{
+        const r=await fetch("/api/video",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","Accept":"application/json"},
+          body:JSON.stringify({imageBase64:state.source,prompt,aspect:state.ratio,duration:5})
+        });
+        const text=await r.text();
+        let data={}; try{data=text?JSON.parse(text):{}}catch{throw new Error("Сервер видео вернул не JSON.");}
+        if(!r.ok)throw new Error(data.error||("Видео API HTTP "+r.status));
+
+        if(data.done&&data.videoUrl)return finish(data.videoUrl,data);
+
+        if(!data.taskId)throw new Error("Видеосервер не вернул taskId.");
+
+        for(let n=0;n<900;n++){
+          await new Promise(x=>setTimeout(x,4000));
+          const sr=await fetch("/api/video?taskId="+encodeURIComponent(data.taskId),{cache:"no-store",headers:{"Accept":"application/json"}});
+          const stxt=await sr.text(); let st={}; try{st=stxt?JSON.parse(stxt):{}}catch{throw new Error("Статус видео вернул не JSON.");}
+          if(!sr.ok)throw new Error(st.error||("Статус API HTTP "+sr.status));
+          setLoading(true,"Miya AI создаёт видео",(st.provider||"LTX-Video GPU")+" · "+(st.status||"RUNNING")+"…");
+          if(st.done){
+            if(!st.success||!st.videoUrl)throw new Error(st.error||"Видео не создано.");
+            return finish(st.videoUrl,st);
+          }
+        }
+        throw new Error("Генерация превысила допустимое время ожидания.");
+      }catch(e){
+        console.error("Video error",e);
+        err(e?.message||String(e));
+        setLoading(false);
+      }finally{
+        state.busy=false;if(btn)btn.disabled=false;
+      }
+
+      function finish(url,data){
+        state.busy=false;
+        const v=$("videoResult"); if(v){v.src=url;v.classList.remove("hidden");v.load();}
+        $("videoImage")?.classList.add("hidden"); $("videoEmpty")?.classList.add("hidden");
+        const d=$("videoDownload"); if(d){d.classList.remove("hidden");d.onclick=()=>window.open(url,"_blank","noopener")}
+        setLoading(false);
+        err("");
+        return true;
+      }
+    });
+
+    // If the main application script fails, the video view remains usable.
+    console.log("Miya stable video UI ready");
+  });
+})();
+</script>
 </body>
 </html>
