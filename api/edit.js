@@ -148,9 +148,13 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error("Edit API:", error);
-    return res.status(500).json({
+    const message = error?.message || "Ошибка редактирования изображения.";
+    const providerUnavailable =
+      /Insufficient credits|never purchased credits|OPENROUTER_API_KEY|HTTP 402|HTTP 403/i.test(message);
+    return res.status(providerUnavailable ? 503 : 500).json({
       success: false,
-      error: error?.message || "Ошибка редактирования изображения."
+      code: providerUnavailable ? "EDITOR_PROVIDER_UNAVAILABLE" : "EDITOR_ERROR",
+      error: message
     });
   }
 }
