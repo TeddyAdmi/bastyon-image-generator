@@ -5306,14 +5306,14 @@
     let imageUrl = "";
     let imageBase64 = "";
 
-    if (/^https?:\\/\\//i.test(resultSrc)) {
+    if (/^https?:\/\//i.test(resultSrc)) {
       imageUrl = resultSrc;
     } else if (
       editorImageBase64 &&
       editorImageBase64.startsWith("data:image/")
     ) {
       imageBase64 = editorImageBase64;
-    } else if (/^https?:\\/\\//i.test(sourceSrc)) {
+    } else if (/^https?:\/\//i.test(sourceSrc)) {
       imageUrl = sourceSrc;
     }
 
