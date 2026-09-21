@@ -66,8 +66,8 @@ textarea{width:100%;resize:vertical;min-height:125px;border:1px solid var(--line
   <div class="history card" id="genHistory"><div class="history-head"><b>История картинок Miya AI</b><button class="btn small" data-history-clear="images">Очистить</button></div><div class="history-grid" id="imageHistory"></div></div>
  </div>
  <div class="side">
-  <div class="card control"><h3>Что создать?</h3><textarea id="genPrompt" placeholder="Опишите изображение..."></textarea><div id="genError" class="error"></div><div class="row" style="margin-top:9px"><button id="randomIdea" class="btn">💡 Идеи</button><button id="aiPromptBtn" class="btn">✨ Улучшить</button><button id="genClearPrompt" class="btn">Очистить</button></div><div class="idea-wrap"><div class="idea-head"><b>💡 Идеи</b><button id="randomIdea" class="btn small">Случайная</button></div><div class="quick" id="ideas"></div></div><button id="generateBtn" class="btn primary full" style="margin-top:12px">✨ Создать изображение</button></div>
-  <div class="card control"><h3>Параметры</h3><div class="hint">FLUX Dev · бесплатный основной генератор</div><label class="hint" style="display:block;margin-top:10px">Формат</label><div id="genRatios" class="ratios" style="margin-top:7px"><button class="ratio active" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
+  <div class="card control"><h3>Что создать?</h3><textarea id="genPrompt" placeholder="Опишите изображение..."></textarea><div id="genError" class="error"></div><div class="row" style="margin-top:9px"><button id="randomIdea" class="btn">💡 Идеи</button><button id="aiPromptBtn" class="btn">✨ Улучшить</button><button id="genClearPrompt" class="btn">Очистить</button></div><div class="idea-wrap"><div class="idea-head"><b>💡 Идеи</b></div><div class="quick" id="ideas"></div></div><button id="generateBtn" class="btn primary full" style="margin-top:12px">✨ Создать изображение</button></div>
+  <div class="card control"><h3>Параметры</h3><label class="hint" style="display:block;margin-top:0">Формат</label><div id="genRatios" class="ratios" style="margin-top:7px"><button class="ratio active" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
  </div>
 </div>
 </section>
@@ -118,7 +118,7 @@ textarea{width:100%;resize:vertical;min-height:125px;border:1px solid var(--line
 const $ = (id) => document.getElementById(id);
 
 const state = {
-  genRatio: '1:1',
+  genRatio: '16:9',
   editRatio: 'auto',
   videoRatio: '16:9',
   genImage: '',
@@ -257,7 +257,7 @@ function nextIdea() {
   current = (current + 1) % ideas.length;
   prompt.dataset.ideaIndex = String(current);
 
-  prompt.value = (current + 1) + '. ' + ideas[current];
+  prompt.value = ideas[current];
   prompt.focus();
 }
 
