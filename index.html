@@ -69,12 +69,12 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
  <div class="canvas-head"><div><div class="title">Photo Canvas</div><div class="sub">Отдельный холст фото-редактора</div></div><button id="editorClear" class="btn small">Очистить</button></div>
  <div id="editCanvas" class="canvas"><div id="editEmpty" class="empty"><div class="emoji">🖼️</div><b>Загрузите изображение</b><p>Выберите файл, перетащите его на холст или откройте результат генерации.</p><button id="editorChoose" class="btn primary">Выбрать изображение</button></div><img id="editorSource" class="hidden" alt="Source image"><img id="editResult" class="hidden" alt="Edited result"></div>
  <input id="editorFile" type="file" accept="image/*" hidden>
- <div class="row" style="margin-top:12px"><button id="editorAnimate" class="btn primary">🎬 Открыть видеоредактор</button><button id="editUseResult" class="btn hidden">Использовать результат</button></div>
+ <div class="row" style="margin-top:12px"><button id="editorAnimate" class="btn primary">🎬 Анимировать изображение</button><button id="editUseResult" class="btn hidden">Использовать результат</button></div>
 </div>
 <div class="side">
  <div class="card control"><h3>Что изменить?</h3><textarea id="editPrompt" placeholder="Например: добавь лёгкий ветер в волосы, сохрани лицо, одежду, композицию и освещение..."></textarea><div id="editError" class="error"></div><button id="editBtn" class="btn primary full" style="margin-top:10px">Применить изменение</button></div>
  <div class="card control"><h3>Модель редактора</h3><select id="editModel"><option value="or-nano-banana-2">Nano Banana 2 · OpenRouter</option><option value="or-gpt-image-2">GPT Image 2 · OpenRouter</option><option value="or-flux-klein">FLUX.2 Klein · OpenRouter</option></select><div class="hint" style="margin-top:9px">Редактор больше не использует Puter и не вызывает Legacy FLUX 403. Для AI-редактирования нужен OPENROUTER_API_KEY в Vercel.</div></div>
- <div class="card control"><h3>🎬 Видео</h3><button id="editorAnimateBig" class="btn dark full">🎬 Открыть в видеоредакторе</button><div class="hint" style="margin-top:9px">Видео — отдельный редактор. Фото-редактор не нужен для подготовки видео.</div></div>
+ <div class="card control"><h3>🎬 Видео</h3><button id="editorAnimateBig" class="btn dark full">🎬 Анимировать это изображение</button><div class="hint" style="margin-top:9px">Видео — отдельный редактор. Фото-редактор не нужен для подготовки видео.</div></div>
 </div>
 </div>
 </section>
@@ -260,6 +260,10 @@ async function backend(){
 backend();
 console.log('Miya AI UI ready');
 })();
+</script>
+<script id="miya-runtime-hardening">
+window.addEventListener("error",e=>console.error("Miya runtime error:",e.error||e.message));
+window.addEventListener("unhandledrejection",e=>console.error("Miya promise error:",e.reason));
 </script>
 </body>
 </html>
