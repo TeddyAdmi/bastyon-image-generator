@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded',function(){
  </div>
  <div class="side">
   <div class="model-card"><div class="model-label">Текущая модель · Видео</div><div class="model-name">Motion synthesis</div><div class="model-provider">Провайдер: <a href="https://ahm7xmakki.com/" target="_blank" rel="noopener">AHM7 PixelSter</a></div><div class="model-status">● Активна · Image → Video</div></div>
-  <div class="card control"><h3>Сценарий движения</h3><textarea id="videoPrompt" placeholder="Например: животные начинают двигаться, смотрят друг на друга, камера плавно приближается, естественная физика..."></textarea><div id="videoError" class="error"></div><div id="videoStatus" class="status"></div><button id="videoGenerate" class="btn primary full" style="margin-top:10px">🎬 Создать видео</button></div>
+  <div class="card control"><h3>📷 Исходное изображение</h3><div class="hint" style="margin-bottom:9px">Загрузите фото для анимации. Можно выбрать файл, перетащить его на холст или открыть результат из генератора.</div><div class="row"><button id="videoChooseSide" class="btn primary">📷 Выбрать фото</button><button id="videoUseEditor" class="btn">🖼️ Из фото-редактора</button></div></div><div class="card control"><h3>Сценарий движения</h3><textarea id="videoPrompt" placeholder="Например: животные начинают двигаться, смотрят друг на друга, камера плавно приближается, естественная физика..."></textarea><div id="videoError" class="error"></div><div id="videoStatus" class="status"></div><button id="videoGenerate" class="btn primary full" style="margin-top:10px">🎬 Создать видео</button></div>
   <div class="card control"><h3>Модель видео</h3><div id="videoModels" class="ratios"><button class="ratio active" data-video-model="pixelster-motion">Motion synthesis</button><button class="ratio" disabled title="Будет подключено позже">LTX 2.5 Free</button><button class="ratio" disabled title="Будет подключено позже">Wan I2V Free</button><button class="ratio" disabled title="Будет подключено позже">HunyuanVideo</button></div><div class="hint" style="margin-top:8px">Сейчас работает Motion synthesis · AHM7 PixelSter. Остальные варианты оставлены в списке для будущего подключения.</div></div>
   <div class="card control"><h3>Формат видео</h3><div id="videoRatios" class="ratios"><button class="ratio active" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="4:3">4:3</button></div><h3 style="margin-top:16px">Длительность</h3><select id="videoDuration" style="width:100%;border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff"><option value="2">2 секунды</option><option value="3">3 секунды</option><option value="4">4 секунды</option><option value="5" selected>5 секунд</option><option value="6">6 секунд</option><option value="8">8 секунд</option><option value="10">10 секунд</option></select><div class="hint" style="margin-top:7px">Длительность ограничивается возможностями подключённого GPU.</div></div>
   <div class="card control"><h3>Видеосервер</h3><div id="videoBackend" class="backend">Проверяем подключение…</div><button id="videoReplace" class="btn full" style="margin-top:8px">Заменить изображение</button></div>
@@ -322,7 +322,7 @@ async function runVideo(){
     const body={prompt,aspect:state.videoRatio,duration:Number($('videoDuration')?.value||5)};
     if(source.startsWith('data:image/')){
       const optimized=await optimizeVideoImage(source);
-      body.imageBase64=optimized.split(',').slice(1).join(',');
+      body.imageBase64=optimized;
     }else body.imageUrl=source;
     const d=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(d.done && d.videoUrl){
@@ -394,6 +394,12 @@ document.addEventListener('click',e=>{
     case'editAI':runEdit();break;
     case'editUseResult':openVideo(state.editorImage||$('editorSource')?.src||'');break;
     case'videoChoose':chooseFile('videoFile');break;
+    case'videoChooseSide':chooseFile('videoFile');break;
+    case'videoUseEditor':{
+      const src=state.editorImage||$('editorSource')?.src||'';
+      if(src)openVideo(src);else showError('videoError','Сначала загрузите изображение в фото-редактор.');
+      break;
+    }
     case'videoReplace':chooseFile('videoFile');break;
     case'videoReset':state.videoImage='';if($('videoFile'))$('videoFile').value='';setImage('videoImage','videoEmpty','');$('videoResult')?.classList.add('hidden');break;
     case'videoGenerate':runVideo();break;
