@@ -2186,8 +2186,8 @@
           </label>
 
           <select id="editorModel">
-            <option value="legacy-flux">FLUX Editor · ОСНОВНОЙ</option>
-            <option value="auto">Auto · OpenRouter</option>
+            <option value="auto">Auto · доступный провайдер</option>
+            <option value="legacy-flux">FLUX Legacy · резерв</option>
             <option value="or-nano-banana-2">OpenRouter · Nano Banana 2</option>
             <option value="or-flux-klein">OpenRouter · FLUX.2 Klein 4B</option>
             <option value="or-seedream-4-5">OpenRouter · Seedream 4.5</option>
@@ -2511,7 +2511,7 @@
 
   let editorRatio = "1:1";
 
-  let lastImages = [];
+  let lastImages = []; window.__miyaLastImages = [];
 
   let lastVideo = null;
 
@@ -3886,8 +3886,7 @@
 
             } else {
 
-              lastImages =
-                [item.imageUrl];
+              lastImages = [item.imageUrl]; window.__miyaLastImages = lastImages.slice();
 
               renderGallery(
                 lastImages
@@ -5038,7 +5037,7 @@
       $("sendEditedToGeneratorBtn").onclick = () => {
         $("prompt").value = prompt;
         updateCounters();
-        lastImages = [resultUrl];
+        lastImages = [resultUrl]; window.__miyaLastImages = lastImages.slice();
         renderGallery(lastImages);
         switchMode("generator");
       };
