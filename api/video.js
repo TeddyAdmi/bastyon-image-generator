@@ -132,7 +132,7 @@ export default async function handler(req, res) {
     const data = await pixelsterVideo({
       prompt,
       ratio: body.aspect || body.ratio || "9:16",
-      duration: body.duration || 6,
+      duration: body.duration || 5,
       imageBase64: image.split(",").slice(1).join(",")
     });
 
