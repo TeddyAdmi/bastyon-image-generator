@@ -1,75 +1,56 @@
-function isHttpUrl(value) {
+function isUrl(value) {
   try {
     const u = new URL(String(value || ""));
     return u.protocol === "http:" || u.protocol === "https:";
-  } catch { return false; }
-}
-
-function parseDataUrl(value) {
-  const m = String(value || "").match(/^data:(image\\/[^;]+);base64,(.+)$/s);
-  if (!m) throw new Error("Изображение должно быть data:image/...;base64,...");
-  return {
-    mime: m[1].toLowerCase(),
-    base64: m[2].replace(/\\s/g, "")
-  };
+  } catch {
+    return false;
+  }
 }
 
 async function urlToDataUrl(url) {
   const r = await fetch(url, { headers: { "User-Agent": "Miya-AI/1.0" } });
-  if (!r.ok) throw new Error("Не удалось получить изображение: HTTP " + r.status);
-  const type = (r.headers.get("content-type") || "image/jpeg").split(";")[0];
-  if (!type.startsWith("image/")) throw new Error("URL не вернул изображение.");
-  const buf = Buffer.from(await r.arrayBuffer());
-  if (buf.length > 10_000_000) throw new Error("Изображение слишком большое.");
-  return "data:" + type + ";base64," + buf.toString("base64");
+  const bytes = Buffer.from(await r.arrayBuffer());
+  if (!r.ok) throw new Error("Не удалось получить исходное изображение: HTTP " + r.status);
+  const mime = (r.headers.get("content-type") || "image/jpeg").split(";")[0];
+  if (!mime.startsWith("image/")) throw new Error("Источник не является изображением.");
+  if (bytes.length > 10_000_000) throw new Error("Изображение слишком большое.");
+  return "data:" + mime + ";base64," + bytes.toString("base64");
 }
 
 async function normalizeImage(imageBase64, imageUrl) {
-  if (String(imageBase64 || "").startsWith("data:image/")) return imageBase64;
-  if (isHttpUrl(imageUrl)) return await urlToDataUrl(imageUrl);
+  const value = String(imageBase64 || "").trim();
+  if (value.startsWith("data:image/")) return value;
+  if (isUrl(imageUrl)) return await urlToDataUrl(imageUrl);
   throw new Error("Исходное изображение не найдено.");
 }
 
 function ltxBase() {
-  return String(process.env.LTX_SERVER_URL || "").replace(/\\/$/, "");
+  return String(process.env.LTX_SERVER_URL || "").replace(/\/$/, "");
 }
 
 async function ltx(path, options = {}) {
   const base = ltxBase();
-  if (!base) {
-    throw new Error("LTX_SERVER_URL не настроен. Подключите публичный LTX GPU сервер.");
-  }
+  if (!base) throw new Error("LTX_SERVER_URL не настроен в Vercel.");
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  const r = await fetch(base + path, {
+    ...options,
+    headers: { ...(options.headers || {}) }
+  });
 
-  let r;
-  try {
-    r = await fetch(base + path, {
-      ...options,
-      signal: controller.signal,
-      headers: { "Content-Type": "application/json", ...(options.headers || {}) }
-    });
-  } catch (error) {
-    if (error?.name === "AbortError") {
-      throw new Error("LTX GPU сервер не отвечает за 15 секунд. Проверьте публичный URL Cloud Studio и запущенный app.py.");
-    }
-    throw new Error("Не удалось подключиться к LTX GPU серверу: " + (error?.message || error));
-  } finally {
-    clearTimeout(timer);
-  }
   const text = await r.text();
-  let d = {};
-  try { d = text ? JSON.parse(text) : {}; }
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; }
   catch { throw new Error("LTX GPU сервер вернул не JSON (HTTP " + r.status + ")."); }
-  if (!r.ok) throw new Error(d.error || d.message || ("LTX HTTP " + r.status));
-  return d;
+
+  if (!r.ok) throw new Error(data?.error || data?.message || ("LTX HTTP " + r.status));
+  return data;
 }
 
 function bodyOf(req) {
   if (req.body && typeof req.body === "object") return req.body;
   if (typeof req.body === "string") {
-    try { return JSON.parse(req.body); } catch { throw new Error("Некорректный JSON."); }
+    try { return JSON.parse(req.body); }
+    catch { throw new Error("Некорректный JSON."); }
   }
   return {};
 }
@@ -86,27 +67,26 @@ export default async function handler(req, res) {
           ltxConfigured: false,
           reachable: false,
           provider: "LTX-Video GPU",
-          message: "LTX_SERVER_URL is missing"
+          message: "LTX_SERVER_URL отсутствует"
         });
       }
 
       try {
-        const health = await ltx("/health", { method: "GET" });
+        const h = await ltx("/health", { method: "GET" });
         return res.status(200).json({
           success: true,
           ltxConfigured: true,
           reachable: true,
           provider: "LTX-Video GPU",
-          model: health.model || "ltxv-2b-0.9.8-distilled",
-          message: "LTX GPU online"
+          model: h.model || "ltxv-2b-0.9.8-distilled"
         });
-      } catch (error) {
+      } catch (e) {
         return res.status(200).json({
           success: true,
           ltxConfigured: true,
           reachable: false,
           provider: "LTX-Video GPU",
-          message: error?.message || "LTX GPU unreachable"
+          message: e?.message || "LTX недоступен"
         });
       }
     }
@@ -114,14 +94,10 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const taskId = String(req.query?.taskId || "");
       if (!taskId.startsWith("ltx:")) {
-        return res.status(400).json({
-          success: false,
-          error: "Неизвестная задача. Используется только LTX GPU."
-        });
+        return res.status(400).json({ success: false, error: "Неизвестная задача." });
       }
 
-      const jobId = taskId.slice(4);
-      const d = await ltx("/jobs/" + encodeURIComponent(jobId));
+      const d = await ltx("/jobs/" + encodeURIComponent(taskId.slice(4)), { method: "GET" });
 
       if (d.done && d.success && d.videoUrl) {
         return res.status(200).json({
@@ -152,24 +128,31 @@ export default async function handler(req, res) {
       });
     }
 
-    if (req.method !== "POST") return res.status(405).json({success:false,error:"Method not allowed"});
+    if (req.method !== "POST") {
+      return res.status(405).json({ success: false, error: "Method not allowed" });
+    }
 
     const b = bodyOf(req);
     const prompt = String(b.prompt || "").trim();
-    if (!prompt) return res.status(400).json({success:false,error:"Введите описание движения."});
 
+    if (!prompt) return res.status(400).json({ success: false, error: "Введите описание движения." });
     if (!ltxBase()) {
       return res.status(503).json({
         success: false,
         code: "LTX_NOT_CONFIGURED",
-        error: "Видео сейчас не подключено: в Vercel не задан LTX_SERVER_URL."
+        error: "Видео не подключено: добавьте LTX_SERVER_URL в Vercel."
       });
     }
 
     const image = await normalizeImage(b.imageBase64, b.imageUrl);
+
     const d = await ltx("/generate", {
       method: "POST",
-      body: JSON.stringify({ imageBase64: image, prompt, seed: b.seed ?? null })
+      body: JSON.stringify({
+        imageBase64: image,
+        prompt,
+        seed: b.seed == null ? null : Number(b.seed)
+      })
     });
 
     if (!d.jobId) throw new Error("LTX не вернул jobId.");
@@ -183,11 +166,11 @@ export default async function handler(req, res) {
       model: d.model || "ltxv-2b-0.9.8-distilled",
       duration: d.duration || 5
     });
-  } catch (e) {
-    console.error("Miya video API:", e);
+  } catch (error) {
+    console.error("Miya video API:", error);
     return res.status(500).json({
       success: false,
-      error: e?.message || "Ошибка видеогенерации."
+      error: error?.message || "Ошибка видеогенерации."
     });
   }
 }
