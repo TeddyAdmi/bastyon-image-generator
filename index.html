@@ -56,7 +56,7 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
  <div class="row" style="margin-top:12px"><button id="openEditor" class="btn dark hidden">Открыть в фото-редакторе</button><button id="openVideo" class="btn primary hidden">🎬 Анимировать</button></div>
 </div>
 <div class="side">
- <div class="card control"><h3>Что создать?</h3><textarea id="genPrompt" placeholder="Например: два реалистичных животных на лесной поляне, мягкий вечерний свет, cinematic photography..."></textarea><div class="row" style="margin-top:8px"><button id="genRandom" class="btn">Случайная идея</button><button id="genClearPrompt" class="btn">Очистить</button></div><div id="genError" class="error"></div><button id="generateBtn" class="btn primary full" style="margin-top:10px">✨ Создать изображение</button></div>
+ <div class="card control"><h3>Что создать?</h3><button id="aiPromptBtn" class="btn primary full" type="button" style="margin-bottom:8px">✨ AI Prompt</button><textarea id="genPrompt" placeholder="Например: два реалистичных животных на лесной поляне, мягкий вечерний свет, cinematic photography..."></textarea><div class="row" style="margin-top:8px"><button id="genRandom" class="btn">Случайная идея</button><button id="genClearPrompt" class="btn">Очистить</button></div><div id="genError" class="error"></div><button id="generateBtn" class="btn primary full" style="margin-top:10px">✨ Создать изображение</button></div>
  <div class="card control"><h3>Параметры</h3><div class="row"><div><label class="label">Модель</label><select id="genModel"><option value="auto">Auto · FLUX</option><option value="legacy-flux">FLUX Dev · Free</option><option value="or-nano-banana-2">Nano Banana 2</option><option value="or-gpt-image-2">GPT Image 2</option><option value="or-flux-klein">FLUX.2 Klein</option></select></div><div><label class="label">Качество</label><select id="genQuality"><option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div></div><label class="label" style="margin-top:10px">Формат</label><div id="genRatios" class="ratios"><button class="ratio active" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
  <div class="card control"><h3>Быстрые идеи</h3><div id="quickIdeas" class="quick"></div></div>
 </div>
@@ -162,6 +162,38 @@ if(qi){qi.innerHTML=ideas.map((x,i)=>'<button class="chip" data-i="'+i+'">'+x.sl
 $('genRandom')?.addEventListener('click',()=>{$('genPrompt').value=ideas[Math.floor(Math.random()*ideas.length)]});
 $('genClearPrompt')?.addEventListener('click',()=>{$('genPrompt').value=''});
 $('genClear')?.addEventListener('click',()=>{state.genImage='';setImage('genImage','genEmpty','');$('openEditor')?.classList.add('hidden');$('openVideo')?.classList.add('hidden')});
+
+async function improvePrompt(){
+ const input=$('genPrompt');
+ const button=$('aiPromptBtn');
+ const error=$('genError');
+ if(!input)return;
+ const original=input.value.trim();
+ if(!original)return showError('genError','Сначала напишите короткую идею для изображения.');
+ if(button)button.disabled=true;
+ showError('genError','');
+ try{
+   const d=await api('/api/prompt',{
+     method:'POST',
+     headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({prompt:original})
+   });
+   if(!d.prompt)throw new Error('AI Prompt не вернул текст.');
+   input.value=d.prompt;
+   input.focus();
+ }catch(e){
+   console.error('AI Prompt error:',e);
+   // Always leave the button useful even without an external AI key.
+   const fallback=original+
+     ', ultra-detailed, photorealistic, cinematic lighting, natural textures, realistic anatomy, professional photography, depth of field, coherent composition, high detail';
+   input.value=fallback;
+   input.focus();
+   showError('genError','AI Prompt: внешний AI недоступен, добавлены локальные улучшения промпта.');
+ }finally{
+   if(button)button.disabled=false;
+ }
+}
+$('aiPromptBtn')?.addEventListener('click',improvePrompt);
 
 $('generateBtn')?.addEventListener('click',async()=>{
  if(state.busy)return;
@@ -366,6 +398,20 @@ console.log("Miya AI UI ready");
 <script id="miya-runtime-hardening">
 window.addEventListener("error",e=>console.error("Miya runtime error:",e.error||e.message));
 window.addEventListener("unhandledrejection",e=>console.error("Miya promise error:",e.reason));
+</script>
+<script id="miya-button-safety">
+document.addEventListener('click',function(e){
+ const b=e.target.closest('button');
+ if(!b)return;
+ if(b.dataset.view){
+   const v=document.getElementById(b.dataset.view+'View');
+   if(v){
+     document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+     v.classList.add('active');
+     document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));
+   }
+ }
+});
 </script>
 </body>
 </html>
