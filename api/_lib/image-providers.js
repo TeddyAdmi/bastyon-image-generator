@@ -443,26 +443,11 @@ export async function editImage(options) {
       }
     }
 
-    if (process.env.OPENROUTER_API_KEY) {
-      try {
-        return await openRouterImage({
-          model: OPENROUTER_MODELS["or-nano-banana-2"],
-          prompt,
-          ratio,
-          quality,
-          size,
-          outputFormat,
-          imageDataUrl
-        });
-      } catch (error) {
-        errors.push("OpenRouter: " + error.message);
-      }
-    } else {
-      errors.push("OpenRouter: OPENROUTER_API_KEY отсутствует");
-    }
-
+    // AUTO editor must not silently switch to a different image model.
+    // A fallback generator can create a new/unrelated composition.
     throw new Error(
-      "Не удалось отредактировать изображение. " + errors.join(" | ")
+      "Основной FLUX Editor не смог отредактировать исходное изображение. " +
+      errors.join(" | ")
     );
   }
 
