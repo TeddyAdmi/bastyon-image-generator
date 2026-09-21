@@ -5288,18 +5288,76 @@
     const prompt =
       $("videoPrompt")?.value.trim() ||
       $("editPrompt").value.trim() ||
-      "The subject naturally moves and breathes, subtle realistic motion, gentle facial movement, slight movement of hair and clothing, cinematic camera push-in, realistic lighting, photorealistic, smooth natural motion, no distortion.";
+      "Animate the reference naturally with subtle realistic motion, breathing, gentle facial movement, natural movement of hair and clothing, cinematic camera movement, photorealistic lighting.";
 
     $("animateEditedBtn").disabled = true;
     showError($("editorError"), "");
 
     setLoading(
       true,
-      "Miya AI создаёт видео",
-      "LTX 2.5 Free · Pixazo…"
+      "Miya AI готовит кадр для видео",
+      "Сначала применяем ваш промпт к референсу, затем LTX 2.5 Free создаёт видео…"
     );
 
     try {
+      /*
+       * LTX 2.5 Free is an image-to-video model. It is much more reliable
+       * when the requested new object (for example an animal entering the
+       * frame) already exists in the keyframe. Therefore we first use the
+       * existing FLUX Editor to prepare one reference frame from the exact
+       * video prompt, then send that resulting frame to Pixazo.
+       *
+       * This prevents the video model from being asked to invent a new
+       * scene/object that is absent from the reference image.
+       */
+      const preparedImage = await prepareEditorImageForUpload(editorImageBase64);
+
+      const prepareResponse = await fetch("/api/edit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          prompt,
+          imageBase64: preparedImage,
+          ratio: editorRatio,
+          model: "legacy-flux",
+          quality: $("editorQuality").value,
+          size: $("editorSize").value,
+          outputFormat: $("editorOutputFormat").value
+        })
+      });
+
+      const prepareText = await prepareResponse.text();
+      let prepareData = {};
+      try {
+        prepareData = prepareText ? JSON.parse(prepareText) : {};
+      } catch {
+        throw new Error(
+          "Сервер подготовки кадра вернул не JSON (HTTP " +
+          prepareResponse.status +
+          ")."
+        );
+      }
+
+      if (!prepareResponse.ok || !prepareData.imageUrl) {
+        throw new Error(
+          prepareData.error ||
+          "Не удалось подготовить кадр по промпту (HTTP " +
+          prepareResponse.status +
+          ")."
+        );
+      }
+
+      const videoImageUrl = prepareData.imageUrl;
+
+      setLoading(
+        true,
+        "Miya AI создаёт видео",
+        "Кадр подготовлен · LTX 2.5 Free · Pixazo…"
+      );
+
       const createResponse = await fetch("/api/video", {
         method: "POST",
         headers: {
@@ -5308,7 +5366,7 @@
         },
         body: JSON.stringify({
           imageUrl: videoImageUrl,
-          imageBase64: videoImageBase64,
+          imageBase64: "",
           prompt,
           aspect: editorRatio || "16:9"
         })
