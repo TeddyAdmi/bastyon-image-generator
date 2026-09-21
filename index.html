@@ -110,288 +110,451 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 <script>
 (function(){
 'use strict';
+
 const $=id=>document.getElementById(id);
-const state={genRatio:'1:1',editRatio:'1:1',videoRatio:'16:9',genImage:'',editorImage:'',videoImage:'',busy:false};
+const state={
+  genRatio:'1:1',
+  editRatio:'1:1',
+  videoRatio:'16:9',
+  genImage:'',
+  editorImage:'',
+  videoImage:'',
+  busy:false
+};
+
 const ideas=[
-'Два реалистичных животных смотрят друг на друга на лесной поляне, мягкий рассвет, cinematic photography',
-'Кудрявый рыжий поросёнок в современном парижском кафе, естественная шерсть, мягкий вечерний свет',
-'Белый тигр в неоновом Токио под дождём, мокрая шерсть, отражения, ultra realistic',
-'Лиса на снегу в зимнем лесу, золотой час, реалистичная фотография',
-'Маленький медвежонок возле озера, туманное утро, cinematic realism',
-'Кот-путешественник на старинном вокзале, объёмный свет, 35mm photography'
+ 'Два реалистичных животных смотрят друг на друга на лесной поляне, мягкий рассвет, cinematic photography',
+ 'Кудрявый рыжий поросёнок в современном парижском кафе, естественная шерсть, мягкий вечерний свет',
+ 'Белый тигр в неоновом Токио под дождём, мокрая шерсть, отражения, ultra realistic',
+ 'Лиса на снегу в зимнем лесу, золотой час, реалистичная фотография',
+ 'Маленький медвежонок возле озера, туманное утро, cinematic realism',
+ 'Кот-путешественник на старинном вокзале, объёмный свет, 35mm photography'
 ];
-const modelMapGen={legacy:'legacy-flux'};
-function textError(e){
- if(!e)return 'Неизвестная ошибка';
- if(typeof e==='string')return e;
- if(typeof e.message==='string'&&e.message)return e.message;
- if(typeof e.error==='string'&&e.error)return e.error;
- try{return JSON.stringify(e)}catch{return String(e)}
+
+function errText(e){
+  if(!e) return 'Неизвестная ошибка';
+  if(typeof e==='string') return e;
+  if(typeof e.message==='string' && e.message) return e.message;
+  if(typeof e.error==='string' && e.error) return e.error;
+  try{return JSON.stringify(e)}catch{return String(e)}
 }
-function showError(id,e){const x=$(id);if(!x)return;x.textContent=e?textError(e):'';x.classList.toggle('show',!!e)}
-function loading(on,title,text){$('loading')?.classList.toggle('show',on);if(title)$('loadingTitle').textContent=title;if(text)$('loadingText').textContent=text}
+
+function errorBox(id,e){
+  const el=$(id);
+  if(!el)return;
+  el.textContent=e?errText(e):'';
+  el.classList.toggle('show',!!e);
+}
+
+function busy(on,title='Miya AI работает',text='Подождите…'){
+  $('loading')?.classList.toggle('show',on);
+  if($('loadingTitle'))$('loadingTitle').textContent=title;
+  if($('loadingText'))$('loadingText').textContent=text;
+}
+
+async function api(url,options={}){
+  const r=await fetch(url,{...options,headers:{Accept:'application/json',...(options.headers||{})}});
+  const t=await r.text();
+  let d={};
+  try{d=t?JSON.parse(t):{}}catch{throw new Error('Сервер вернул не JSON (HTTP '+r.status+').')}
+  if(!r.ok)throw new Error(d.error||d.message||('HTTP '+r.status));
+  return d;
+}
+
 function show(view){
- document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
- document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
- $(view+'View')?.classList.add('active');
- document.querySelector('.tab[data-view="'+view+'"]')?.classList.add('active');
- window.scrollTo({top:0,behavior:'smooth'});
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  $(view+'View')?.classList.add('active');
+  document.querySelector('.tab[data-view="'+view+'"]')?.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
 }
+
 function setImage(imgId,emptyId,url){
- const img=$(imgId),empty=$(emptyId);if(!img||!empty)return;
- if(url){img.src=url;img.classList.remove('hidden');empty.classList.add('hidden')}
- else{img.removeAttribute('src');img.classList.add('hidden');empty.classList.remove('hidden')}
+  const img=$(imgId),empty=$(emptyId);
+  if(!img||!empty)return;
+  if(url){
+    img.src=url;
+    img.classList.remove('hidden');
+    empty.classList.add('hidden');
+  }else{
+    img.removeAttribute('src');
+    img.classList.add('hidden');
+    empty.classList.remove('hidden');
+  }
 }
-function fileData(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
-async function api(url,options){const r=await fetch(url,options);const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{throw new Error('Сервер вернул не JSON (HTTP '+r.status+').')}if(!r.ok)throw new Error(d.error||d.message||('HTTP '+r.status));return d}
-function wireRatios(id,key){document.querySelectorAll('#'+id+' .ratio').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+id+' .ratio').forEach(x=>x.classList.remove('active'));b.classList.add('active');state[key]=b.dataset.ratio}))}
 
-document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
-wireRatios('genRatios','genRatio');wireRatios('videoRatios','videoRatio');
+function fileData(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result||''));
+    reader.onerror=()=>reject(new Error('Не удалось прочитать файл.'));
+    reader.readAsDataURL(file);
+  });
+}
 
-const qi=$('quickIdeas');
-if(qi){qi.innerHTML=ideas.map((x,i)=>'<button class="chip" data-i="'+i+'">'+x.slice(0,36)+'…</button>').join('');qi.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{$('genPrompt').value=ideas[Number(b.dataset.i)]}))}
-$('genRandom')?.addEventListener('click',()=>{$('genPrompt').value=ideas[Math.floor(Math.random()*ideas.length)]});
+function ratioButtons(id,key){
+  document.querySelectorAll('#'+id+' .ratio').forEach(button=>{
+    button.addEventListener('click',()=>{
+      document.querySelectorAll('#'+id+' .ratio').forEach(x=>x.classList.remove('active'));
+      button.classList.add('active');
+      state[key]=button.dataset.ratio||state[key];
+    });
+  });
+}
+
+document.querySelectorAll('.tab').forEach(button=>{
+  button.addEventListener('click',()=>show(button.dataset.view));
+});
+
+ratioButtons('genRatios','genRatio');
+ratioButtons('videoRatios','videoRatio');
+
+const quick=$('quickIdeas');
+if(quick){
+  quick.innerHTML=ideas.map((x,i)=>'<button type="button" class="chip" data-i="'+i+'">'+x.slice(0,36)+'…</button>').join('');
+  quick.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{
+    $('genPrompt').value=ideas[Number(b.dataset.i)];
+  }));
+}
+
+$('genRandom')?.addEventListener('click',()=>{
+  $('genPrompt').value=ideas[Math.floor(Math.random()*ideas.length)];
+});
 $('genClearPrompt')?.addEventListener('click',()=>{$('genPrompt').value=''});
-$('genClear')?.addEventListener('click',()=>{state.genImage='';setImage('genImage','genEmpty','');$('openEditor')?.classList.add('hidden');$('openVideo')?.classList.add('hidden')});
-
-async function improvePrompt(){
- const input=$('genPrompt');
- const button=$('aiPromptBtn');
- const error=$('genError');
- if(!input)return;
- const original=input.value.trim();
- if(!original)return showError('genError','Сначала напишите короткую идею для изображения.');
- if(button)button.disabled=true;
- showError('genError','');
- try{
-   const d=await api('/api/prompt',{
-     method:'POST',
-     headers:{'Content-Type':'application/json'},
-     body:JSON.stringify({prompt:original})
-   });
-   if(!d.prompt)throw new Error('AI Prompt не вернул текст.');
-   input.value=d.prompt;
-   input.focus();
- }catch(e){
-   console.error('AI Prompt error:',e);
-   // Always leave the button useful even without an external AI key.
-   const fallback=original+
-     ', ultra-detailed, photorealistic, cinematic lighting, natural textures, realistic anatomy, professional photography, depth of field, coherent composition, high detail';
-   input.value=fallback;
-   input.focus();
-   showError('genError','AI Prompt: внешний AI недоступен, добавлены локальные улучшения промпта.');
- }finally{
-   if(button)button.disabled=false;
- }
-}
-$('aiPromptBtn')?.addEventListener('click',improvePrompt);
+$('genClear')?.addEventListener('click',()=>{
+  state.genImage='';
+  setImage('genImage','genEmpty','');
+  $('openEditor')?.classList.add('hidden');
+  $('openVideo')?.classList.add('hidden');
+});
 
 $('generateBtn')?.addEventListener('click',async()=>{
- if(state.busy)return;
- const prompt=$('genPrompt').value.trim();showError('genError','');if(!prompt)return showError('genError','Введите промпт.');
- state.busy=true;$('generateBtn').disabled=true;loading(true,'Miya AI создаёт изображение','Запускаем выбранный image backend…');
- try{
-  const d=await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,ratio:state.genRatio,model:'legacy-flux',quality:'auto'})});
-  if(!d.imageUrl)throw new Error('Генератор не вернул imageUrl.');
-  state.genImage=d.imageUrl;setImage('genImage','genEmpty',d.imageUrl);$('openEditor').classList.remove('hidden');$('openVideo').classList.remove('hidden');
- }catch(e){console.error(e);showError('genError',e)}
- finally{state.busy=false;$('generateBtn').disabled=false;loading(false)}
+  if(state.busy)return;
+  const prompt=$('genPrompt')?.value.trim()||'';
+  errorBox('genError','');
+  if(!prompt)return errorBox('genError','Введите промпт.');
+
+  state.busy=true;
+  $('generateBtn').disabled=true;
+  busy(true,'Miya AI создаёт изображение','FLUX Dev · создаём изображение…');
+
+  try{
+    const d=await api('/api/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt,ratio:state.genRatio,model:'legacy-flux',quality:'auto'})
+    });
+
+    if(!d.imageUrl)throw new Error('Генератор не вернул изображение.');
+    state.genImage=d.imageUrl;
+    setImage('genImage','genEmpty',d.imageUrl);
+    $('openEditor')?.classList.remove('hidden');
+    $('openVideo')?.classList.remove('hidden');
+  }catch(e){
+    console.error('generate:',e);
+    errorBox('genError',e);
+  }finally{
+    state.busy=false;
+    $('generateBtn').disabled=false;
+    busy(false);
+  }
 });
 
-async function editWithServer(){
-  throw new Error('AI-редактор отключён. Используйте локальные настройки изображения.');
- }
- function renderLocalEdit(){
- const source = state.editorImage || $('editorSource')?.src || '';
- if(!source) throw new Error('Сначала загрузите изображение.');
+/* ---------------- PHOTO EDITOR ---------------- */
 
- const apply=(dataUrl)=>{
-   const img=new Image();
-   img.onload=()=>{
-     try{
-       const canvas=document.createElement('canvas');
-       const max=2600;
-       const scale=Math.min(1,max/(img.naturalWidth||img.width||1));
-       canvas.width=Math.max(1,Math.round((img.naturalWidth||img.width)*scale));
-       canvas.height=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
-       const ctx=canvas.getContext('2d',{willReadFrequently:true});
-       if(!ctx)throw new Error('Canvas недоступен в этом браузере.');
-       ctx.filter='brightness('+($('editBrightness')?.value||100)+'%) contrast('+($('editContrast')?.value||100)+'%) saturate('+($('editSaturation')?.value||100)+'%)';
-       ctx.drawImage(img,0,0,canvas.width,canvas.height);
-       const result=canvas.toDataURL('image/jpeg',0.92);
-       state.editorImage=result;
-       setImage('editorSource','editEmpty',result);
-       $('editResult').src=result;
-       $('editResult').classList.remove('hidden');
-       $('editUseResult').classList.remove('hidden');
-     }catch(err){
-       showError('editError',textError(err));
-     }
-   };
-   img.onerror=()=>showError('editError','Не удалось загрузить изображение для локального редактирования.');
-   img.src=dataUrl;
- };
-
- if(source.startsWith('data:image/')){
-   apply(source);
-   return;
- }
-
- // External generated images are first converted through our same-origin proxy.
- fetch('/api/image-proxy?url='+encodeURIComponent(source),{cache:'no-store'})
-   .then(async r=>{
-     const t=await r.text();
-     let d={}; try{d=t?JSON.parse(t):{}}catch{}
-     if(!r.ok||!d.dataUrl)throw new Error(d.error||'Не удалось подготовить изображение.');
-     apply(d.dataUrl);
-   })
-   .catch(err=>showError('editError','Локальное редактирование: '+textError(err)));
+function loadImage(source){
+  return new Promise((resolve,reject)=>{
+    const image=new Image();
+    image.onload=()=>resolve(image);
+    image.onerror=()=>reject(new Error('Не удалось загрузить изображение.'));
+    image.src=source;
+  });
 }
-$('editApplyLocal')?.addEventListener('click',()=>{showError('editError','');try{renderLocalEdit()}catch(e){showError('editError',e)}});
-$('editResetLocal')?.addEventListener('click',()=>{
- ['editBrightness','editContrast','editSaturation'].forEach((id)=>{if($(id))$(id).value=id==='editSaturation'?100:100});
- if(state.editorImage)setImage('editorSource','editEmpty',state.editorImage);
+
+async function sourceAsDataUrl(source){
+  if(!source)throw new Error('Сначала загрузите изображение.');
+  if(source.startsWith('data:image/'))return source;
+
+  const d=await api('/api/image-proxy?url='+encodeURIComponent(source),{cache:'no-store'});
+  if(!d.dataUrl)throw new Error('Прокси изображения не вернул изображение.');
+  return d.dataUrl;
+}
+
+async function applyPhotoEdit(){
+  const source=state.editorImage||$('editorSource')?.src||'';
+  if(!source)throw new Error('Сначала загрузите изображение.');
+
+  const dataUrl=await sourceAsDataUrl(source);
+  const image=await loadImage(dataUrl);
+
+  const max=2600;
+  const scale=Math.min(1,max/Math.max(image.naturalWidth||1,image.naturalHeight||1));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round((image.naturalWidth||image.width)*scale));
+  canvas.height=Math.max(1,Math.round((image.naturalHeight||image.height)*scale));
+
+  const ctx=canvas.getContext('2d');
+  if(!ctx)throw new Error('Canvas недоступен.');
+
+  const brightness=$('editBrightness')?.value||100;
+  const contrast=$('editContrast')?.value||100;
+  const saturation=$('editSaturation')?.value||100;
+
+  ctx.filter='brightness('+brightness+'%) contrast('+contrast+'%) saturate('+saturation+'%)';
+  ctx.drawImage(image,0,0,canvas.width,canvas.height);
+
+  const result=canvas.toDataURL('image/jpeg',0.94);
+  state.editorImage=result;
+  setImage('editorSource','editEmpty',result);
+  $('editResult').src=result;
+  $('editResult').classList.remove('hidden');
+  $('editUseResult')?.classList.remove('hidden');
+}
+
+function openEditor(source){
+  if(!source)return errorBox('genError','Сначала создайте или загрузите изображение.');
+  state.editorImage=source;
+  setImage('editorSource','editEmpty',source);
+  $('editResult')?.classList.add('hidden');
+  $('editUseResult')?.classList.add('hidden');
+  errorBox('editError','');
+  show('edit');
+}
+
+$('openEditor')?.addEventListener('click',()=>openEditor(state.genImage));
+
+$('editorChoose')?.addEventListener('click',()=>{
+  $('editorFile')?.click();
 });
-$('editUseResult')?.addEventListener('click',()=>{state.editorImage=$('editResult').src;setImage('editorSource','editEmpty',state.editorImage);$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden')});
 
-function openVideo(src){
- if(!src)return showError('editError','Сначала загрузите изображение.');
- state.videoImage=src;
- setImage('videoImage','videoEmpty',src);
- $('videoResult')?.classList.add('hidden');
- $('videoResult')?.removeAttribute('src');
- $('videoStatus').classList.add('show');
- $('videoStatus').textContent='Кадр загружен. Введите движение и нажмите «Создать видео».';
- show('video');
- showError('videoError','');
-}
-$('openEditor')?.addEventListener('click',()=>{state.editorImage=state.genImage;setImage('editorSource','editEmpty',state.genImage);show('edit')});
-$('openVideo')?.addEventListener('click',()=>openVideo(state.genImage));
-function animate(){openVideo(state.editorImage||$('editorSource')?.src||'')}
-$('editorAnimate')?.addEventListener('click',animate);
-$('editorAnimateBig')?.addEventListener('click',animate);
+$('editorFile')?.addEventListener('change',async event=>{
+  const file=event.target.files?.[0];
+  if(!file)return;
+  try{
+    state.editorImage=await fileData(file);
+    setImage('editorSource','editEmpty',state.editorImage);
+    $('editResult')?.classList.add('hidden');
+    $('editUseResult')?.classList.add('hidden');
+    errorBox('editError','');
+  }catch(e){errorBox('editError',e)}
+});
 
-$('editorChoose')?.addEventListener('click',()=>$('editorFile').click());
-$('editorFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.editorImage=await fileData(f);setImage('editorSource','editEmpty',state.editorImage);$('editResult').classList.add('hidden')}catch(x){showError('editError',x)}});
-$('editCanvas')?.addEventListener('dragover',e=>{e.preventDefault();$('editCanvas').classList.add('drag')});
+$('editCanvas')?.addEventListener('dragover',event=>{
+  event.preventDefault();
+  $('editCanvas').classList.add('drag');
+});
 $('editCanvas')?.addEventListener('dragleave',()=>$('editCanvas').classList.remove('drag'));
-$('editCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('editCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return showError('editError','Нужен файл изображения.');state.editorImage=await fileData(f);setImage('editorSource','editEmpty',state.editorImage)});
-
-$('editorClear')?.addEventListener('click',()=>{state.editorImage='';$('editorFile').value='';setImage('editorSource','editEmpty','');$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden');showError('editError','')});
-
-$('videoChoose')?.addEventListener('click',()=>$('videoFile').click());
-$('videoReplace')?.addEventListener('click',()=>$('videoFile').click());
-$('videoFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.videoImage=await fileData(f);setImage('videoImage','videoEmpty',state.videoImage);$('videoResult').classList.add('hidden');$('videoResult').removeAttribute('src')}catch(x){showError('videoError',x)}});
-$('videoCanvas')?.addEventListener('dragover',e=>{e.preventDefault();$('videoCanvas').classList.add('drag')});
-$('videoCanvas')?.addEventListener('dragleave',()=>$('videoCanvas').classList.remove('drag'));
-$('videoCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('videoCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return showError('videoError','Нужен файл изображения.');state.videoImage=await fileData(f);setImage('videoImage','videoEmpty',state.videoImage)});
-
-$('videoReset')?.addEventListener('click',()=>{state.videoImage='';$('videoFile').value='';setImage('videoImage','videoEmpty','');$('videoResult').classList.add('hidden');$('videoResult').removeAttribute('src');$('videoDownload').classList.add('hidden');$('videoStatus').classList.add('show');$('videoStatus').textContent='Добавьте изображение и нажмите «Создать видео».'});
-
-async function sourceForVideo(src){
- if(src.startsWith('data:image/'))return src;
- return src;
-}
-async function makeLocalVideo(){
- let src=state.videoImage;
- if(!src) throw new Error('Сначала добавьте изображение.');
- if(!src.startsWith('data:image/')){
-   const r=await fetch('/api/image-proxy?url='+encodeURIComponent(src),{cache:'no-store'});
-   const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{}
-   if(!r.ok||!d.dataUrl)throw new Error(d.error||'Не удалось подготовить кадр для локального видео.');
-   src=d.dataUrl;
- }
- const img=new Image();
- await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=src});
- const canvas=document.createElement('canvas');
- const ratio=state.videoRatio;
- if(ratio==='9:16'){canvas.width=720;canvas.height=1280}
- else if(ratio==='1:1'){canvas.width=720;canvas.height=720}
- else if(ratio==='4:3'){canvas.width=960;canvas.height=720}
- else {canvas.width=1280;canvas.height=720}
- const ctx=canvas.getContext('2d');
- const stream=canvas.captureStream(24);
- const mimeCandidates=['video/webm;codecs=vp8','video/webm'];
- const supported=mimeCandidates.find(x=>window.MediaRecorder&&MediaRecorder.isTypeSupported(x));
- if(!supported)throw new Error('Браузер не поддерживает запись WebM.');
- const rec=new MediaRecorder(stream,{mimeType:supported});
- const chunks=[];
- rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
- const done=new Promise((resolve,reject)=>{rec.onstop=resolve;rec.onerror=reject});
- rec.start();
- const duration=5000,start=performance.now();
- function frame(now){
-   const p=Math.min(1,(now-start)/duration);
-   const zoom=1+0.06*p;
-   const iw=img.naturalWidth,ih=img.naturalHeight;
-   const scale=Math.max(canvas.width/iw,canvas.height/ih)*zoom;
-   const w=iw*scale,h=ih*scale;
-   const x=(canvas.width-w)/2-(p-.5)*canvas.width*.025;
-   const y=(canvas.height-h)/2;
-   ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
-   ctx.drawImage(img,x,y,w,h);
-   if(p<1)requestAnimationFrame(frame);else rec.stop();
- }
- requestAnimationFrame(frame);
- await done;
- return URL.createObjectURL(new Blob(chunks,{type:'video/webm'}));
-}
-$('videoGenerate')?.addEventListener('click',async()=>{
- if(state.busy)return;
- showError('videoError','');
- const prompt=$('videoPrompt').value.trim();
- if(!state.videoImage)return showError('videoError','Сначала добавьте изображение.');
- if(!prompt)return showError('videoError','Введите сценарий движения.');
- state.busy=true;$('videoGenerate').disabled=true;$('videoStatus').classList.add('show');
- try{
-   let d=null;
-   try{
-     d=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-       imageBase64:state.videoImage.startsWith('data:image/')?state.videoImage:'',
-       imageUrl:state.videoImage.startsWith('data:image/')?'':state.videoImage,
-       prompt,aspect:state.videoRatio
-     })});
-   }catch(e){
-     if(!String(e.message||e).includes('LTX_SERVER_URL')) throw e;
-   }
-   if(d?.taskId){
-     $('videoStatus').textContent='LTX-Video GPU · RUNNING…';
-     for(let i=0;i<540;i++){
-       await new Promise(r=>setTimeout(r,4000));
-       const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId),{cache:'no-store'});
-       $('videoStatus').textContent=(s.provider||'LTX-Video GPU')+' · '+(s.status||'RUNNING')+'…';
-       if(s.done){
-         if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
-         $('videoResult').src=s.videoUrl;$('videoResult').classList.remove('hidden');$('videoDownload').classList.remove('hidden');$('videoDownload').onclick=()=>window.open(s.videoUrl,'_blank','noopener');
-         $('videoStatus').textContent='Готово · '+(s.model||'LTX-Video');return;
-       }
-     }
-     throw new Error('Видео слишком долго обрабатывается.');
-   }
-   throw new Error('LTX_SERVER_URL отсутствует');
- }catch(e){
-   // No GPU backend? Still produce a local motion video instead of a dead button.
-   try{
-     $('videoStatus').classList.add('show');
-     $('videoStatus').textContent='LTX GPU не подключён — создаём локальное видео…';
-     const url=await makeLocalVideo();
-     $('videoResult').src=url;$('videoResult').classList.remove('hidden');$('videoDownload').classList.remove('hidden');
-     $('videoDownload').onclick=()=>{const a=document.createElement('a');a.href=url;a.download='miya-animation.webm';a.click()};
-     $('videoStatus').textContent='Готово · локальная 5-секундная анимация';
-   }catch(localError){
-     console.error(localError);showError('videoError','Видео: '+textError(localError));$('videoStatus').classList.remove('show');
-   }
- }finally{
-   state.busy=false;$('videoGenerate').disabled=false;
- }
+$('editCanvas')?.addEventListener('drop',async event=>{
+  event.preventDefault();
+  $('editCanvas').classList.remove('drag');
+  const file=event.dataTransfer.files?.[0];
+  if(!file||!file.type.startsWith('image/'))return errorBox('editError','Нужен файл изображения.');
+  try{
+    state.editorImage=await fileData(file);
+    setImage('editorSource','editEmpty',state.editorImage);
+  }catch(e){errorBox('editError',e)}
 });
-async function backend(){
- try{const d=await api('/api/video?health=1');$('videoBackend').textContent=d.reachable?'LTX GPU онлайн · '+(d.model||'LTX'):(d.ltxConfigured?('LTX GPU настроен, но недоступен: '+(d.message||'проверьте Cloud Studio')):'LTX GPU не подключён — добавьте LTX_SERVER_URL в Vercel.');if(!d.reachable)$('videoBackend').style.background='#fff4e5';}
- catch(e){$('videoBackend').textContent='Не удалось проверить LTX GPU';}
+
+$('editApplyLocal')?.addEventListener('click',async()=>{
+  errorBox('editError','');
+  busy(true,'Фото-редактор','Применяем настройки прямо в браузере…');
+  try{await applyPhotoEdit()}
+  catch(e){console.error('photo edit:',e);errorBox('editError',e)}
+  finally{busy(false)}
+});
+
+$('editResetLocal')?.addEventListener('click',()=>{
+  ['editBrightness','editContrast','editSaturation'].forEach(id=>{if($(id))$(id).value=100});
+  if(state.editorImage)setImage('editorSource','editEmpty',state.editorImage);
+  $('editResult')?.classList.add('hidden');
+  $('editUseResult')?.classList.add('hidden');
+});
+
+$('editUseResult')?.addEventListener('click',()=>{
+  const result=$('editResult')?.src||'';
+  if(!result)return;
+  state.editorImage=result;
+  setImage('editorSource','editEmpty',result);
+  $('editResult').classList.add('hidden');
+  $('editUseResult').classList.add('hidden');
+});
+
+$('editorClear')?.addEventListener('click',()=>{
+  state.editorImage='';
+  if($('editorFile'))$('editorFile').value='';
+  setImage('editorSource','editEmpty','');
+  $('editResult')?.classList.add('hidden');
+  $('editUseResult')?.classList.add('hidden');
+  errorBox('editError','');
+});
+
+function openVideo(source){
+  if(!source)return errorBox('editError','Сначала загрузите изображение.');
+  state.videoImage=source;
+  setImage('videoImage','videoEmpty',source);
+  $('videoResult')?.classList.add('hidden');
+  $('videoResult')?.removeAttribute('src');
+  $('videoDownload')?.classList.add('hidden');
+  $('videoStatus').textContent='Кадр готов. Опишите движение и нажмите «Создать видео».';
+  $('videoStatus').classList.add('show');
+  errorBox('videoError','');
+  show('video');
 }
-backend();
-console.log("Miya AI UI ready");
+
+$('openVideo')?.addEventListener('click',()=>openVideo(state.genImage));
+$('editorAnimate')?.addEventListener('click',()=>openVideo(state.editorImage||$('editorSource')?.src||''));
+$('editorAnimateBig')?.addEventListener('click',()=>openVideo(state.editorImage||$('editorSource')?.src||''));
+
+$('videoChoose')?.addEventListener('click',()=>$('videoFile')?.click());
+$('videoReplace')?.addEventListener('click',()=>$('videoFile')?.click());
+
+$('videoFile')?.addEventListener('change',async event=>{
+  const file=event.target.files?.[0];
+  if(!file)return;
+  try{
+    state.videoImage=await fileData(file);
+    setImage('videoImage','videoEmpty',state.videoImage);
+    $('videoResult')?.classList.add('hidden');
+    $('videoDownload')?.classList.add('hidden');
+    errorBox('videoError','');
+  }catch(e){errorBox('videoError',e)}
+});
+
+$('videoCanvas')?.addEventListener('dragover',event=>{
+  event.preventDefault();
+  $('videoCanvas').classList.add('drag');
+});
+$('videoCanvas')?.addEventListener('dragleave',()=>$('videoCanvas').classList.remove('drag'));
+$('videoCanvas')?.addEventListener('drop',async event=>{
+  event.preventDefault();
+  $('videoCanvas').classList.remove('drag');
+  const file=event.dataTransfer.files?.[0];
+  if(!file||!file.type.startsWith('image/'))return errorBox('videoError','Нужен файл изображения.');
+  try{
+    state.videoImage=await fileData(file);
+    setImage('videoImage','videoEmpty',state.videoImage);
+  }catch(e){errorBox('videoError',e)}
+});
+
+$('videoReset')?.addEventListener('click',()=>{
+  state.videoImage='';
+  if($('videoFile'))$('videoFile').value='';
+  setImage('videoImage','videoEmpty','');
+  $('videoResult')?.classList.add('hidden');
+  $('videoResult')?.removeAttribute('src');
+  $('videoDownload')?.classList.add('hidden');
+  $('videoStatus').classList.add('show');
+  $('videoStatus').textContent='Добавьте изображение и нажмите «Создать видео».';
+  errorBox('videoError','');
+});
+
+/*
+ * Video generation:
+ * 1. If LTX_SERVER_URL is configured, /api/video creates a real AI video.
+ * 2. If GPU is not configured, show the real reason instead of silently
+ *    pretending that a browser zoom is AI video.
+ */
+$('videoGenerate')?.addEventListener('click',async()=>{
+  if(state.busy)return;
+
+  const prompt=$('videoPrompt')?.value.trim()||'';
+  errorBox('videoError','');
+
+  if(!state.videoImage)return errorBox('videoError','Сначала добавьте изображение.');
+  if(!prompt)return errorBox('videoError','Введите сценарий движения.');
+
+  state.busy=true;
+  $('videoGenerate').disabled=true;
+  $('videoStatus').classList.add('show');
+  busy(true,'Miya AI создаёт видео','Передаём исходный кадр в LTX-Video GPU…');
+
+  try{
+    const d=await api('/api/video',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        imageBase64:state.videoImage.startsWith('data:image/')?state.videoImage:'',
+        imageUrl:state.videoImage.startsWith('data:image/')?'':state.videoImage,
+        prompt,
+        aspect:state.videoRatio
+      })
+    });
+
+    if(!d.taskId)throw new Error('Видеосервер не вернул taskId.');
+
+    $('videoStatus').textContent=(d.provider||'LTX-Video GPU')+' · '+(d.status||'QUEUED')+'…';
+
+    for(let i=0;i<450;i++){
+      await new Promise(resolve=>setTimeout(resolve,4000));
+      const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId),{cache:'no-store'});
+
+      $('videoStatus').textContent=(s.provider||'LTX-Video GPU')+' · '+(s.status||'RUNNING')+'…';
+
+      if(s.done){
+        if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
+        $('videoResult').src=s.videoUrl;
+        $('videoResult').classList.remove('hidden');
+        $('videoDownload').classList.remove('hidden');
+        $('videoDownload').onclick=()=>{
+          const a=document.createElement('a');
+          a.href=s.videoUrl;
+          a.target='_blank';
+          a.rel='noopener';
+          a.click();
+        };
+        $('videoStatus').textContent='Готово · '+(s.model||'LTX-Video');
+        return;
+      }
+    }
+
+    throw new Error('Видео слишком долго обрабатывается.');
+  }catch(e){
+    console.error('video:',e);
+    errorBox('videoError',e);
+    $('videoStatus').textContent='Видеогенерация не запущена.';
+  }finally{
+    state.busy=false;
+    $('videoGenerate').disabled=false;
+    busy(false);
+  }
+});
+
+$('aiPromptBtn')?.addEventListener('click',async()=>{
+  const input=$('genPrompt');
+  if(!input)return;
+  const original=input.value.trim();
+  if(!original)return errorBox('genError','Сначала напишите идею.');
+
+  $('aiPromptBtn').disabled=true;
+  try{
+    const d=await api('/api/prompt',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:original})
+    });
+    if(d.prompt)input.value=d.prompt;
+  }catch(e){
+    input.value=original+', ultra-detailed, photorealistic, cinematic lighting, natural textures, realistic anatomy, professional photography, depth of field';
+  }finally{
+    $('aiPromptBtn').disabled=false;
+  }
+});
+
+async function videoHealth(){
+  try{
+    const d=await api('/api/video?health=1',{cache:'no-store'});
+    if($('videoBackend')){
+      $('videoBackend').textContent=d.reachable
+        ? 'LTX GPU онлайн · '+(d.model||'LTX')
+        : 'LTX GPU не подключён';
+    }
+  }catch{
+    if($('videoBackend'))$('videoBackend').textContent='LTX GPU не подключён';
+  }
+}
+videoHealth();
+
+console.log('Miya AI UI ready');
 })();
 </script>
 <script id="miya-runtime-hardening">
