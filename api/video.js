@@ -305,7 +305,7 @@ export default async function handler(req, res) {
           prompt,
           image_url: publicImageUrl,
           strength: 1.0,
-          aspect: body.aspect || "9:16",
+          aspect: body.aspect || "16:9",
           num_frames: 121,
           frame_rate: 24,
           steps: 8,
