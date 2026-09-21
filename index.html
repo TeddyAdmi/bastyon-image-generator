@@ -5464,10 +5464,7 @@
     }
   }
 
-  $("animateEditedBtn").addEventListener(
-    "click",
-    animateEditorImage
-  );
+  /* legacy animate handler disabled: clean video controller owns this button */
 
   $("editBtn")
     .addEventListener(
@@ -5938,7 +5935,8 @@
       throw new Error("Видео слишком долго обрабатывается. Проверьте GPU-сервер.");
     }catch(e){
       console.error("Miya video error",e);
-      showError("Ошибка видео: "+(e?.message||String(e)));
+      const readableError = e?.message || (typeof e === "object" ? JSON.stringify(e) : String(e));
+      showError("Ошибка видео: "+readableError);
       loading.classList.remove("show");
     }finally{btn.disabled=false}
   }
