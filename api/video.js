@@ -47,7 +47,7 @@ async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
     body: JSON.stringify({
       prompt,
       ratio: ratio || "16:9",
-      duration: Math.min(20, Math.max(5, Number(duration) || 6)),
+      duration: [5, 10, 15, 20].includes(Number(duration)) ? Number(duration) : 5,
       imageBase64
     })
   });
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
     const result = await pixelsterVideo({
       prompt,
       ratio: body.aspect || body.ratio || "16:9",
-      duration: body.duration || 6,
+      duration: body.duration || 5,
       imageBase64
     });
 
