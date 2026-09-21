@@ -289,7 +289,7 @@ async function runVideo(){
   if(!source)return showError('videoError','Сначала загрузите изображение.');
   if(!prompt)return showError('videoError','Введите сценарий движения.');
   const b=$('videoGenerate');if(b)b.disabled=true;
-  showError('videoError','');setBusy(true,'Miya AI создаёт видео','LTX-Video GPU · запуск…');
+  showError('videoError','');setBusy(true,'Miya AI создаёт видео','Motion synthesis · запуск…');
   try{
     const body={prompt,aspect:state.videoRatio,duration:Number($('videoDuration')?.value||5)};
     if(source.startsWith('data:image/'))body.imageBase64=source;else body.imageUrl=source;
