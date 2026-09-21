@@ -49,7 +49,7 @@ async function pixelSterVideo(imageBase64, imageUrl, prompt, ratio, duration) {
     body:JSON.stringify({
       prompt,
       ratio:ratio==="9:16"||ratio==="16:9"?ratio:"16:9",
-      duration:Math.min(20,Math.max(5,Number(duration)||6)),
+      duration:5,
       imageBase64:image
     })
   });
@@ -98,7 +98,7 @@ export default async function handler(req,res){
     const imageBase64=String(body.imageBase64||"").trim();
     const imageUrl=String(body.imageUrl||"").trim();
     const ratio=String(body.aspect||"16:9");
-    const duration=Number(body.duration)||6;
+    const duration=5;
 
     if(!prompt) return res.status(400).json({success:false,error:"Введите промпт для видео."});
     if(!imageBase64 && !imageUrl) return res.status(400).json({success:false,error:"Исходное изображение не загружено."});
