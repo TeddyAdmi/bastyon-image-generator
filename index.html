@@ -1234,6 +1234,19 @@
       background: #111;
     }
 
+
+    /* SEPARATE VIDEO STUDIO */
+    .video-workspace{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(340px,.75fr);gap:18px;align-items:stretch}
+    .video-panel{min-height:650px;display:flex;flex-direction:column;overflow:hidden}
+    .video-canvas-area{flex:1;display:flex;align-items:center;justify-content:center;padding:22px;background:radial-gradient(circle at center,rgba(124,58,237,.025),transparent 55%)}
+    .video-canvas{width:min(100%,760px);max-height:720px;aspect-ratio:16/9;position:relative;overflow:hidden;border:1px solid #e6e1eb;border-radius:22px;background:#111;display:flex;align-items:center;justify-content:center}
+    .video-canvas.vertical{aspect-ratio:9/16;max-width:430px}
+    .video-canvas img,.video-canvas video{width:100%;height:100%;object-fit:contain;display:block;background:#111}
+    .video-canvas-empty{text-align:center;color:#aaa;padding:30px}
+    .video-workspace .editor-prompt{min-height:180px}
+    @media(max-width:1050px){.video-workspace{grid-template-columns:1fr}.video-panel{min-height:600px}}
+    @media(max-width:720px){.video-canvas-area{padding:12px}.video-panel{min-height:500px}}
+
     /* LOADING */
 
     .loading-overlay {
@@ -1476,7 +1489,15 @@
       id="editorModeBtn"
       class="mode-button"
     >
-      🎨 Miya Editor
+      🖼️ Фото
+    </button>
+
+    <button
+      type="button"
+      id="videoModeBtn"
+      class="mode-button"
+    >
+      🎬 Видео
     </button>
 
   </div>
@@ -2370,6 +2391,55 @@
 
 </div>
 
+
+  <section id="videoMode" class="video-workspace hidden">
+    <div class="panel video-panel">
+      <div class="canvas-header">
+        <div>
+          <div class="canvas-title">🎬 Видео Canvas</div>
+          <div class="canvas-description">Отдельный Canvas только для видео</div>
+        </div>
+        <div class="canvas-actions"><button type="button" class="small-button" id="videoResetBtn">Сбросить</button></div>
+      </div>
+      <div class="video-canvas-area">
+        <div class="video-canvas" id="videoCanvas">
+          <div class="empty-state" id="videoCanvasEmpty">
+            <div class="empty-icon">🎬</div>
+            <div class="empty-title">Загрузите изображение</div>
+            <div class="empty-text">Это независимый Canvas видеоредактора.</div>
+          </div>
+          <img id="videoSourceImage" class="hidden" alt="Кадр для видео">
+          <video id="videoResult" class="hidden editor-video-result" controls playsinline preload="metadata"></video>
+        </div>
+      </div>
+      <div class="canvas-footer">
+        <button type="button" class="small-button" id="videoChooseImageBtn">↑ Загрузить кадр</button>
+        <button type="button" class="small-button" id="videoUseGeneratorBtn">✨ Из генератора</button>
+        <button type="button" class="small-button hidden" id="videoDownloadBtn">↓ Скачать видео</button>
+        <button type="button" class="small-button hidden" id="videoSendGeneratorBtn">✨ Видео в генератор</button>
+      </div>
+      <input type="file" id="videoFile" accept="image/*" class="hidden">
+    </div>
+    <div class="panel editor-card">
+      <div class="editor-header">
+        <div><div class="editor-title">Видео редактор</div><div class="editor-subtitle">Фото и видео редактируются отдельно</div></div>
+      </div>
+      <div class="control-title">Промпт для видео</div>
+      <textarea id="videoPromptStandalone" class="editor-prompt" maxlength="5000" placeholder="Например: девушка улыбается, справа в кадр входит маленький кудрявый поросёнок, девушка удивлённо смотрит на него, ветер слегка двигает волосы и одежду, камера плавно приближается, фотореализм..."></textarea>
+      <div class="editor-prompt-tools">
+        <button type="button" class="tool-button" id="videoClearPromptBtn">× Очистить</button>
+        <div class="counter" id="videoStandaloneCounter">0 / 5000</div>
+      </div>
+      <div class="control-title" style="margin-top:20px">Формат видео</div>
+      <div class="ratio-grid" id="videoRatiosStandalone">
+        <button type="button" class="ratio-button active" data-ratio="16:9">16:9</button>
+        <button type="button" class="ratio-button" data-ratio="9:16">9:16</button>
+      </div>
+      <button type="button" class="generate-button" id="createVideoStandaloneBtn">🎬 Создать видео</button>
+      <div id="videoStandaloneError" class="error"></div>
+      <div style="margin-top:14px;color:var(--text-soft);font-size:11px;line-height:1.55">Miya сначала подготавливает ключевой кадр по промпту, затем LTX 2.5 Free · Pixazo создаёт видео.</div>
+    </div>
+  </section>
 
 <!-- LOADING -->
 
@@ -3575,6 +3645,7 @@
       }
 
       lastImages = results;
+      window.__miyaLastImages = results.slice();
       renderGallery(results);
       saveHistory(results, prompt);
       renderHistory();
@@ -5925,5 +5996,39 @@
 })();
 </script>
 
+<script>
+(function(){
+"use strict";
+const q=id=>document.getElementById(id);
+let ratio="16:9", sourceBase64="", sourceUrl="";
+function err(m){const e=q("videoStandaloneError");e.textContent=m||"";e.classList.toggle("show",!!m)}
+function show(){q("generatorMode").classList.add("hidden");q("editorMode").classList.add("hidden");q("videoMode").classList.remove("hidden");q("generatorModeBtn").classList.remove("active");q("editorModeBtn").classList.remove("active");q("videoModeBtn").classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
+q("videoModeBtn").addEventListener("click",show);
+const old=q("videoPrompt");if(old){if(old.previousElementSibling)old.previousElementSibling.style.display="none";old.style.display="none";if(old.nextElementSibling)old.nextElementSibling.style.display="none"}["animateEditedBtn","editorVideoResult","downloadVideoBtn","sendVideoToGeneratorBtn"].forEach(id=>{const e=q(id);if(e)e.style.display="none"});
+function dataUrl(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
+async function compress(s){if(!s||s.length<=3500000)return s;const im=new Image();im.src=s;await new Promise((a,b)=>{im.onload=a;im.onerror=b});let m=Math.min(2048,Math.max(im.naturalWidth,im.naturalHeight));for(let i=0;i<5;i++){const sc=Math.min(1,m/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(im.naturalWidth*sc);c.height=Math.round(im.naturalHeight*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);const o=c.toDataURL("image/jpeg",.82);if(o.length<=3500000)return o;m=Math.round(m*.8)}return s}
+function setSource(d,u=""){sourceBase64=d||"";sourceUrl=u||"";q("videoSourceImage").src=d||u;q("videoSourceImage").classList.remove("hidden");q("videoCanvasEmpty").classList.add("hidden");q("videoResult").classList.add("hidden");q("videoCanvas").classList.toggle("vertical",ratio==="9:16")}
+q("videoChooseImageBtn").onclick=()=>q("videoFile").click();
+q("videoFile").onchange=async e=>{const f=e.target.files?.[0];if(f){err("");setSource(await dataUrl(f))}};
+q("videoUseGeneratorBtn").onclick=async()=>{const a=window.__miyaLastImages||[];if(!a.length){err("Сначала создайте изображение в генераторе.");return}show();try{const r=await fetch(a[0]);setSource(await dataUrl(await r.blob()),a[0])}catch{setSource("",a[0])}};
+q("videoClearPromptBtn").onclick=()=>{q("videoPromptStandalone").value="";q("videoStandaloneCounter").textContent="0 / 5000"};
+q("videoPromptStandalone").oninput=()=>q("videoStandaloneCounter").textContent=q("videoPromptStandalone").value.length+" / 5000";
+q("videoResetBtn").onclick=()=>{sourceBase64="";sourceUrl="";q("videoFile").value="";q("videoSourceImage").src="";q("videoSourceImage").classList.add("hidden");q("videoResult").src="";q("videoResult").classList.add("hidden");q("videoCanvasEmpty").classList.remove("hidden");q("videoDownloadBtn").classList.add("hidden");q("videoSendGeneratorBtn").classList.add("hidden");err("")};
+q("videoRatiosStandalone").querySelectorAll(".ratio-button").forEach(b=>b.onclick=()=>{q("videoRatiosStandalone").querySelectorAll(".ratio-button").forEach(x=>x.classList.remove("active"));b.classList.add("active");ratio=b.dataset.ratio;q("videoCanvas").classList.toggle("vertical",ratio==="9:16")});
+async function download(url){try{const r=await fetch(url);const b=await r.blob(),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="miya-video.mp4";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}catch{window.open(url,"_blank","noopener")}}
+q("createVideoStandaloneBtn").onclick=async()=>{
+if(!sourceBase64&&!sourceUrl){err("Загрузите изображение или выберите изображение из генератора.");return}
+const prompt=q("videoPromptStandalone").value.trim();if(!prompt){err("Введите промпт для видео.");return}
+const btn=q("createVideoStandaloneBtn"),load=q("loading");btn.disabled=true;err("");q("loadingTitle").textContent="Miya AI готовит кадр для видео";q("loadingText").textContent="Сначала применяем ваш промпт к референсу…";load.classList.add("show");
+try{
+const prepared=await compress(sourceBase64);const er=await fetch("/api/edit",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({prompt,imageBase64:prepared,ratio,model:"legacy-flux",quality:"auto",size:"auto",outputFormat:"jpeg"})});const et=await er.text();let ed={};try{ed=et?JSON.parse(et):{}}catch{throw Error("Сервер подготовки кадра вернул не JSON (HTTP "+er.status+").")}if(!er.ok||!ed.imageUrl)throw Error(ed.error||"Не удалось подготовить кадр по промпту.");
+q("videoSourceImage").src=ed.imageUrl;q("videoSourceImage").classList.remove("hidden");q("videoCanvasEmpty").classList.add("hidden");q("loadingTitle").textContent="Miya AI создаёт видео";q("loadingText").textContent="Кадр подготовлен · LTX 2.5 Free · Pixazo…";
+const cr=await fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({imageUrl:ed.imageUrl,imageBase64:"",prompt,aspect:ratio})});const ct=await cr.text();let cd={};try{cd=ct?JSON.parse(ct):{}}catch{throw Error("Сервер видео вернул не JSON (HTTP "+cr.status+").")}if(!cr.ok||!cd.success||!cd.taskId)throw Error(cd.error||cd.message||"Не удалось запустить видео.");
+const start=Date.now();while(Date.now()-start<420000){await new Promise(r=>setTimeout(r,5000));const sr=await fetch("/api/video?taskId="+encodeURIComponent(cd.taskId),{cache:"no-store"}),st=await sr.text();let sd={};try{sd=st?JSON.parse(st):{}}catch{throw Error("Сервер статуса видео вернул не JSON.")}if(!sr.ok)throw Error(sd.error||sd.message||"Ошибка проверки видео.");if(sd.done){if(!sd.success||!sd.videoUrl)throw Error(sd.error||"Pixazo не вернул видео.");const v=q("videoResult");v.src=sd.videoUrl;v.classList.remove("hidden");v.style.aspectRatio=ratio==="9:16"?"9 / 16":"16 / 9";q("videoSourceImage").classList.add("hidden");q("videoDownloadBtn").classList.remove("hidden");q("videoSendGeneratorBtn").classList.remove("hidden");q("videoDownloadBtn").onclick=()=>download(sd.videoUrl);q("videoSendGeneratorBtn").onclick=()=>{window.__miyaShowGeneratedVideo?.(sd.videoUrl,ratio)};q("loadingTitle").textContent="Видео готово";q("loadingText").textContent="LTX 2.5 Free · Pixazo";setTimeout(()=>load.classList.remove("show"),500);return}q("loadingText").textContent="LTX 2.5 Free · Pixazo · "+(sd.status||"QUEUED")+"…"}throw Error("Pixazo слишком долго обрабатывает видео.");
+}catch(e){console.error(e);err("Ошибка видео: "+(e.message||e));load.classList.remove("show")}finally{btn.disabled=false}
+};
+window.__miyaLastImages=[];window.__miyaShowGeneratedVideo=(url,a)=>{show();q("videoCanvasEmpty").classList.add("hidden");q("videoSourceImage").classList.add("hidden");const v=q("videoResult");v.src=url;v.classList.remove("hidden");v.style.aspectRatio=a==="9:16"?"9 / 16":"16 / 9";q("videoDownloadBtn").classList.remove("hidden");q("videoDownloadBtn").onclick=()=>download(url)};
+})();
+</script>
 </body>
 </html>
