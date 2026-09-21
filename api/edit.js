@@ -175,7 +175,7 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const prompt = String(body.prompt || "").trim();
     const modelKey = String(body.model || "or-nano-banana-2");
-    const model = OPENROUTER_MODELS[modelKey] || modelKey;
+    const modelMap = {\n      "or-nano-banana-2": "google/gemini-3.1-flash-image",\n      "or-gpt-image-2": "openai/gpt-image-2",\n      "or-flux-klein": "black-forest-labs/flux.2-klein-4b"\n    };\n    const model = modelMap[modelKey] || modelKey;
     const ratio = body.ratio || "1:1";
     const quality = body.quality || "auto";
     const size = body.size || "auto";
