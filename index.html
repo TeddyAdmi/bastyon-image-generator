@@ -5421,386 +5421,182 @@ textarea:focus,input:focus,select:focus{
   }
 
   async function animateEditorImage() {
-  const resultImage = $("editorResultImage");
-  const sourceImage = $("editorSource");
-  const resultSrc = resultImage && !resultImage.classList.contains("hidden") ? resultImage.src : "";
-  const sourceSrc = sourceImage ? sourceImage.src : "";
+    const resultImage = $("editorResultImage");
+    const sourceImage = $("editorSource");
 
-  let imageUrl = "";
-  let imageBase64 = "";
+    const resultSrc =
+      resultImage &&
+      !resultImage.classList.contains("hidden")
+        ? resultImage.src
+        : "";
 
-  if (resultSrc.indexOf("https://") === 0 || resultSrc.indexOf("http://") === 0) imageUrl = resultSrc;
-  else if (editorImageBase64 && editorImageBase64.indexOf("data:image/") === 0) imageBase64 = editorImageBase64;
-  else if (sourceSrc.indexOf("https://") === 0 || sourceSrc.indexOf("http://") === 0) imageUrl = sourceSrc;
+    const sourceSrc = sourceImage ? sourceImage.src : "";
 
-  if (!imageUrl && !imageBase64) {
-    showError($("editorError"), "Для видео сначала загрузите или отредактируйте изображение.");
-    return;
-  }
+    let imageUrl = "";
+    let imageBase64 = "";
 
-  const prompt =
-    ($("videoPromptStandalone") && $("videoPromptStandalone").value.trim()) ||
-    $("editPrompt").value.trim() ||
-    "Natural realistic motion, subtle breathing, natural facial movement, gentle movement of hair and clothing, cinematic camera movement.";
-
-  $("animateEditedBtn").disabled = true;
-  showError($("editorError"), "");
-  setLoading(true, "Miya AI создаёт видео", "Изображение отправляется напрямую в LTX-Video GPU…");
-
-  try {
-    const response = await fetch("/api/video", {
-      method:"POST",
-      headers:{"Content-Type":"application/json","Accept":"application/json"},
-      body:JSON.stringify({imageUrl,imageBase64,prompt,aspect:editorRatio||"16:9"})
-    });
-
-    const text = await response.text();
-    let data = {};
-    try { data = text ? JSON.parse(text) : {}; }
-    catch { throw new Error("Сервер видео вернул не JSON (HTTP " + response.status + ")."); }
-
-    if (!response.ok || !data.taskId) {
-      throw new Error(data.error || data.message || "Не удалось запустить видеогенерацию.");
+    if (/^https?:\\/\\//i.test(resultSrc)) {
+      imageUrl = resultSrc;
+    } else if (
+      editorImageBase64 &&
+      editorImageBase64.startsWith("data:image/")
+    ) {
+      imageBase64 = editorImageBase64;
+    } else if (/^https?:\\/\\//i.test(sourceSrc)) {
+      imageUrl = sourceSrc;
     }
 
-    const started = Date.now();
-    while (Date.now() - started < 30 * 60 * 1000) {
-      await new Promise(r => setTimeout(r, 4000));
-      const sr = await fetch("/api/video?taskId=" + encodeURIComponent(data.taskId), {cache:"no-store",headers:{"Accept":"application/json"}});
-      const st = await sr.text();
-      let status = {};
-      try { status = st ? JSON.parse(st) : {}; }
-      catch { throw new Error("Сервер статуса видео вернул не JSON."); }
-
-      if (!sr.ok) throw new Error(status.error || status.message || "Ошибка проверки видео.");
-
-      if (status.done) {
-        if (!status.success || !status.videoUrl) throw new Error(status.error || "LTX не вернул видео.");
-        showVideoInEditor(status.videoUrl, editorRatio || "16:9");
-        saveVideoHistory(status.videoUrl, prompt, editorRatio || "16:9");
-        renderHistory();
-        setLoading(true, "Видео готово", (status.provider || "LTX-Video GPU") + " · " + (status.model || "LTX-Video"));
-        await new Promise(r => setTimeout(r, 500));
-        return;
-      }
-
-      setLoading(true, "Miya AI создаёт видео", (status.provider || "LTX-Video GPU") + " · " + (status.status || "RUNNING") + "…");
+    if (!imageUrl && !imageBase64) {
+      showError(
+        $("editorError"),
+        "Сначала загрузите изображение в Фото или создайте результат редактирования."
+      );
+      return;
     }
 
-    throw new Error("LTX слишком долго обрабатывает видео. Проверьте GPU-сервер.");
-  } catch (error) {
-    console.error("Video generation error:", error);
-    showError($("editorError"), "Ошибка видео: " + (error.message || error));
-  } finally {
-    setLoading(false);
-    $("animateEditedBtn").disabled = false;
-  }
-}
+    const prompt =
+      ($("videoPrompt")?.value || "").trim() ||
+      ($("videoPromptStandalone")?.value || "").trim() ||
+      ($("editPrompt")?.value || "").trim() ||
+      "Natural realistic motion, subtle breathing, natural facial movement, gentle movement of hair and clothing, cinematic camera movement.";
 
-$("animateEditedBtn").disabled = true;
+    const button = $("animateEditedBtn");
+    button.disabled = true;
     showError($("editorError"), "");
-
     setLoading(
       true,
-      "Miya AI готовит кадр для видео",
-      "Сначала применяем ваш промпт к референсу, затем LTX 2.5 Free создаёт видео…"
+      "Miya AI создаёт видео",
+      "Отправляем исходный кадр напрямую в LTX-Video GPU…"
     );
 
     try {
-      /*
-       * LTX 2.5 Free is an image-to-video model. It is much more reliable
-       * when the requested new object (for example an animal entering the
-       * frame) already exists in the keyframe. Therefore we first use the
-       * existing FLUX Editor to prepare one reference frame from the exact
-       * video prompt, then send that resulting frame to Pixazo.
-       *
-       * This prevents the video model from being asked to invent a new
-       * scene/object that is absent from the reference image.
-       */
-      const preparedImage = await prepareEditorImageForUpload(editorImageBase64);
-
-      const prepareResponse = await fetch("/api/edit", {
+      const response = await fetch("/api/video", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
         body: JSON.stringify({
-          prompt,
-          imageBase64: preparedImage,
-          ratio: editorRatio,
-          model: "legacy-flux",
-          quality: $("editorQuality").value,
-          size: $("editorSize").value,
-          outputFormat: $("editorOutputFormat").value
-        })
-      });
-
-      const prepareText = await prepareResponse.text();
-      let prepareData = {};
-      try {
-        prepareData = prepareText ? JSON.parse(prepareText) : {};
-      } catch {
-        throw new Error(
-          "Сервер подготовки кадра вернул не JSON (HTTP " +
-          prepareResponse.status +
-          ")."
-        );
-      }
-
-      if (!prepareResponse.ok || !prepareData.imageUrl) {
-        throw new Error(
-          prepareData.error ||
-          "Не удалось подготовить кадр по промпту (HTTP " +
-          prepareResponse.status +
-          ")."
-        );
-      }
-
-      const videoImageUrl = prepareData.imageUrl;
-
-      setLoading(
-        true,
-        "Miya AI создаёт видео",
-        "Кадр подготовлен · LTX 2.5 Free · Pixazo…"
-      );
-
-      const createResponse = await fetch("/api/video", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify({
-          imageUrl: videoImageUrl,
-          imageBase64: "",
+          imageUrl,
+          imageBase64,
           prompt,
           aspect: editorRatio || "16:9"
         })
       });
 
-      const createText = await createResponse.text();
-      let createData;
-
+      const text = await response.text();
+      let data = {};
       try {
-        createData = createText
-          ? JSON.parse(createText)
-          : {};
+        data = text ? JSON.parse(text) : {};
       } catch {
-        console.error(
-          "Pixazo /api/video raw response:",
-          createText
-        );
-
         throw new Error(
-          "Сервер /api/video вернул не JSON (HTTP " +
-          createResponse.status +
-          "). " +
-          createText.slice(0, 300)
+          "Сервер видео вернул не JSON (HTTP " +
+            response.status +
+            ")."
         );
       }
 
-      if (
-        !createResponse.ok ||
-        !createData.success ||
-        !createData.taskId
-      ) {
+      if (!response.ok || !data.taskId) {
         throw new Error(
-          createData.error ||
-          createData.message ||
-          "Не удалось запустить генерацию видео (HTTP " +
-          createResponse.status +
-          ")."
+          data.error ||
+            data.message ||
+            "Не удалось запустить видеогенерацию."
         );
       }
 
-      const taskId = createData.taskId;
+      const started = Date.now();
 
-      const startedAt = Date.now();
-      const timeoutMs = 7 * 60 * 1000;
-
-      while (Date.now() - startedAt < timeoutMs) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 5000)
-        );
+      while (Date.now() - started < 35 * 60 * 1000) {
+        await new Promise(resolve => setTimeout(resolve, 4000));
 
         const statusResponse = await fetch(
           "/api/video?taskId=" +
-            encodeURIComponent(taskId),
+            encodeURIComponent(data.taskId),
           {
-            method: "GET",
-            headers: {
-              "Accept": "application/json"
-            },
-            cache: "no-store"
+            cache: "no-store",
+            headers: { Accept: "application/json" }
           }
         );
 
         const statusText = await statusResponse.text();
-        let statusData;
+        let status = {};
 
         try {
-          statusData = statusText
-            ? JSON.parse(statusText)
-            : {};
+          status = statusText ? JSON.parse(statusText) : {};
         } catch {
-          console.error(
-            "Pixazo status raw response:",
-            statusText
-          );
-
-          throw new Error(
-            "Сервер статуса вернул не JSON (HTTP " +
-            statusResponse.status +
-            "). " +
-            statusText.slice(0, 300)
-          );
+          throw new Error("Сервер статуса видео вернул не JSON.");
         }
 
         if (!statusResponse.ok) {
           throw new Error(
-            statusData.error ||
-            statusData.message ||
-            "Ошибка проверки видео (HTTP " +
-            statusResponse.status +
-            ")."
+            status.error ||
+              status.message ||
+              "Ошибка проверки видео."
           );
         }
 
-        if (statusData.done) {
-          if (
-            !statusData.success ||
-            !statusData.videoUrl
-          ) {
+        if (status.done) {
+          if (!status.success || !status.videoUrl) {
             throw new Error(
-              statusData.error ||
-              "Pixazo не смог создать видео."
+              status.error || "Видео не было создано."
             );
           }
 
-          const generatedAspect =
-            editorRatio || "16:9";
-
-          // Show the LTX video immediately.
-          // Audio is generated in parallel and attached separately,
-          // avoiding the slow ffmpeg.wasm browser synchronization step.
-          const finalVideoUrl = statusData.videoUrl;
-          const video = $("editorVideoResult");
-
-          lastVideo = {
-            type: "video",
-            url: finalVideoUrl,
-            videoUrl: finalVideoUrl,
-            sourceVideoUrl: statusData.videoUrl,
-            prompt,
-            aspect: generatedAspect,
-            createdAt: Date.now()
-          };
-
-          video.src = finalVideoUrl;
-          video.style.aspectRatio =
-            generatedAspect === "9:16"
-              ? "9 / 16"
-              : "16 / 9";
-
-          video.classList.remove("hidden");
-
-          $("downloadVideoBtn")
-            .classList
-            .remove("hidden");
-
-          $("sendVideoToGeneratorBtn")
-            .classList
-            .remove("hidden");
-
-          $("downloadVideoBtn").onclick = () =>
-            downloadImage(
-              finalVideoUrl,
-              "miya-video.mp4"
-            );
-
-          $("sendVideoToGeneratorBtn").onclick = () => {
-            renderVideoGallery(
-              finalVideoUrl,
-              generatedAspect
-            );
-            switchMode("generator");
-          };
+          showVideoInEditor(
+            status.videoUrl,
+            editorRatio || "16:9"
+          );
 
           saveVideoHistory(
-            finalVideoUrl,
+            status.videoUrl,
             prompt,
-            generatedAspect
+            editorRatio || "16:9"
           );
 
           renderHistory();
 
-          $("editorResultImage").classList.add(
-            "hidden"
-          );
-          $("editorResultPlaceholder").classList.add(
-            "hidden"
-          );
-
-          video.load();
-
           setLoading(
             true,
             "Видео готово",
-            "LTX 2.5 Free · встроенный синхронный звук"
+            (status.provider || "LTX-Video GPU") +
+              " · " +
+              (status.model || "LTX-Video")
           );
 
-          break;
+          await new Promise(resolve => setTimeout(resolve, 600));
+          return;
         }
 
         setLoading(
           true,
           "Miya AI создаёт видео",
-          "LTX 2.5 Free · Pixazo · " +
-            String(
-              statusData.status || "QUEUED"
-            ) +
+          (status.provider || "LTX-Video GPU") +
+            " · " +
+            (status.status || "RUNNING") +
             "…"
         );
       }
 
-      if (
-        $("editorVideoResult").classList.contains(
-          "hidden"
-        )
-      ) {
-        throw new Error(
-          "Pixazo слишком долго обрабатывает видео. Попробуйте ещё раз."
-        );
-      }
+      throw new Error(
+        "Видео слишком долго обрабатывается. Проверьте GPU-сервер."
+      );
     } catch (error) {
-      console.error(
-        "Video generation error:",
-        error
-      );
-
-      const message = String(
-        error?.message ||
-        error ||
-        "Неизвестная ошибка"
-      );
-
+      console.error("Video generation error:", error);
       showError(
         $("editorError"),
-        "Ошибка видео: " + message
+        "Ошибка видео: " +
+          (error?.message || error)
       );
     } finally {
       setLoading(false);
-      $("animateEditedBtn").disabled = false;
+      button.disabled = false;
     }
   }
 
-  $("animateEditedBtn")
-    .addEventListener(
-      "click",
-      animateEditorImage
-    );
-
+  $("animateEditedBtn").addEventListener(
+    "click",
+    animateEditorImage
+  );
 
   $("editBtn")
     .addEventListener(
@@ -6234,6 +6030,43 @@ throw Error("LTX слишком долго обрабатывает видео. 
 };
 
 window.__miyaLastImages=[];window.__miyaShowGeneratedVideo=(url,a)=>{show();q("videoCanvasEmpty").classList.add("hidden");q("videoSourceImage").classList.add("hidden");const v=q("videoResult");v.src=url;v.classList.remove("hidden");v.style.aspectRatio=a==="9:16"?"9 / 16":"16 / 9";q("videoDownloadBtn").classList.remove("hidden");q("videoDownloadBtn").onclick=()=>download(url)};
+})();
+</script>
+<script id="miya-button-safety">
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id);
+
+  function activate(mode){
+    ["generatorMode","editorMode","videoMode"].forEach(id=>{
+      const el=$(id); if(el) el.classList.toggle("hidden",id!==mode);
+    });
+    ["generatorModeBtn","editorModeBtn","videoModeBtn"].forEach(id=>{
+      const el=$(id); if(el) el.classList.toggle("active",
+        (mode==="generator"&&id==="generatorModeBtn")||
+        (mode==="editor"&&id==="editorModeBtn")||
+        (mode==="video"&&id==="videoModeBtn"));
+    });
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  const gm=$("generatorModeBtn"), em=$("editorModeBtn"), vm=$("videoModeBtn");
+  if(gm) gm.onclick=()=>activate("generator");
+  if(em) em.onclick=()=>activate("editor");
+  if(vm) vm.onclick=()=>activate("video");
+
+  const animate=$("animateEditedBtn");
+  if(animate) animate.classList.remove("hidden");
+
+  const editorFile=$("editorFile");
+  if(editorFile){
+    editorFile.addEventListener("change",()=>{
+      if(animate) animate.classList.remove("hidden");
+    });
+  }
+
+  const videoBtn=$("createVideoStandaloneBtn");
+  if(videoBtn) videoBtn.classList.remove("hidden");
 })();
 </script>
 </body>
