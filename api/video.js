@@ -428,9 +428,22 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("Video API error:", error);
 
-    return res.status(500).json({
+    const message = String(
+      error?.message ||
+      error?.error ||
+      error ||
+      "Ошибка видеогенерации."
+    );
+
+    const setupMissing =
+      message.includes("LTX_SERVER_URL") ||
+      message.includes("PIXAZO_API_KEY");
+
+    return res.status(setupMissing ? 503 : 500).json({
       success: false,
-      error: error?.message || "Ошибка видеогенерации."
+      error: setupMissing
+        ? "Видеодвижок не подключён. Для Miya нужно задать LTX_SERVER_URL в Vercel и запустить gpu-server в Cloud Studio."
+        : message
     });
   }
 }
