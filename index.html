@@ -43,10 +43,6 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 #editorSource,#editResult,#genImage,#videoImage,#videoResult{max-width:100%;max-height:620px;width:auto;height:auto;object-fit:contain}
 .btn:disabled{opacity:.55;cursor:not-allowed}
 </style><style id="miya-smart-prompt-ui">
-.random-ideas-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.random-ideas{display:grid;gap:8px;margin-top:12px}
-.random-idea{display:block;width:100%;text-align:left;padding:12px 13px;border:1px solid #e7e1ef;background:linear-gradient(145deg,#fff,#faf7ff);border-radius:14px;color:#282230;font:inherit;font-size:12px;line-height:1.45;cursor:pointer;transition:.16s}
-.random-idea:hover{border-color:#bda7f4;transform:translateY(-1px);box-shadow:0 8px 22px rgba(84,50,130,.08)}
 .prompt-improve-info{margin-top:8px;padding:10px 12px;border:1px solid #e4daf8;background:#f7f2ff;border-radius:12px;color:#5e4a78;font-size:11px;line-height:1.55;display:none}
 .prompt-improve-info.show{display:block}
 .edit-tip{margin-top:8px;padding:10px 12px;background:#faf7ff;border:1px solid #e8e0f4;border-radius:12px;font-size:11px;line-height:1.5;color:#655a70}
@@ -72,9 +68,9 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
  <div class="row" style="margin-top:12px"><button type="button" id="openEditor" class="btn dark hidden">Открыть в фото-редакторе</button><button type="button" id="openVideo" class="btn primary hidden">🎬 Анимировать</button></div>
 </div>
 <div class="side">
- <div class="card control"><h3>Что создать?</h3><button id="aiPromptBtn" class="btn primary full" type="button" style="margin-bottom:8px">✨ Улучшить промпт</button><div id="promptImproveInfo" class="prompt-improve-info"></div><textarea id="genPrompt" placeholder="Например: два реалистичных животных на лесной поляне, мягкий вечерний свет, cinematic photography..."></textarea><div class="row" style="margin-top:8px"><button id="genRandom" class="btn">Случайная идея</button><button id="genClearPrompt" class="btn">Очистить</button></div><div id="genError" class="error"></div><button id="generateBtn" class="btn primary full" style="margin-top:10px">✨ Создать изображение</button></div>
+ <div class="card control"><h3>Что создать?</h3><button id="aiPromptBtn" class="btn primary full" type="button" style="margin-bottom:8px">✨ Улучшить промпт</button><div id="promptImproveInfo" class="prompt-improve-info"></div><textarea id="genPrompt" placeholder="Например: два реалистичных животных на лесной поляне, мягкий вечерний свет, cinematic photography..."></textarea><div id="genError" class="error"></div><button id="generateBtn" class="btn primary full" style="margin-top:10px">✨ Создать изображение</button></div>
  <div class="card control"><h3>Параметры</h3><div style="padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#faf8ff"><div class="label" style="margin:0 0 3px">Модель</div><b>FLUX Dev · Free</b><div class="hint" style="margin-top:3px">Один стабильный генератор без переключения моделей.</div></div><label class="label" style="margin-top:10px">Формат</label><div id="genRatios" class="ratios"><button class="ratio active" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
- <div class="card control random-ideas-card"><div class="random-ideas-head"><div><h3 style="margin:0">🎲 Случайные идеи</h3><div class="hint">Три новые идеи без перезагрузки страницы</div></div><button id="refreshRandomIdeas" type="button" class="btn small">↻ Обновить</button></div><div id="randomIdeas" class="random-ideas"></div></div><div class="card control"><h3>Быстрые идеи</h3><div id="quickIdeas" class="quick"></div></div>
+ </div>
 </div>
 </div>
 </section>
@@ -256,6 +252,18 @@ function setImage(imgId,emptyId,url){
   }
 }
 
+async function sourceAsDataUrl(source){
+  const value=String(source||'').trim();
+  if(value.startsWith('data:image/')) return value;
+  if(!value) throw new Error('Исходное изображение отсутствует.');
+  const response=await fetch(value,{mode:'cors'});
+  if(!response.ok) throw new Error('Не удалось получить исходное изображение (HTTP '+response.status+').');
+  const type=(response.headers.get('content-type')||'image/jpeg').split(';')[0];
+  if(!type.startsWith('image/')) throw new Error('Источник не является изображением.');
+  const blob=await response.blob();
+  return await fileData(blob);
+}
+
 function fileData(file){
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
@@ -282,35 +290,7 @@ document.querySelectorAll('.tab').forEach(button=>{
 ratioButtons('genRatios','genRatio');
 ratioButtons('videoRatios','videoRatio');
 
-const quick=$('quickIdeas');
-function renderQuickIdeas(){
-  if(!quick)return;
-  const shuffled=[...ideas].sort(()=>Math.random()-0.5).slice(0,6);
-  quick.innerHTML=shuffled.map((x)=>'<button type="button" class="chip">'+x.slice(0,42)+'…</button>').join('');
-  quick.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{$('genPrompt').value=b.textContent.replace('…','');}));
-}
-renderQuickIdeas();
-
-function renderRandomIdeas(){
-  const box=$('randomIdeas');
-  if(!box)return;
-  const selected=[...ideas].sort(()=>Math.random()-0.5).slice(0,3);
-  box.innerHTML=selected.map((x,i)=>'<button type="button" class="random-idea" data-i="'+i+'"><b>Идея '+(i+1)+'</b><br>'+x+'</button>').join('');
-  box.querySelectorAll('.random-idea').forEach((b,i)=>b.addEventListener('click',()=>{
-    const text=selected[i];
-    $('genPrompt').value=text;
-    $('genPrompt')?.focus();
-  }));
-}
-renderRandomIdeas();
-$('refreshRandomIdeas')?.addEventListener('click',renderRandomIdeas);
-
-$('genRandom')?.addEventListener('click',()=>{
-  const selected=ideas[Math.floor(Math.random()*ideas.length)];
-  $('genPrompt').value=selected;
-  $('genPrompt')?.focus();
-});
-$('genClearPrompt')?.addEventListener('click',()=>{$('genPrompt').value='';$('promptImproveInfo')?.classList.remove('show')});
+$('genClearPrompt')?.addEventListener?.addEventListener('click',()=>{$('genPrompt').value='';$('promptImproveInfo')?.classList.remove('show')});
 $('genClear')?.addEventListener('click',()=>{
   state.genImage='';
   setImage('genImage','genEmpty','');
@@ -393,7 +373,6 @@ async function runAIEdit(){
   }catch(e){console.error('AI edit:',e);errorBox('editError',e)}
   finally{if(button)button.disabled=false;busy(false)}
 }
-$('editAI')?.replaceWith($('editAI')?.cloneNode(true));
 $('editAI')?.addEventListener('click',runAIEdit);
 
 function openEditor(source){
@@ -429,6 +408,151 @@ $('editUseResult')?.addEventListener('click',()=>{
 $('editorClear')?.addEventListener('click',()=>{
   state.editorImage='';if($('editorFile'))$('editorFile').value='';setImage('editorSource','editEmpty','');$('editResult')?.classList.add('hidden');$('editUseResult')?.classList.add('hidden');errorBox('editError','');
 });
+
+// ---------------- GENERATOR ----------------
+async function runGenerate(){
+  const prompt=$('genPrompt')?.value.trim()||'';
+  if(!prompt)return errorBox('genError','Введите промпт для генерации.');
+  const button=$('generateBtn');
+  if(button)button.disabled=true;
+  errorBox('genError','');
+  busy(true,'Miya AI создаёт изображение','FLUX Dev · генерация…');
+  console.log('[Miya] generate start', {ratio:state.genRatio,prompt});
+  try{
+    const d=await api('/api/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        prompt,
+        ratio:state.genRatio,
+        model:'legacy-flux',
+        quality:'auto',
+        size:'auto',
+        outputFormat:'png'
+      })
+    });
+    console.log('[Miya] generate response',d);
+    if(!d.imageUrl)throw new Error('Генератор не вернул imageUrl.');
+    state.genImage=d.imageUrl;
+    setImage('genImage','genEmpty',d.imageUrl);
+    $('openEditor')?.classList.remove('hidden');
+    $('openVideo')?.classList.remove('hidden');
+  }catch(e){
+    console.error('[Miya] generate error',e);
+    errorBox('genError',e);
+  }finally{
+    if(button)button.disabled=false;
+    busy(false);
+  }
+}
+$('generateBtn')?.addEventListener('click',runGenerate);
+
+// ---------------- VIDEO ----------------
+function setVideoSource(source){
+  if(!source)return;
+  state.videoImage=source;
+  setImage('videoImage','videoEmpty',source);
+  $('videoResult')?.classList.add('hidden');
+  $('videoDownload')?.classList.add('hidden');
+  errorBox('videoError','');
+  $('videoStatus')?.classList.remove('show');
+}
+
+async function openVideoEditor(source){
+  if(!source)return errorBox('genError','Сначала создайте изображение.');
+  setVideoSource(source);
+  show('video');
+}
+
+$('openVideo')?.addEventListener('click',()=>openVideoEditor(state.genImage));
+$('editorAnimate')?.addEventListener('click',()=>openVideoEditor(state.editorImage||$('editorSource')?.src||''));
+$('editorAnimateBig')?.addEventListener('click',()=>openVideoEditor(state.editorImage||$('editorSource')?.src||''));
+
+$('videoChoose')?.addEventListener('click',()=>$('videoFile')?.click());
+$('videoReplace')?.addEventListener('click',()=>$('videoFile')?.click());
+$('videoFile')?.addEventListener('change',async e=>{
+  const file=e.target.files?.[0]; if(!file)return;
+  try{state.videoImage=await fileData(file);setImage('videoImage','videoEmpty',state.videoImage);errorBox('videoError','');}
+  catch(err){errorBox('videoError',err);}
+});
+$('videoCanvas')?.addEventListener('dragover',e=>{e.preventDefault();$('videoCanvas').classList.add('drag')});
+$('videoCanvas')?.addEventListener('dragleave',()=>$('videoCanvas').classList.remove('drag'));
+$('videoCanvas')?.addEventListener('drop',async e=>{
+  e.preventDefault();$('videoCanvas').classList.remove('drag');
+  const file=e.dataTransfer.files?.[0];
+  if(!file||!file.type.startsWith('image/'))return errorBox('videoError','Нужен файл изображения.');
+  try{state.videoImage=await fileData(file);setImage('videoImage','videoEmpty',state.videoImage);errorBox('videoError','');}
+  catch(err){errorBox('videoError',err);}
+});
+
+$('videoReset')?.addEventListener('click',()=>{
+  state.videoImage='';
+  if($('videoFile'))$('videoFile').value='';
+  setImage('videoImage','videoEmpty','');
+  $('videoResult')?.classList.add('hidden');
+  $('videoDownload')?.classList.add('hidden');
+  errorBox('videoError','');
+});
+
+ratioButtons('videoRatios','videoRatio');
+
+async function runVideo(){
+  const source=state.videoImage||$('videoImage')?.src||'';
+  const prompt=$('videoPrompt')?.value.trim()||'';
+  if(!source)return errorBox('videoError','Сначала загрузите изображение.');
+  if(!prompt)return errorBox('videoError','Введите сценарий движения.');
+  const button=$('videoGenerate');
+  if(button)button.disabled=true;
+  errorBox('videoError','');
+  $('videoStatus')?.classList.add('show');
+  $('videoStatus').textContent='Запускаем видеогенерацию…';
+  busy(true,'Miya AI создаёт видео','Передаём кадр в LTX-Video GPU…');
+  try{
+    const imageBase64=await sourceAsDataUrl(source);
+    const d=await api('/api/video',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        imageBase64,
+        prompt,
+        aspect:state.videoRatio
+      })
+    });
+    console.log('[Miya] video task',d);
+    let done=false;
+    for(let i=0;i<540;i++){
+      await new Promise(r=>setTimeout(r,4000));
+      const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId),{cache:'no-store'});
+      console.log('[Miya] video status',s);
+      if(s.done){
+        if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
+        const video=$('videoResult');
+        video.src=s.videoUrl;
+        video.classList.remove('hidden');
+        video.load();
+        $('videoDownload')?.classList.remove('hidden');
+        $('videoDownload').onclick=()=>window.open(s.videoUrl,'_blank','noopener');
+        $('videoStatus').textContent='Видео готово · '+(s.provider||'LTX');
+        done=true;
+        break;
+      }
+      $('videoStatus').textContent='Генерация: '+(s.status||'RUNNING')+'…';
+      busy(true,'Miya AI создаёт видео',(s.provider||'LTX-Video GPU')+' · '+(s.status||'RUNNING'));
+    }
+    if(!done)throw new Error('Видео не завершилось за отведённое время.');
+  }catch(e){
+    console.error('[Miya] video error',e);
+    errorBox('videoError',e);
+    $('videoStatus')?.classList.remove('show');
+  }finally{
+    if(button)button.disabled=false;
+    busy(false);
+  }
+}
+
+// Attach exactly once.
+$('videoGenerate')?.addEventListener('click',runVideo);
+
 async function videoHealth(){
   try{
     const d=await api('/api/video?health=1',{cache:'no-store'});
