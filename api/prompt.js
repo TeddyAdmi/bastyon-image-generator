@@ -85,7 +85,7 @@ export default async function handler(req, res) {
       success: true,
       prompt: result,
       provider: "OpenRouter",
-      model: process.env.PROMPT_MODEL || "openai/gpt-5-mini"
+      model: process.env.PROMPT_MODEL || "openrouter/free"
     });
   } catch (error) {
     console.error("Prompt error:", error);
