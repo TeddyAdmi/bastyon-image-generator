@@ -1,3 +1,5 @@
+const PIXELSTER = "https://ahm7xmakki.com/api";
+
 function isUrl(value) {
   try {
     const u = new URL(String(value || ""));
@@ -8,51 +10,77 @@ function isUrl(value) {
 }
 
 async function urlToDataUrl(url) {
-  const r = await fetch(url, { headers: { "User-Agent": "Miya-AI/1.0" } });
-  const bytes = Buffer.from(await r.arrayBuffer());
-  if (!r.ok) throw new Error("Не удалось получить исходное изображение: HTTP " + r.status);
-  const mime = (r.headers.get("content-type") || "image/jpeg").split(";")[0];
-  if (!mime.startsWith("image/")) throw new Error("Источник не является изображением.");
-  if (bytes.length > 10_000_000) throw new Error("Изображение слишком большое.");
+  const response = await fetch(url, {
+    headers: { "User-Agent": "Miya-AI/1.0" }
+  });
+
+  if (!response.ok) {
+    throw new Error("Не удалось получить исходное изображение: HTTP " + response.status);
+  }
+
+  const mime = (response.headers.get("content-type") || "image/jpeg").split(";")[0];
+  if (!mime.startsWith("image/")) {
+    throw new Error("Источник не является изображением.");
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.length > 3_500_000) {
+    throw new Error("PixelSter принимает изображение до 3.5 MB.");
+  }
+
   return "data:" + mime + ";base64," + bytes.toString("base64");
 }
 
 async function normalizeImage(imageBase64, imageUrl) {
   const value = String(imageBase64 || "").trim();
   if (value.startsWith("data:image/")) return value;
-  if (isUrl(imageUrl)) return await urlToDataUrl(imageUrl);
+
+  if (isUrl(imageUrl)) {
+    return urlToDataUrl(imageUrl);
+  }
+
   throw new Error("Исходное изображение не найдено.");
 }
 
-function ltxBase() {
-  return String(process.env.LTX_SERVER_URL || "").replace(/\/$/, "");
-}
-
-async function ltx(path, options = {}) {
-  const base = ltxBase();
-  if (!base) throw new Error("LTX_SERVER_URL не настроен в Vercel.");
-
-  const r = await fetch(base + path, {
-    ...options,
-    headers: { ...(options.headers || {}) }
+async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
+  const response = await fetch(PIXELSTER + "/ptv", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify({
+      prompt: String(prompt || "").trim(),
+      ratio: ratio || "9:16",
+      duration: Math.min(20, Math.max(5, Number(duration) || 6)),
+      imageBase64
+    })
   });
 
-  const text = await r.text();
+  const text = await response.text();
   let data = {};
-  try { data = text ? JSON.parse(text) : {}; }
-  catch { throw new Error("LTX GPU сервер вернул не JSON (HTTP " + r.status + ")."); }
 
-  if (!r.ok) throw new Error(data?.error || data?.message || ("LTX HTTP " + r.status));
-  return data;
-}
-
-function bodyOf(req) {
-  if (req.body && typeof req.body === "object") return req.body;
-  if (typeof req.body === "string") {
-    try { return JSON.parse(req.body); }
-    catch { throw new Error("Некорректный JSON."); }
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error("PixelSter Image→Video вернул не JSON (HTTP " + response.status + ").");
   }
-  return {};
+
+  if (!response.ok) {
+    const message =
+      data?.error?.message ||
+      data?.error ||
+      data?.message ||
+      "PixelSter Image→Video HTTP " + response.status;
+
+    throw new Error(String(message));
+  }
+
+  if (!data.videoUrl) {
+    throw new Error("PixelSter не вернул videoUrl.");
+  }
+
+  return data;
 }
 
 export default async function handler(req, res) {
@@ -60,120 +88,69 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
   try {
-    if (req.method === "GET" && String(req.query?.health || "") === "1") {
-      if (!ltxBase()) {
-        return res.status(200).json({
-          success: true,
-          ltxConfigured: false,
-          reachable: false,
-          provider: "LTX-Video GPU",
-          message: "LTX_SERVER_URL отсутствует"
-        });
-      }
-
-      try {
-        const h = await ltx("/health", { method: "GET" });
-        return res.status(200).json({
-          success: true,
-          ltxConfigured: true,
-          reachable: true,
-          provider: "LTX-Video GPU",
-          model: h.model || "ltxv-2b-0.9.8-distilled"
-        });
-      } catch (e) {
-        return res.status(200).json({
-          success: true,
-          ltxConfigured: true,
-          reachable: false,
-          provider: "LTX-Video GPU",
-          message: e?.message || "LTX недоступен"
-        });
-      }
-    }
-
     if (req.method === "GET") {
       if (String(req.query?.health || "") === "1") {
-        return res.status(200).json({reachable:Boolean(getLtxBaseUrl()),model:"ltxv-2b-0.9.8-distilled"});
-      }
-      const taskId = String(req.query?.taskId || "");
-      if (!taskId.startsWith("ltx:")) {
-        return res.status(400).json({ success: false, error: "Неизвестная задача." });
-      }
-
-      const d = await ltx("/jobs/" + encodeURIComponent(taskId.slice(4)), { method: "GET" });
-
-      if (d.done && d.success && d.videoUrl) {
         return res.status(200).json({
           success: true,
-          done: true,
-          status: "SUCCEEDED",
-          videoUrl: d.videoUrl,
-          provider: "LTX-Video GPU",
-          model: d.model || "ltxv-2b-0.9.8-distilled"
+          provider: "AHM7 PixelSter",
+          model: "Motion synthesis",
+          endpoint: "/api/ptv",
+          free: true,
+          auth: false
         });
       }
 
-      if (d.done && !d.success) {
-        return res.status(200).json({
-          success: false,
-          done: true,
-          status: "FAILED",
-          error: d.error || "LTX не смог создать видео."
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        done: false,
-        status: d.status || "RUNNING",
-        provider: "LTX-Video GPU",
-        model: d.model || "ltxv-2b-0.9.8-distilled"
+      return res.status(400).json({
+        success: false,
+        error: "Видео PixelSter теперь возвращается сразу через /api/ptv."
       });
     }
 
     if (req.method !== "POST") {
-      return res.status(405).json({ success: false, error: "Method not allowed" });
-    }
-
-    const b = bodyOf(req);
-    const prompt = String(b.prompt || "").trim();
-
-    if (!prompt) return res.status(400).json({ success: false, error: "Введите описание движения." });
-    if (!ltxBase()) {
-      return res.status(503).json({
+      return res.status(405).json({
         success: false,
-        code: "LTX_NOT_CONFIGURED",
-        error: "Видео не подключено: добавьте LTX_SERVER_URL в Vercel."
+        error: "Method not allowed"
       });
     }
 
-    const image = await normalizeImage(b.imageBase64, b.imageUrl);
+    const body =
+      typeof req.body === "string"
+        ? JSON.parse(req.body)
+        : (req.body || {});
 
-    const d = await ltx("/generate", {
-      method: "POST",
-      body: JSON.stringify({
-        imageBase64: image,
-        prompt,
-        seed: b.seed == null ? null : Number(b.seed)
-      })
+    const prompt = String(body.prompt || "").trim();
+
+    if (!prompt) {
+      return res.status(400).json({
+        success: false,
+        error: "Введите сценарий движения."
+      });
+    }
+
+    const image = await normalizeImage(body.imageBase64, body.imageUrl);
+
+    const data = await pixelsterVideo({
+      prompt,
+      ratio: body.aspect || body.ratio || "9:16",
+      duration: body.duration || 6,
+      imageBase64: image.split(",").slice(1).join(",")
     });
 
-    if (!d.jobId) throw new Error("LTX не вернул jobId.");
-
-    return res.status(202).json({
+    return res.status(200).json({
       success: true,
-      done: false,
-      taskId: "ltx:" + d.jobId,
-      status: d.status || "queued",
-      provider: "LTX-Video GPU",
-      model: d.model || "ltxv-2b-0.9.8-distilled",
-      duration: d.duration || 5
+      done: true,
+      videoUrl: data.videoUrl,
+      prompt,
+      ratio: data.ratio || body.aspect || body.ratio || "9:16",
+      provider: "AHM7 PixelSter",
+      model: "Motion synthesis"
     });
   } catch (error) {
-    console.error("Miya video API:", error);
-    return res.status(500).json({
+    console.error("Miya PixelSter video API:", error);
+
+    return res.status(502).json({
       success: false,
-      error: error?.message || "Ошибка видеогенерации."
+      error: error?.message || "Ошибка PixelSter Image→Video."
     });
   }
 }
