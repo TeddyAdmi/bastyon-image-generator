@@ -3,99 +3,62 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Miya AI — генератор и редактор изображений</title>
-<meta name="description" content="Miya AI — генератор изображений, фоторедактор и отдельный image-to-video редактор.">
+<title>Miya AI — Image & Video Studio</title>
+<meta name="description" content="Miya AI — генератор изображений, отдельный фото-редактор и image-to-video редактор.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237040ef'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Arial' font-size='32' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E">
+<script src="https://js.puter.com/v2/"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
-:root{--bg:#f8f7fb;--card:#fff;--ink:#17131f;--muted:#777181;--line:#e9e5ef;--violet:#7040ef;--violet2:#9a6cff;--soft:#f2edff;--danger:#c7354a;--ok:#169b63;--shadow:0 18px 55px rgba(42,24,72,.08)}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Manrope,Arial,sans-serif;color:var(--ink);background:radial-gradient(900px 500px at 90% -10%,#eee5ff 0,transparent 65%),var(--bg)}
-button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
-.app{max-width:1500px;margin:auto;padding:22px 18px 50px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}.brand{display:flex;align-items:center;gap:12px}.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#17131f,#7040ef);display:grid;place-items:center;color:white;font-weight:800;font-size:20px;box-shadow:0 10px 25px #7040ef33}.brand b{font-size:20px}.brand span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
-.tabs{display:flex;gap:6px;background:#fff;border:1px solid var(--line);padding:5px;border-radius:16px;box-shadow:0 8px 25px #2a184812}.tab{border:0;background:transparent;border-radius:12px;padding:10px 18px;color:var(--muted);font-weight:800}.tab.active{background:#17131f;color:#fff}
-.view{display:none}.view.active{display:block}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:18px}.card{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}.canvas-card{min-height:700px;padding:18px}.canvas-head,.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.title{font-size:15px;font-weight:800}.sub{font-size:12px;color:var(--muted);margin-top:3px}
-.canvas{min-height:625px;border:1px dashed #d8cdec;border-radius:22px;background:linear-gradient(180deg,#fcfbff,#f5f2fa);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}.canvas.drag{border-color:var(--violet);background:var(--soft)}
-.canvas img,.canvas video{max-width:100%;max-height:610px;width:auto;height:auto;object-fit:contain;border-radius:18px;display:block}.empty{text-align:center;color:var(--muted);padding:30px}.empty .emoji{font-size:45px;margin-bottom:12px}.empty b{display:block;color:var(--ink);font-size:16px}.empty p{max-width:420px;line-height:1.6;font-size:13px}
-.side{display:flex;flex-direction:column;gap:14px}.control{padding:18px}.control h3{font-size:14px;margin:0 0 12px}.label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin:0 0 6px}
-textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 13px;outline:0;color:var(--ink)}textarea{min-height:125px;resize:vertical}textarea:focus,input:focus,select:focus{border-color:#bba5f4;box-shadow:0 0 0 4px #7040ef12}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}.btn{border:1px solid var(--line);background:#fff;border-radius:13px;padding:11px 13px;font-weight:800;color:var(--ink)}.btn.primary{border:0;color:#fff;background:linear-gradient(135deg,var(--violet),var(--violet2));box-shadow:0 10px 24px #7040ef33}.btn.dark{background:#17131f;color:#fff;border-color:#17131f}.btn.full{width:100%}.btn.small{padding:8px 10px;font-size:12px}
+:root{--bg:#f7f5fb;--card:#fff;--ink:#19151f;--muted:#77717f;--line:#e7e2ee;--violet:#7040ef;--violet2:#a06cff;--soft:#f1ebff;--danger:#c82f49;--ok:#139766;--shadow:0 18px 60px rgba(35,20,60,.08)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Manrope,Arial,sans-serif;color:var(--ink);background:radial-gradient(900px 500px at 90% -10%,#eee6ff,transparent 65%),var(--bg)}
+button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
+.app{max-width:1480px;margin:auto;padding:18px 18px 42px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:21px;background:linear-gradient(135deg,#17131f,var(--violet));box-shadow:0 12px 28px #7040ef35}.brand b{font-size:20px}.brand span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.tabs{display:flex;gap:5px;padding:5px;background:#fff;border:1px solid var(--line);border-radius:17px;box-shadow:0 8px 26px #2d19400d}.tab{border:0;background:transparent;color:var(--muted);padding:10px 17px;border-radius:12px;font-weight:800}.tab.active{background:#19151f;color:#fff}
+.view{display:none}.view.active{display:block;animation:fade .2s ease}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 365px;gap:18px}.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+.canvas-card{padding:16px;min-width:0}.canvas-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.title{font-size:15px;font-weight:800}.sub{font-size:11px;color:var(--muted);margin-top:3px}
+.canvas{min-height:650px;border:1px solid #e5deef;border-radius:22px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 40%,#eee8fb,transparent 45%),linear-gradient(145deg,#fff,#f3eff8);transition:.15s}
+.canvas.drag{border:2px dashed var(--violet);background:var(--soft)}
+.canvas img,.canvas video{display:block;max-width:100%;max-height:625px;width:auto;height:auto;object-fit:contain;border-radius:17px}
+.empty{text-align:center;max-width:440px;padding:40px 25px;color:var(--muted)}.empty .emoji{font-size:55px;margin-bottom:14px}.empty b{display:block;color:var(--ink);font-size:17px}.empty p{font-size:13px;line-height:1.6}
+.side{display:flex;flex-direction:column;gap:14px}.control{padding:17px}.control h3{margin:0 0 11px;font-size:14px}.label{display:block;font-size:11px;color:var(--muted);font-weight:800;margin:0 0 6px}
+textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;outline:none;color:var(--ink)}textarea{min-height:130px;resize:vertical}textarea:focus,input:focus,select:focus{border-color:#b9a3f4;box-shadow:0 0 0 4px #7040ef12}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btn{border:1px solid var(--line);background:#fff;border-radius:13px;padding:11px 13px;font-weight:800;color:var(--ink);transition:.16s}.btn:hover{transform:translateY(-1px)}.btn.primary{border:0;color:#fff;background:linear-gradient(135deg,var(--violet),var(--violet2));box-shadow:0 10px 25px #7040ef32}.btn.dark{background:#19151f;color:#fff;border-color:#19151f}.btn.full{width:100%}.btn.small{padding:8px 10px;font-size:12px}
+.ratios{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.ratio{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 4px;font-size:12px;font-weight:800}.ratio.active{background:var(--soft);border-color:#9c7af0;color:#5b2bd4}
 .quick{display:flex;flex-wrap:wrap;gap:7px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 10px;font-size:11px;color:var(--muted)}
-.ratios{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.ratio{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 4px;font-size:12px;font-weight:800}.ratio.active{border-color:var(--violet);background:var(--soft);color:#5b2bd4}
-.error{display:none;margin-top:10px;padding:10px 12px;border-radius:12px;background:#fff0f2;color:var(--danger);font-size:12px;line-height:1.45}.error.show{display:block}.hint{font-size:11px;color:var(--muted);line-height:1.55}
-.hidden{display:none!important}.loading{position:fixed;inset:0;background:#17131f66;backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:50}.loading.show{display:flex}.loader{background:#fff;border-radius:22px;padding:24px 28px;text-align:center;min-width:280px;box-shadow:0 25px 70px #0003}.spinner{width:28px;height:28px;border:3px solid #e5ddf6;border-top-color:var(--violet);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
-.status{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--soft);color:#5b3aa7;font-size:12px;line-height:1.45;display:none}.status.show{display:block}
-#videoView .canvas{min-height:625px}#videoView .canvas img,#videoView .canvas video{max-height:590px}
-.footer-note{text-align:center;color:#a19aa9;font-size:11px;margin-top:18px}
-@media(max-width:980px){.layout{grid-template-columns:1fr}.canvas-card{min-height:560px}.canvas{min-height:500px}.side{order:2}}@media(max-width:620px){.app{padding:12px 10px 30px}.top{align-items:flex-start;flex-direction:column}.tabs{width:100%}.tab{flex:1;padding:10px 7px;font-size:12px}.row,.row3{grid-template-columns:1fr}.ratios{grid-template-columns:repeat(2,1fr)}.canvas{min-height:430px}}
+.error{display:none;margin-top:9px;padding:10px 12px;border-radius:12px;background:#fff0f3;color:var(--danger);font-size:12px;line-height:1.5}.error.show{display:block}
+.status{display:none;margin-top:9px;padding:10px 12px;border-radius:12px;background:var(--soft);color:#5b3aa7;font-size:12px;line-height:1.5}.status.show{display:block}
+.hint{font-size:11px;color:var(--muted);line-height:1.55}.hidden{display:none!important}
+.loading{position:fixed;inset:0;background:#19151f55;backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:100}.loading.show{display:flex}.loader{background:#fff;border-radius:22px;padding:25px 30px;min-width:290px;text-align:center;box-shadow:0 25px 80px #0003}.spinner{width:30px;height:30px;border:3px solid #e7def7;border-top-color:var(--violet);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
+.footer{text-align:center;color:#aaa2b0;font-size:11px;margin-top:18px}
+@media(max-width:950px){.layout{grid-template-columns:1fr}.side{order:2}.canvas{min-height:540px}.canvas img,.canvas video{max-height:515px}}
+@media(max-width:620px){.app{padding:10px}.top{align-items:flex-start;flex-direction:column}.tabs{width:100%}.tab{flex:1;padding:10px 5px;font-size:12px}.row{grid-template-columns:1fr}.ratios{grid-template-columns:repeat(2,1fr)}.canvas{min-height:430px}}
 </style>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237040ef'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Arial' font-size='32' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E%3C/link><script src="https://js.puter.com/v2/"></script><style id="miya-stable-final">
-/* Stable Miya layout: never hide the canvases, make the two editors visually distinct. */
-.view{display:none!important}
-.view.active{display:block!important;animation:miyaViewIn .22s ease}
-.canvas-card{min-width:0}
-.canvas{
-  position:relative;
-  min-height:620px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-  background:
-    radial-gradient(circle at 50% 38%,rgba(124,58,237,.10),transparent 42%),
-    linear-gradient(145deg,#ffffff,#f5f1fb);
-  border:1px solid #e8e1f1;
-  border-radius:26px;
-}
-.canvas.drag{border:2px dashed #7c3aed;background:#f3edff}
-.canvas img,.canvas video{max-width:100%;max-height:620px;width:auto;height:auto;object-fit:contain;border-radius:18px}
-.empty{max-width:460px;text-align:center;padding:50px 24px}
-.empty .emoji{font-size:54px;margin-bottom:14px}
-.mode-button,.tab,.btn{cursor:pointer}
-.btn:disabled{opacity:.55;cursor:not-allowed;transform:none!important}
-.status.show{display:block}
-#videoBackendStatus{border-radius:12px;padding:10px 12px;font-size:13px}
-#videoGenerate{min-height:48px;font-size:15px;font-weight:800}
-#editorAnimate,#editorAnimateBig,#openVideo{
-  background:linear-gradient(135deg,#17131f,#3c3150);
-  color:#fff;
-}
-#editorAnimate:hover,#editorAnimateBig:hover,#openVideo:hover{filter:brightness(1.08)}
-@keyframes miyaViewIn{from{opacity:.35;transform:translateY(4px)}to{opacity:1;transform:none}}
-@media(max-width:800px){
-  .canvas{min-height:480px}
-  .canvas img,.canvas video{max-height:480px}
-}
-</style>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237c3aed'/%3E%3Cpath d='M18 40c8-18 20-18 28 0' fill='none' stroke='white' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='24' cy='25' r='4' fill='white'/%3E%3Ccircle cx='40' cy='25' r='4' fill='white'/%3E%3C/svg%3E"></head>
+</head>
 <body>
 <div class="app">
 <header class="top">
-<div class="brand"><div class="logo">M</div><div><b>Miya AI</b><span>Image Studio · Photo + Video</span></div></div>
-<nav class="tabs">
-<button class="tab active" data-view="generate">Генератор</button>
-<button class="tab" data-view="edit">Фото-редактор</button>
-<button class="tab" data-view="video">Видео</button>
-</nav>
+  <div class="brand"><div class="logo">M</div><div><b>Miya AI</b><span>Image Studio · Photo + Video</span></div></div>
+  <nav class="tabs">
+    <button class="tab active" data-view="generate">Генератор</button>
+    <button class="tab" data-view="edit">Фото-редактор</button>
+    <button class="tab" data-view="video">Видео</button>
+  </nav>
 </header>
 
 <section id="generateView" class="view active">
 <div class="layout">
 <div class="card canvas-card">
-<div class="canvas-head"><div><div class="title">Image Canvas</div><div class="sub">Результат генерации</div></div><button id="genClear" class="btn small">Очистить</button></div>
-<div id="genCanvas" class="canvas">
-<div id="genEmpty" class="empty"><div class="emoji">✨</div><b>Создайте изображение</b><p>Введите описание справа. После генерации изображение можно открыть в фото- или видео-редакторе.</p></div>
-<img id="genImage" class="hidden" alt="Generated image">
-</div>
-<div class="row" style="margin-top:12px">
-<button id="openEditor" class="btn dark hidden">Открыть в редакторе</button>
-<button id="openVideo" class="btn primary hidden">🎬 Анимировать</button>
-</div>
+ <div class="canvas-head"><div><div class="title">Image Canvas</div><div class="sub">Холст генерации</div></div><button id="genClear" class="btn small">Очистить</button></div>
+ <div id="genCanvas" class="canvas"><div id="genEmpty" class="empty"><div class="emoji">✨</div><b>Создайте изображение</b><p>Введите промпт справа. После генерации кадр можно открыть в фото-редакторе или сразу анимировать.</p></div><img id="genImage" class="hidden" alt="Generated image"></div>
+ <div class="row" style="margin-top:12px"><button id="openEditor" class="btn dark hidden">Открыть в фото-редакторе</button><button id="openVideo" class="btn primary hidden">🎬 Анимировать</button></div>
 </div>
 <div class="side">
-<div class="card control"><h3>Что создать?</h3><textarea id="genPrompt" placeholder="Например: два реалистичных животных смотрят друг на друга в лесу, мягкий вечерний свет, кинематографичная фотография..."></textarea><div class="row" style="margin-top:8px"><button id="genRandom" class="btn">Случайная идея</button><button id="genClearPrompt" class="btn">Очистить текст</button></div><div id="genError" class="error"></div><button id="generateBtn" class="btn primary full" style="margin-top:10px">✨ Создать изображение</button></div>
-<div class="card control"><h3>Параметры</h3><div class="row"><div><label class="label">Модель</label><select id="genModel"><option value="auto">Auto · FLUX</option><option value="legacy-flux">FLUX Dev · Free</option><option value="or-nano-banana-2">Nano Banana 2</option><option value="or-gpt-image-2">GPT Image 2</option><option value="or-flux-klein">FLUX.2 Klein</option></select></div><div><label class="label">Качество</label><select id="genQuality"><option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div></div><label class="label" style="margin-top:10px">Формат</label><div id="genRatios" class="ratios"><button class="ratio active" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
-<div class="card control"><h3>Быстрые идеи</h3><div id="quickIdeas" class="quick"></div></div>
+ <div class="card control"><h3>Что создать?</h3><textarea id="genPrompt" placeholder="Например: два реалистичных животных на лесной поляне, мягкий вечерний свет, cinematic photography..."></textarea><div class="row" style="margin-top:8px"><button id="genRandom" class="btn">Случайная идея</button><button id="genClearPrompt" class="btn">Очистить</button></div><div id="genError" class="error"></div><button id="generateBtn" class="btn primary full" style="margin-top:10px">✨ Создать изображение</button></div>
+ <div class="card control"><h3>Параметры</h3><div class="row"><div><label class="label">Модель</label><select id="genModel"><option value="auto">Auto · FLUX</option><option value="legacy-flux">FLUX Dev · Free</option><option value="or-nano-banana-2">Nano Banana 2</option><option value="or-gpt-image-2">GPT Image 2</option><option value="or-flux-klein">FLUX.2 Klein</option></select></div><div><label class="label">Качество</label><select id="genQuality"><option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div></div><label class="label" style="margin-top:10px">Формат</label><div id="genRatios" class="ratios"><button class="ratio active" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
+ <div class="card control"><h3>Быстрые идеи</h3><div id="quickIdeas" class="quick"></div></div>
 </div>
 </div>
 </section>
@@ -103,26 +66,15 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 <section id="editView" class="view">
 <div class="layout">
 <div class="card canvas-card">
-<div class="canvas-head"><div><div class="title">Photo Canvas</div><div class="sub">Отдельный холст для изображения</div></div><button id="editorClear" class="btn small">Очистить</button></div>
-<div id="editCanvas" class="canvas">
-<div id="editEmpty" class="empty"><div class="emoji">🖼️</div><b>Загрузите изображение</b><p>Можно выбрать файл или передать результат из генератора.</p><button id="editorChoose" class="btn primary">Выбрать изображение</button></div>
-<img id="editorSource" class="hidden" alt="Source image">
-<img id="editResult" class="hidden" alt="Edited image">
-</div>
-<input id="editorFile" type="file" accept="image/*" hidden>
-<div class="row" style="margin-top:12px">
-<button id="editorAnimate" class="btn primary">🎬 Анимировать изображение</button>
-<button id="editUseResult" class="btn hidden">Использовать результат</button>
-</div>
+ <div class="canvas-head"><div><div class="title">Photo Canvas</div><div class="sub">Отдельный холст фото-редактора</div></div><button id="editorClear" class="btn small">Очистить</button></div>
+ <div id="editCanvas" class="canvas"><div id="editEmpty" class="empty"><div class="emoji">🖼️</div><b>Загрузите изображение</b><p>Выберите файл, перетащите его на холст или откройте результат генерации.</p><button id="editorChoose" class="btn primary">Выбрать изображение</button></div><img id="editorSource" class="hidden" alt="Source image"><img id="editResult" class="hidden" alt="Edited result"></div>
+ <input id="editorFile" type="file" accept="image/*" hidden>
+ <div class="row" style="margin-top:12px"><button id="editorAnimate" class="btn primary">🎬 Анимировать изображение</button><button id="editUseResult" class="btn hidden">Использовать результат</button></div>
 </div>
 <div class="side">
-<div class="card control"><h3>Что изменить?</h3><textarea id="editPrompt" placeholder="Например: добавь лёгкий ветер в волосы, сохрани лицо, одежду, композицию и освещение..."></textarea><div id="editError" class="error"></div><button id="editBtn" class="btn primary full" style="margin-top:10px">Применить изменение</button></div>
-<div class="card control"><h3>Параметры</h3><div class="row"><div><label class="label">Модель</label><select id="editModel"><option value="auto">Auto · FLUX Kontext</option><option value="legacy-flux">FLUX Kontext Dev</option><option value="or-nano-banana-2">Nano Banana 2</option><option value="or-gpt-image-2">GPT Image 2</option><option value="or-flux-klein">FLUX.2 Klein</option></select></div><div><label class="label">Качество</label><select id="editQuality"><option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div></div></div>
-<div class="card control">
-<h3>🎬 Видео</h3>
-<button id="editorAnimateBig" class="btn primary full">Анимировать этот кадр</button>
-<div class="hint" style="margin-top:9px">Откроется отдельный Video Canvas. Фото-редактор не используется для подготовки видео.</div>
-</div>
+ <div class="card control"><h3>Что изменить?</h3><textarea id="editPrompt" placeholder="Например: добавь лёгкий ветер в волосы, сохрани лицо, одежду, композицию и освещение..."></textarea><div id="editError" class="error"></div><button id="editBtn" class="btn primary full" style="margin-top:10px">Применить изменение</button></div>
+ <div class="card control"><h3>Модель редактора</h3><select id="editModel"><option value="puter-grok">Grok Imagine Quality · Puter</option><option value="puter-nano">Nano Banana Pro · Puter</option><option value="puter-gpt">GPT Image 2 · Puter</option><option value="auto">Auto</option></select><div class="hint" style="margin-top:9px">Редактор не вызывает /api/edit Legacy FLUX автоматически — это устраняет ошибку HTTP 403.</div></div>
+ <div class="card control"><h3>🎬 Видео</h3><button id="editorAnimateBig" class="btn dark full">Анимировать этот кадр</button><div class="hint" style="margin-top:9px">Видео — отдельный редактор. Фото-редактор не нужен для подготовки видео.</div></div>
 </div>
 </div>
 </section>
@@ -130,27 +82,21 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 <section id="videoView" class="view">
 <div class="layout">
 <div class="card canvas-card">
-<div class="canvas-head"><div><div class="title">Video Canvas</div><div class="sub">Отдельный image-to-video холст</div></div><button id="videoReset" class="btn small">Очистить</button></div>
-<div id="videoCanvas" class="canvas">
-<div id="videoEmpty" class="empty"><div class="emoji">🎬</div><b>Добавьте исходный кадр</b><p>Выберите изображение, перетащите его сюда или нажмите «Анимировать» в фото-редакторе.</p><button id="videoChoose" class="btn primary">Выбрать изображение</button></div>
-<img id="videoImage" class="hidden" alt="Video source">
-<video id="videoResult" class="hidden" controls playsinline></video>
-</div>
-<input id="videoFile" type="file" accept="image/*" hidden>
-<div class="row" style="margin-top:12px"><button id="videoDownload" class="btn dark hidden">Открыть готовое видео</button></div>
+ <div class="canvas-head"><div><div class="title">Video Canvas</div><div class="sub">Отдельный image-to-video холст</div></div><button id="videoReset" class="btn small">Очистить</button></div>
+ <div id="videoCanvas" class="canvas"><div id="videoEmpty" class="empty"><div class="emoji">🎬</div><b>Добавьте исходный кадр</b><p>Загрузите изображение, перетащите его сюда или нажмите «Анимировать» из фото-редактора.</p><button id="videoChoose" class="btn primary">Выбрать изображение</button></div><img id="videoImage" class="hidden" alt="Video source"><video id="videoResult" class="hidden" controls playsinline></video></div>
+ <input id="videoFile" type="file" accept="image/*" hidden>
+ <button id="videoDownload" class="btn dark hidden" style="margin-top:12px;width:100%">Открыть готовое видео</button>
 </div>
 <div class="side">
-<div class="card control"><h3>Сценарий движения</h3><textarea id="videoPrompt" placeholder="Например: животные начинают двигаться и смотреть друг на друга, камера плавно приближается, естественная физика, кинематографичный реализм..."></textarea><div id="videoError" class="error"></div><div id="videoStatus" class="status"></div><button id="videoGenerate" class="btn primary full" style="margin-top:10px">🎬 Создать видео</button></div>
-<div class="card control"><h3>Формат видео</h3><div id="videoRatios" class="ratios"><button class="ratio active" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
-<div class="card control"><h3>Источник кадра</h3><button id="videoReplace" class="btn full">Заменить изображение</button><div class="hint" style="margin-top:9px">Видео не использует /api/edit. Кадр отправляется непосредственно на видеосервер.</div></div>
-<div class="card control"><h3>Статус видеодвижка</h3><div id="videoBackendStatus" class="status show">Проверяем LTX GPU…</div><div class="hint" style="margin-top:8px">Видео работает отдельно от фото-редактора. Для реальной генерации нужен публичный LTX GPU сервер в переменной LTX_SERVER_URL.</div></div>
+ <div class="card control"><h3>Сценарий движения</h3><textarea id="videoPrompt" placeholder="Например: животные начинают двигаться и смотреть друг на друга, камера плавно приближается, естественная физика, кинематографичный реализм..."></textarea><div id="videoError" class="error"></div><div id="videoStatus" class="status"></div><button id="videoGenerate" class="btn primary full" style="margin-top:10px">🎬 Создать видео</button></div>
+ <div class="card control"><h3>Формат</h3><div id="videoRatios" class="ratios"><button class="ratio active" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
+ <div class="card control"><h3>Источник</h3><button id="videoReplace" class="btn full">Заменить изображение</button><div id="videoBackend" class="status show" style="margin-top:10px">Проверяем видеосервер…</div></div>
 </div>
 </div>
 </section>
 
-<div class="footer-note">Miya AI · отдельные Photo и Video Canvas</div>
+<div class="footer">Miya AI · Photo Canvas + Video Canvas</div>
 </div>
-
 <div id="loading" class="loading"><div class="loader"><div class="spinner"></div><b id="loadingTitle">Miya AI работает</b><div id="loadingText" style="font-size:12px;color:#777181;margin-top:5px">Подождите…</div></div></div>
 
 <script>
@@ -166,220 +112,154 @@ const ideas=[
 'Маленький медвежонок возле озера, туманное утро, cinematic realism',
 'Кот-путешественник на старинном вокзале, объёмный свет, 35mm photography'
 ];
-function msg(e){
+const modelMapGen={
+'auto':'legacy-flux','legacy-flux':'legacy-flux',
+'or-nano-banana-2':'or-nano-banana-2','or-gpt-image-2':'or-gpt-image-2','or-flux-klein':'or-flux-klein'
+};
+const modelMapEdit={
+'puter-grok':'grok-imagine-image-quality',
+'puter-nano':'google/gemini-3-pro-image-preview',
+'puter-gpt':'gpt-image-2'
+};
+function textError(e){
  if(!e)return 'Неизвестная ошибка';
  if(typeof e==='string')return e;
  if(typeof e.message==='string'&&e.message)return e.message;
  if(typeof e.error==='string'&&e.error)return e.error;
- if(e.error&&typeof e.error==='object'&&typeof e.error.message==='string')return e.error.message;
  try{return JSON.stringify(e)}catch{return String(e)}
 }
-function error(id,e){const x=$(id);if(!x)return;x.textContent=e?msg(e):'';x.classList.toggle('show',!!e)}
-function load(on,title,text){const x=$('loading');if(x)x.classList.toggle('show',on);if(title&&$('loadingTitle'))$('loadingTitle').textContent=title;if(text&&$('loadingText'))$('loadingText').textContent=text}
-async function api(url,opt){const r=await fetch(url,opt);const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{throw new Error('Сервер вернул не JSON (HTTP '+r.status+').')}if(!r.ok)throw new Error(d.error||d.message||('HTTP '+r.status));return d}
-async function checkVideoBackend(){
- const box=$('videoBackendStatus');
- if(!box)return;
- try{
-   const r=await fetch('/api/video?health=1',{cache:'no-store'});
-   const t=await r.text();
-   let d={};try{d=t?JSON.parse(t):{}}catch{}
-   if(d.ltxConfigured){
-     box.textContent='✓ LTX GPU подключён';
-     box.style.background='#eaf9f1';box.style.color='#16764f';
-   }else{
-     box.textContent='⚠ LTX GPU ещё не подключён. Добавьте LTX_SERVER_URL в Vercel.';
-     box.style.background='#fff7e8';box.style.color='#8a5a00';
-   }
- }catch(e){
-   box.textContent='⚠ Не удалось проверить видеосервер.';
- }
+function showError(id,e){const x=$(id);if(!x)return;x.textContent=e?textError(e):'';x.classList.toggle('show',!!e)}
+function loading(on,title,text){$('loading')?.classList.toggle('show',on);if(title)$('loadingTitle').textContent=title;if(text)$('loadingText').textContent=text}
+function show(view){
+ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+ $(view+'View')?.classList.add('active');
+ document.querySelector('.tab[data-view="'+view+'"]')?.classList.add('active');
+ window.scrollTo({top:0,behavior:'smooth'});
 }
-checkVideoBackend();
+function setImage(imgId,emptyId,url){
+ const img=$(imgId),empty=$(emptyId);if(!img||!empty)return;
+ if(url){img.src=url;img.classList.remove('hidden');empty.classList.add('hidden')}
+ else{img.removeAttribute('src');img.classList.add('hidden');empty.classList.remove('hidden')}
+}
+function fileData(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
+async function api(url,options){const r=await fetch(url,options);const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{throw new Error('Сервер вернул не JSON (HTTP '+r.status+').')}if(!r.ok)throw new Error(d.error||d.message||('HTTP '+r.status));return d}
+function wireRatios(id,key){document.querySelectorAll('#'+id+' .ratio').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+id+' .ratio').forEach(x=>x.classList.remove('active'));b.classList.add('active');state[key]=b.dataset.ratio}))}
 
-function dataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=reject;r.readAsDataURL(file)})}
-function show(view){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const v=$(view+'View');if(v)v.classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view));window.scrollTo({top:0,behavior:'smooth'})}
-function setImage(imgId,emptyId,src){const img=$(imgId),empty=$(emptyId);if(!img)return;if(!src){img.classList.add('hidden');if(empty)empty.classList.remove('hidden');return}img.src=src;img.classList.remove('hidden');if(empty)empty.classList.add('hidden')}
-function openVideo(src){if(!src){error('editError','Сначала загрузите или создайте изображение.');return}state.videoImage=src;setImage('videoImage','videoEmpty',src);$('videoResult')?.classList.add('hidden');$('videoResult')?.removeAttribute('src');error('videoError','');show('video')}
-function wireRatios(id,key){document.querySelectorAll('#'+id+' .ratio').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+id+' .ratio').forEach(x=>x.classList.remove('active'));b.classList.add('active');state[key]=b.dataset.ratio||state[key]}))}
-wireRatios('genRatios','genRatio');wireRatios('editRatios','editRatio');wireRatios('videoRatios','videoRatio');
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
+wireRatios('genRatios','genRatio');wireRatios('videoRatios','videoRatio');
 
-const qi=$('quickIdeas');if(qi){qi.innerHTML=ideas.map((x,i)=>'<button class="chip" data-i="'+i+'">'+x.slice(0,34)+'…</button>').join('');qi.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{$('genPrompt').value=ideas[+b.dataset.i]}))}
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>show(t.dataset.view)));
-$('genClearPrompt')?.addEventListener('click',()=>$('genPrompt').value='');
+const qi=$('quickIdeas');
+if(qi){qi.innerHTML=ideas.map((x,i)=>'<button class="chip" data-i="'+i+'">'+x.slice(0,36)+'…</button>').join('');qi.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{$('genPrompt').value=ideas[Number(b.dataset.i)]}))}
 $('genRandom')?.addEventListener('click',()=>{$('genPrompt').value=ideas[Math.floor(Math.random()*ideas.length)]});
-$('genClear')?.addEventListener('click',()=>{state.genImage='';setImage('genImage','genEmpty','');$('openEditor')?.classList.add('hidden');$('openVideo')?.classList.add('hidden');error('genError','')});
+$('genClearPrompt')?.addEventListener('click',()=>{$('genPrompt').value=''});
+$('genClear')?.addEventListener('click',()=>{state.genImage='';setImage('genImage','genEmpty','');$('openEditor')?.classList.add('hidden');$('openVideo')?.classList.add('hidden')});
 
 $('generateBtn')?.addEventListener('click',async()=>{
  if(state.busy)return;
- const prompt=$('genPrompt').value.trim();
- error('genError','');
- if(!prompt)return error('genError','Введите промпт.');
- state.busy=true;$('generateBtn').disabled=true;
- load(true,'Miya AI создаёт изображение','Генерируем через Puter AI…');
+ const prompt=$('genPrompt').value.trim();showError('genError','');if(!prompt)return showError('genError','Введите промпт.');
+ state.busy=true;$('generateBtn').disabled=true;loading(true,'Miya AI создаёт изображение','Запускаем выбранный image backend…');
  try{
-   if(!window.puter?.ai?.txt2img) throw new Error('Puter AI ещё не загрузился. Обновите страницу.');
-   const modelMap={
-     'auto':'black-forest-labs/flux-2-klein-4b',
-     'legacy-flux':'black-forest-labs/flux-2-klein-4b',
-     'or-nano-banana-2':'google/gemini-3-pro-image-preview',
-     'or-gpt-image-2':'gpt-image-2',
-     'or-flux-klein':'black-forest-labs/flux-2-klein-4b'
-   };
-   const model=modelMap[$('genModel')?.value||'auto']||modelMap.auto;
-   const ratio=state.genRatio;
-   const ratioHint=ratio==='9:16'?' vertical 9:16':ratio==='16:9'?' landscape 16:9':ratio==='4:3'?' 4:3':' square 1:1';
-   const image=await window.puter.ai.txt2img(prompt+ratioHint,{model,quality:$('genQuality')?.value||'auto'});
-   const url=image?.src||image?.url||String(image||'');
-   if(!url)throw new Error('Puter не вернул изображение.');
-   state.genImage=url;
-   setImage('genImage','genEmpty',url);
-   $('openEditor')?.classList.remove('hidden');
-   $('openVideo')?.classList.remove('hidden');
- }catch(e){
-   console.error('Miya image:',e);
-   error('genError',msg(e));
- }finally{
-   state.busy=false;$('generateBtn').disabled=false;load(false);
- }
+  const d=await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,ratio:state.genRatio,model:modelMapGen[$('genModel').value]||'auto',quality:$('genQuality').value})});
+  if(!d.imageUrl)throw new Error('Генератор не вернул imageUrl.');
+  state.genImage=d.imageUrl;setImage('genImage','genEmpty',d.imageUrl);$('openEditor').classList.remove('hidden');$('openVideo').classList.remove('hidden');
+ }catch(e){console.error(e);showError('genError',e)}
+ finally{state.busy=false;$('generateBtn').disabled=false;loading(false)}
 });
+
+function puterModel(){
+ const v=$('editModel').value;
+ return modelMapEdit[v]||'grok-imagine-image-quality';
+}
+async function editWithPuter(){
+ if(!window.puter?.ai?.txt2img)throw new Error('Puter AI ещё не загрузился. Обновите страницу.');
+ const source=state.editorImage;
+ const prompt=$('editPrompt').value.trim();
+ const model=puterModel();
+ const result=await window.puter.ai.txt2img(prompt,{
+   model,
+   input_image:source,
+   quality:'high'
+ });
+ const url=result?.src||result?.url||String(result||'');
+ if(!url)throw new Error('Puter не вернул изображение.');
+ return url;
+}
+$('editBtn')?.addEventListener('click',async()=>{
+ showError('editError','');
+ if(!state.editorImage)return showError('editError','Сначала загрузите изображение.');
+ if(!$('editPrompt').value.trim())return showError('editError','Введите описание изменения.');
+ $('editBtn').disabled=true;loading(true,'Miya AI редактирует','Редактируем исходный кадр…');
+ try{
+  const url=await editWithPuter();
+  state.editorImage=url;setImage('editorSource','editEmpty',url);$('editResult').src=url;$('editResult').classList.remove('hidden');$('editUseResult').classList.remove('hidden');
+ }catch(e){console.error(e);showError('editError',e)}
+ finally{$('editBtn').disabled=false;loading(false)}
+});
+$('editUseResult')?.addEventListener('click',()=>{state.editorImage=$('editResult').src;setImage('editorSource','editEmpty',state.editorImage);$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden')});
+
+function openVideo(src){
+ if(!src)return showError('editError','Сначала загрузите изображение.');
+ state.videoImage=src;setImage('videoImage','videoEmpty',src);show('video');showError('videoError','');
+}
 $('openEditor')?.addEventListener('click',()=>{state.editorImage=state.genImage;setImage('editorSource','editEmpty',state.genImage);show('edit')});
 $('openVideo')?.addEventListener('click',()=>openVideo(state.genImage));
+function animate(){openVideo(state.editorImage||$('editorSource')?.src||'')}
+$('editorAnimate')?.addEventListener('click',animate);
+$('editorAnimateBig')?.addEventListener('click',animate);
 
 $('editorChoose')?.addEventListener('click',()=>$('editorFile').click());
-$('editorFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.editorImage=await dataUrl(f);setImage('editorSource','editEmpty',state.editorImage);$('editResult')?.classList.add('hidden');error('editError','')}catch(x){error('editError',x)}});
+$('editorFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.editorImage=await fileData(f);setImage('editorSource','editEmpty',state.editorImage);$('editResult').classList.add('hidden')}catch(x){showError('editError',x)}});
 $('editCanvas')?.addEventListener('dragover',e=>{e.preventDefault();$('editCanvas').classList.add('drag')});
 $('editCanvas')?.addEventListener('dragleave',()=>$('editCanvas').classList.remove('drag'));
-$('editCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('editCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return error('editError','Перетащите JPG, PNG или WEBP.');state.editorImage=await dataUrl(f);setImage('editorSource','editEmpty',state.editorImage)});
-$('editorClear')?.addEventListener('click',()=>{state.editorImage='';$('editorFile').value='';setImage('editorSource','editEmpty','');$('editResult')?.classList.add('hidden');$('editUseResult')?.classList.add('hidden');error('editError','')});
+$('editCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('editCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return showError('editError','Нужен файл изображения.');state.editorImage=await fileData(f);setImage('editorSource','editEmpty',state.editorImage)});
 
-$('editBtn')?.addEventListener('click',async()=>{
- const prompt=$('editPrompt')?.value.trim();
- error('editError','');
- if(!state.editorImage)return error('editError','Сначала загрузите изображение.');
- if(!prompt)return error('editError','Введите описание изменения.');
- if(!window.puter?.ai?.txt2img)return error('editError','Puter AI ещё не загрузился. Обновите страницу.');
- $('editBtn').disabled=true;
- load(true,'Miya AI редактирует','Изменяем исходный кадр…');
- try{
-   const modelMap={
-     'auto':'grok-imagine-image-quality',
-     'legacy-flux':'grok-imagine-image-quality',
-     'or-nano-banana-2':'google/gemini-3-pro-image-preview',
-     'or-gpt-image-2':'gpt-image-2',
-     'or-flux-klein':'black-forest-labs/flux-2-klein-4b'
-   };
-   const model=modelMap[$('editModel')?.value||'auto']||modelMap.auto;
-   const source=state.editorImage;
-   const result=await window.puter.ai.txt2img(prompt,{model,input_image:source,quality:$('editQuality')?.value||'auto'});
-   const url=result?.src||result?.url||String(result||'');
-   if(!url)throw new Error('Puter не вернул отредактированное изображение.');
-   state.editorImage=url;
-   $('editorSource').src=url;
-   $('editorSource').classList.remove('hidden');
-   $('editEmpty').classList.add('hidden');
-   $('editResult').src=url;
-   $('editResult').classList.remove('hidden');
-   $('editUseResult')?.classList.remove('hidden');
- }catch(e){
-   console.error('Miya edit:',e);
-   error('editError',msg(e));
- }finally{
-   $('editBtn').disabled=false;load(false);
- }
-});
-$('editUseResult')?.addEventListener('click',()=>{const s=$('editResult').src;if(s){state.editorImage=s;setImage('editorSource','editEmpty',s);$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden')}});
-function animateCurrentFrame(){
- const src=state.editorImage||$('editorSource')?.src||'';
- if(!src){
-   error('editError','Сначала загрузите изображение.');
-   return;
- }
- openVideo(src);
-}
-$('editorAnimate')?.addEventListener('click',animateCurrentFrame);
-$('editorAnimateBig')?.addEventListener('click',animateCurrentFrame);
+$('editorClear')?.addEventListener('click',()=>{state.editorImage='';$('editorFile').value='';setImage('editorSource','editEmpty','');$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden');showError('editError','')});
 
 $('videoChoose')?.addEventListener('click',()=>$('videoFile').click());
 $('videoReplace')?.addEventListener('click',()=>$('videoFile').click());
-$('videoFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.videoImage=await dataUrl(f);setImage('videoImage','videoEmpty',state.videoImage);$('videoResult')?.classList.add('hidden');error('videoError','')}catch(x){error('videoError',x)}});
+$('videoFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.videoImage=await fileData(f);setImage('videoImage','videoEmpty',state.videoImage);$('videoResult').classList.add('hidden');$('videoResult').removeAttribute('src')}catch(x){showError('videoError',x)}});
 $('videoCanvas')?.addEventListener('dragover',e=>{e.preventDefault();$('videoCanvas').classList.add('drag')});
 $('videoCanvas')?.addEventListener('dragleave',()=>$('videoCanvas').classList.remove('drag'));
-$('videoCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('videoCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return error('videoError','Перетащите JPG, PNG или WEBP.');state.videoImage=await dataUrl(f);setImage('videoImage','videoEmpty',state.videoImage)});
-$('videoReset')?.addEventListener('click',()=>{state.videoImage='';$('videoFile').value='';setImage('videoImage','videoEmpty','');$('videoResult')?.classList.add('hidden');$('videoResult')?.removeAttribute('src');$('videoDownload')?.classList.add('hidden');error('videoError','')});
+$('videoCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('videoCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return showError('videoError','Нужен файл изображения.');state.videoImage=await fileData(f);setImage('videoImage','videoEmpty',state.videoImage)});
 
-async function prepareVideoImage(src){
-  if(!src)return '';
-  if(!src.startsWith('data:image/'))return src;
-  return new Promise((resolve,reject)=>{
-    const img=new Image();
-    img.onload=()=>{
-      const max=1280;
-      const scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
-      const canvas=document.createElement('canvas');
-      canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
-      canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
-      const ctx=canvas.getContext('2d');
-      ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      let q=.82;
-      let out=canvas.toDataURL('image/jpeg',q);
-      while(out.length>4_000_000 && q>.55){q-=.07;out=canvas.toDataURL('image/jpeg',q)}
-      if(out.length>4_000_000)reject(new Error('Изображение слишком большое. Выберите кадр меньшего размера.'));
-      else resolve(out);
-    };
-    img.onerror=()=>reject(new Error('Не удалось подготовить исходный кадр.'));
-    img.src=src;
-  });
+$('videoReset')?.addEventListener('click',()=>{state.videoImage='';$('videoFile').value='';setImage('videoImage','videoEmpty','');$('videoResult').classList.add('hidden');$('videoResult').removeAttribute('src');$('videoDownload').classList.add('hidden');$('videoStatus').classList.remove('show')});
+
+async function sourceForVideo(src){
+ if(src.startsWith('data:image/'))return src;
+ return src;
 }
 $('videoGenerate')?.addEventListener('click',async()=>{
  if(state.busy)return;
- error('videoError','');
- const prompt=$('videoPrompt')?.value.trim();
- if(!state.videoImage)return error('videoError','Сначала загрузите исходный кадр.');
- if(!prompt)return error('videoError','Введите описание движения.');
- state.busy=true;
- $('videoGenerate').disabled=true;
- $('videoStatus')?.classList.add('show');
- $('videoStatus').textContent='Подготавливаем кадр…';
+ showError('videoError','');
+ const prompt=$('videoPrompt').value.trim();
+ if(!state.videoImage)return showError('videoError','Сначала добавьте изображение.');
+ if(!prompt)return showError('videoError','Введите сценарий движения.');
+ state.busy=true;$('videoGenerate').disabled=true;$('videoStatus').classList.add('show');$('videoStatus').textContent='Запускаем LTX-Video…';
  try{
-  const source=await prepareVideoImage(state.videoImage);
-  $('videoStatus').textContent='Запускаем LTX-Video GPU…';
-  const d=await api('/api/video',{
-   method:'POST',
-   headers:{'Content-Type':'application/json','Accept':'application/json'},
-   body:JSON.stringify({
-    imageBase64:source.startsWith('data:image/')?source:'',
-    imageUrl:source.startsWith('data:image/')?'':source,
-    prompt,
-    aspect:state.videoRatio
-   })
-  });
+  const src=await sourceForVideo(state.videoImage);
+  const d=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:src.startsWith('data:image/')?src:'',imageUrl:src.startsWith('data:image/')?'':src,prompt,aspect:state.videoRatio})});
   if(!d.taskId)throw new Error(d.error||'Видеосервер не вернул taskId.');
-  for(let i=0;i<900;i++){
+  for(let i=0;i<540;i++){
    await new Promise(r=>setTimeout(r,4000));
-   const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId),{cache:'no-store',headers:{'Accept':'application/json'}});
+   const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId),{cache:'no-store'});
    $('videoStatus').textContent=(s.provider||'LTX-Video GPU')+' · '+(s.status||'RUNNING')+'…';
    if(s.done){
     if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
-    $('videoResult').src=s.videoUrl;
-    $('videoResult').classList.remove('hidden');
-    $('videoDownload').classList.remove('hidden');
-    $('videoDownload').onclick=()=>window.open(s.videoUrl,'_blank','noopener');
-    $('videoStatus').textContent='Готово · '+(s.model||'LTX-Video');
-    return;
+    $('videoResult').src=s.videoUrl;$('videoResult').classList.remove('hidden');$('videoDownload').classList.remove('hidden');$('videoDownload').onclick=()=>window.open(s.videoUrl,'_blank','noopener');$('videoStatus').textContent='Готово · '+(s.model||'LTX-Video');return;
    }
   }
   throw new Error('Видео слишком долго обрабатывается.');
- }catch(e){
-  console.error('Miya video:',e);
-  error('videoError',e?.message||String(e));
-  $('videoStatus')?.classList.remove('show');
- }finally{
-  state.busy=false;
-  $('videoGenerate').disabled=false;
- }
+ }catch(e){console.error(e);showError('videoError',e);$('videoStatus').classList.remove('show')}
+ finally{state.busy=false;$('videoGenerate').disabled=false}
 });
-console.log('Miya AI stable UI loaded');
+
+async function backend(){
+ try{const d=await api('/api/video?health=1');$('videoBackend').textContent=d.ltxConfigured?'LTX GPU подключён':'LTX GPU пока не подключён — добавьте LTX_SERVER_URL в Vercel.';if(!d.ltxConfigured)$('videoBackend').style.background='#fff4e5';}
+ catch(e){$('videoBackend').textContent='Не удалось проверить LTX GPU';}
+}
+backend();
+console.log('Miya AI UI ready');
 })();
 </script>
 </body>
