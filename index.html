@@ -2389,9 +2389,6 @@
 
   </section>
 
-</div>
-
-
   <section id="videoMode" class="video-workspace hidden">
     <div class="panel video-panel">
       <div class="canvas-header">
@@ -2404,9 +2401,12 @@
       <div class="video-canvas-area">
         <div class="video-canvas" id="videoCanvas">
           <div class="empty-state" id="videoCanvasEmpty">
-            <div class="empty-icon">🎬</div>
-            <div class="empty-title">Загрузите изображение</div>
-            <div class="empty-text">Это независимый Canvas видеоредактора.</div>
+            <div class="empty-icon">↑</div>
+            <div class="empty-title">Загрузите изображение для видео</div>
+            <div class="empty-text">Нажмите кнопку ниже или перетащите изображение сюда.</div>
+            <button type="button" class="secondary-button" id="videoCanvasUploadBtn" style="margin-top:16px">
+              Выбрать изображение
+            </button>
           </div>
           <img id="videoSourceImage" class="hidden" alt="Кадр для видео">
           <video id="videoResult" class="hidden editor-video-result" controls playsinline preload="metadata"></video>
@@ -2440,6 +2440,10 @@
       <div style="margin-top:14px;color:var(--text-soft);font-size:11px;line-height:1.55">Miya сначала подготавливает ключевой кадр по промпту, затем LTX 2.5 Free · Pixazo создаёт видео.</div>
     </div>
   </section>
+
+</div>
+
+
 
 <!-- LOADING -->
 
