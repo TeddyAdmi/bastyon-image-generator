@@ -66,7 +66,7 @@ textarea{width:100%;resize:vertical;min-height:125px;border:1px solid var(--line
   <div class="history card" id="genHistory"><div class="history-head"><b>История картинок Miya AI</b><button class="btn small" data-history-clear="images">Очистить</button></div><div class="history-grid" id="imageHistory"></div></div>
  </div>
  <div class="side">
-  <div class="card control"><h3>Что создать?</h3><textarea id="genPrompt" placeholder="Опишите изображение..."></textarea><div id="genError" class="error"></div><div class="row" style="margin-top:9px"><button id="aiPromptBtn" class="btn">✨ Улучшить</button><button id="genClearPrompt" class="btn">Очистить</button></div><div class="idea-wrap"><div class="idea-head"><b>💡 Идеи</b><button id="randomIdea" class="btn small">Случайная</button></div><div class="quick" id="ideas"></div></div><button id="generateBtn" class="btn primary full" style="margin-top:12px">✨ Создать изображение</button></div>
+  <div class="card control"><h3>Что создать?</h3><textarea id="genPrompt" placeholder="Опишите изображение..."></textarea><div id="genError" class="error"></div><div class="row" style="margin-top:9px"><button id="randomIdea" class="btn">💡 Идеи</button><button id="aiPromptBtn" class="btn">✨ Улучшить</button><button id="genClearPrompt" class="btn">Очистить</button></div><div class="idea-wrap"><div class="idea-head"><b>💡 Идеи</b><button id="randomIdea" class="btn small">Случайная</button></div><div class="quick" id="ideas"></div></div><button id="generateBtn" class="btn primary full" style="margin-top:12px">✨ Создать изображение</button></div>
   <div class="card control"><h3>Параметры</h3><div class="hint">FLUX Dev · бесплатный основной генератор</div><label class="hint" style="display:block;margin-top:10px">Формат</label><div id="genRatios" class="ratios" style="margin-top:7px"><button class="ratio active" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
  </div>
 </div>
@@ -114,128 +114,611 @@ textarea{width:100%;resize:vertical;min-height:125px;border:1px solid var(--line
 
 <script>
 'use strict';
-const $=id=>document.getElementById(id);
-const state={genRatio:'1:1',editRatio:'auto',videoRatio:'16:9',genImage:'',editorImage:'',videoImage:''};
 
-const ideas=[
-'Белый тигр и африканский слон на широкой саванне после дождя, фотореализм, естественный свет',
-'Кудрявый рыжий поросёнок в парижском кафе, чашка эспрессо, утренний свет, реалистичная фотография',
-'Два волка на заснеженном горном перевале, метель, следы на снегу, документальный фотореализм',
-'Огромный кит выпрыгивает из океана рядом с маленькой лодкой, рассвет, реалистичная морская фотография',
-'Рыжая лиса сидит на старой деревянной лавке в осеннем лесу, золотой час, 85mm photography',
-'Лев и маленький слон идут рядом по саванне, пыль в воздухе, мягкий закат, wildlife photography',
-'Панда на бамбуковой ферме в тумане, влажная шерсть, натуральные цвета, фотореализм',
-'Белый медведь стоит на льдине в Арктике, холодный дневной свет, документальная фотография',
-'Орангутан в тропическом лесу после дождя, капли воды на шерсти, natural light',
-'Лошадь бежит по пляжу на рассвете, брызги воды, реалистичная спортивная фотография',
-'Маленький ёжик среди осенних листьев, макросъёмка, естественный свет, высокая детализация',
-'Сова на старом дубе ночью, лунный свет, детальная фотография дикой природы',
-'Реалистичный кот на крыше Парижа ночью, Эйфелева башня вдали, дождь, cinematic photography',
-'Девушка в длинном красном пальто на мокрой улице Токио, неоновые отражения, фотореализм',
-'Мужчина в кожаной куртке возле винтажного автомобиля, Нью-Йорк, золотой час, 35mm',
-'Старинный замок на утёсе над морем, штормовые облака, реалистичная пейзажная фотография',
-'Футуристический Париж 2050 года, летающие автомобили, люди на улице, photorealistic',
-'Уютная деревянная хижина в зимнем лесу, дым из трубы, вечерний снег, realistic photography',
-'Древний поезд мчится через горы, утренний туман, кинематографичный реализм',
-'Реалистичный подводный город с огромными стеклянными куполами, солнечные лучи сквозь воду',
-'Космонавт стоит на поверхности Марса рядом с ровером, пыльная буря вдали, NASA-style realism',
-'Средневековый рынок ранним утром, торговцы, лошади, деревянные лавки, historical realism',
-'Самурай на мосту в Киото во время дождя, мокрый камень, естественный свет, photorealism',
-'Крупный план глаза голубого тигра, детальная шерсть, отражение леса, macro photography',
-'Гигантский робот идёт по современному мегаполису, дождь, масштабная реалистичная сцена',
-'Пианист играет в пустом концертном зале, один луч света, natural cinematic photography',
-'Сёрфер ловит огромную волну на закате, брызги, динамика, реалистичная спортивная фотография',
-'Тигр пьёт воду у реки в джунглях, отражение в воде, естественный дневной свет',
-'Слон стоит рядом с водопадом в тропическом лесу, влажная кожа, realistic wildlife photo',
-'Реалистичный дракон на скалистом берегу моря, туман, естественная анатомия, cinematic realism',
-'Маленький робот-почтальон идёт по старому европейскому городу, дождь, photorealism',
-'Кафе на крыше небоскрёба на закате, люди разговаривают, городские огни, realistic photography',
-'Красный спортивный автомобиль на горной дороге после дождя, мокрый асфальт, 35mm photography',
-'Деревня в Альпах ранним утром, туман между домами, естественные цвета, photorealism',
-'Медведь ловит рыбу в быстрой реке, брызги воды, телеобъектив, wildlife photography',
-'Кошка сидит у окна старого дома во время дождя, мягкий рассеянный свет, realistic photo',
-'Фотография фермерского рынка летом, свежие овощи, люди, естественный солнечный свет',
-'Старинная библиотека с высокими стеллажами и лестницами, пыль в лучах света, photorealism',
-'Астронавт ремонтирует спутник на орбите Земли, реалистичный космический свет, documentary style',
-'Пустынная дорога через каньон на закате, длинные тени, realistic landscape photography',
-'Белая акула под водой возле рифа, солнечные лучи сверху, wildlife photography',
-'Семья пингвинов на ледяном берегу, мягкий полярный свет, natural colors',
-'Реалистичный вертолёт спасателей над горным ущельем, туман, documentary photography',
-'Старый красный мотоцикл возле придорожного кафе, утро, плёночная фотография',
-'Винтажная кухня 1970-х годов, солнечный свет из окна, реалистичная интерьерная фотография',
-'Фокусник на сцене маленького театра, дым и тёплый свет, realistic performance photo',
-'Маленькая девочка запускает бумажного змея на поле, ветер, золотой час, natural photography',
-'Огромная секвойя в лесу, человек для масштаба, мягкий утренний туман, photorealism',
-'Реалистичный павлин раскрывает хвост в саду, естественный свет, высокая детализация',
-'Туманное озеро среди хвойных гор, одинокая лодка, раннее утро, realistic landscape',
-'Старый европейский трамвай едет по мокрой улице, вечерние фонари, photorealism',
-'Кулинар готовит пасту на открытой кухне итальянского ресторана, естественный свет',
-'Реалистичная лаборатория будущего, учёные работают с прозрачными дисплеями, documentary style',
-'Огромная красная луна над пустыней, силуэт путешественника, natural cinematic realism',
-'Пёс сидит рядом с палаткой в лесу после дождя, мокрая шерсть, realistic outdoor photography',
-'Горный велосипедист едет по лесной тропе, листья летят из-под колёс, sports photography',
-'Реалистичная улица старого Стамбула утром, продавцы, кошки, мягкий солнечный свет'
+const $ = (id) => document.getElementById(id);
+
+const state = {
+  genRatio: '1:1',
+  editRatio: 'auto',
+  videoRatio: '16:9',
+  genImage: '',
+  editorImage: '',
+  videoImage: ''
+};
+
+const ideas = [
+  'Белый тигр и африканский слон на широкой саванне после дождя, фотореализм, естественный свет',
+  'Кудрявый рыжий поросёнок в парижском кафе, чашка эспрессо, утренний свет, реалистичная фотография',
+  'Два волка на заснеженном горном перевале, метель, следы на снегу, документальный фотореализм',
+  'Огромный кит выпрыгивает из океана рядом с маленькой лодкой, рассвет, реалистичная морская фотография',
+  'Рыжая лиса сидит на старой деревянной лавке в осеннем лесу, золотой час, 85mm photography',
+  'Лев и маленький слон идут рядом по саванне, пыль в воздухе, мягкий закат, wildlife photography',
+  'Панда на бамбуковой ферме в тумане, влажная шерсть, натуральные цвета, фотореализм',
+  'Белый медведь стоит на льдине в Арктике, холодный дневной свет, документальная фотография',
+  'Орангутан в тропическом лесу после дождя, капли воды на шерсти, natural light',
+  'Лошадь бежит по пляжу на рассвете, брызги воды, реалистичная спортивная фотография',
+  'Маленький ёжик среди осенних листьев, макросъёмка, естественный свет, высокая детализация',
+  'Сова на старом дубе ночью, лунный свет, детальная фотография дикой природы',
+  'Реалистичный кот на крыше Парижа ночью, Эйфелева башня вдали, дождь, cinematic photography',
+  'Девушка в длинном красном пальто на мокрой улице Токио, неоновые отражения, фотореализм',
+  'Мужчина в кожаной куртке возле винтажного автомобиля, Нью-Йорк, золотой час, 35mm',
+  'Старинный замок на утёсе над морем, штормовые облака, реалистичная пейзажная фотография',
+  'Футуристический Париж 2050 года, летающие автомобили, люди на улице, photorealistic',
+  'Уютная деревянная хижина в зимнем лесу, дым из трубы, вечерний снег, realistic photography',
+  'Древний поезд мчится через горы, утренний туман, кинематографичный реализм',
+  'Реалистичный подводный город с огромными стеклянными куполами, солнечные лучи сквозь воду',
+  'Космонавт стоит на поверхности Марса рядом с ровером, пыльная буря вдали, NASA-style realism',
+  'Средневековый рынок ранним утром, торговцы, лошади, деревянные лавки, historical realism',
+  'Самурай на мосту в Киото во время дождя, мокрый камень, естественный свет, photorealism',
+  'Крупный план глаза голубого тигра, детальная шерсть, отражение леса, macro photography',
+  'Гигантский робот идёт по современному мегаполису, дождь, масштабная реалистичная сцена',
+  'Пианист играет в пустом концертном зале, один луч света, natural cinematic photography',
+  'Сёрфер ловит огромную волну на закате, брызги, динамика, реалистичная спортивная фотография',
+  'Тигр пьёт воду у реки в джунглях, отражение в воде, естественный дневной свет',
+  'Слон стоит рядом с водопадом в тропическом лесу, влажная кожа, realistic wildlife photo',
+  'Реалистичный дракон на скалистом берегу моря, туман, естественная анатомия, cinematic realism'
 ];
 
-function errText(e){if(!e)return'Неизвестная ошибка';if(typeof e==='string')return e;if(e.message)return e.message;if(e.error)return typeof e.error==='string'?e.error:JSON.stringify(e.error);try{return JSON.stringify(e)}catch{return String(e)}}
-function errorBox(id,e){const x=$(id);if(!x)return;x.textContent=e?errText(e):'';x.classList.toggle('show',!!e)}
-function busy(on,title='Miya AI работает',text='Подождите…'){$('loading')?.classList.toggle('show',on);if($('loadingTitle'))$('loadingTitle').textContent=title;if($('loadingText'))$('loadingText').textContent=text}
-async function api(url,options={}){const r=await fetch(url,{...options,headers:{Accept:'application/json',...(options.headers||{})}});const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{throw new Error('Сервер вернул не JSON (HTTP '+r.status+').')}if(!r.ok)throw new Error(d.error||d.message||('HTTP '+r.status));return d}
-function show(view){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));$(view+'View')?.classList.add('active');document.querySelector('.tab[data-view="'+view+'"]')?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
-function setImage(imgId,emptyId,url){const img=$(imgId),empty=$(emptyId);if(!img||!empty)return;if(url){img.src=url;img.classList.remove('hidden');empty.classList.add('hidden')}else{img.removeAttribute('src');img.classList.add('hidden');empty.classList.remove('hidden')}}
-function fileData(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=()=>reject(new Error('Не удалось прочитать файл.'));r.readAsDataURL(file)})}
-async function sourceAsDataUrl(source){if(String(source).startsWith('data:image/'))return source;throw new Error('Внешний URL будет передан серверу напрямую.')}
-function ratioButtons(id,key){document.querySelectorAll('#'+id+' .ratio').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+id+' .ratio').forEach(x=>x.classList.remove('active'));b.classList.add('active');state[key]=b.dataset.ratio||state[key]}))}
-function buildIdeas(){const box=$('ideas');if(!box)return;const shuffled=[...ideas].sort(()=>Math.random()-.5).slice(0,20);box.innerHTML='';shuffled.forEach(text=>{const b=document.createElement('button');b.className='chip';b.type='button';b.textContent=text;b.onclick=()=>{$('genPrompt').value=text};box.appendChild(b)})}
-function enhancePrompt(text){if(!text.trim())return'';return text.trim()+'\n\nVisual quality: natural cinematic lighting, realistic shadows, clear composition, high detail, natural textures, realistic materials, correct anatomy and natural proportions, no text, no watermark, no duplicate subjects.'}
+function errorText(error) {
+  if (!error) return '';
+  if (typeof error === 'string') return error;
+  if (error.message) return error.message;
+  if (error.error) return typeof error.error === 'string' ? error.error : JSON.stringify(error.error);
+  try { return JSON.stringify(error); } catch { return String(error); }
+}
 
-function historyRead(){try{return JSON.parse(localStorage.getItem('miyaHistory')||'[]')}catch{return[]}}
-function historyWrite(items){localStorage.setItem('miyaHistory',JSON.stringify(items.slice(0,24)))}
-function addHistory(url){if(!url||!/^https?:|^data:image/.test(url))return;const a=historyRead().filter(x=>x.url!==url);a.unshift({url,at:Date.now()});historyWrite(a);renderHistory()}
-function renderHistory(){const items=historyRead();document.querySelectorAll('.history-grid').forEach(grid=>{grid.innerHTML='';items.slice(0,12).forEach(item=>{const b=document.createElement('button');b.className='history-item';b.type='button';b.title='Открыть в фото-редакторе';const img=document.createElement('img');img.src=item.url;img.loading='lazy';const s=document.createElement('span');s.textContent='Miya';b.append(img,s);b.onclick=()=>openEditor(item.url);grid.appendChild(b)})})}
+function showError(id, error) {
+  const el = $(id);
+  if (!el) return;
+  el.textContent = error ? errorText(error) : '';
+  el.classList.toggle('show', Boolean(error));
+}
 
-document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
-ratioButtons('genRatios','genRatio');ratioButtons('editRatios','editRatio');ratioButtons('videoRatios','videoRatio');
-buildIdeas();renderHistory();try{const savedEditor=sessionStorage.getItem('miyaEditorImage');if(savedEditor){state.editorImage=savedEditor;setImage('editorSource','editEmpty',savedEditor)}}catch{}try{const savedVideo=sessionStorage.getItem('miyaVideoImage');if(savedVideo){state.videoImage=savedVideo;setImage('videoImage','videoEmpty',savedVideo)}}catch{}
+function setBusy(on, title, text) {
+  const loading = $('loading');
+  if (loading) loading.classList.toggle('show', on);
+  if (title && $('loadingTitle')) $('loadingTitle').textContent = title;
+  if (text && $('loadingText')) $('loadingText').textContent = text;
+}
 
-$('randomIdea')?.addEventListener('click',()=>{$('genPrompt').value=ideas[Math.floor(Math.random()*ideas.length)]});
-$('genClearPrompt')?.addEventListener('click',()=>{$('genPrompt').value='';errorBox('genError','')});
-$('aiPromptBtn')?.addEventListener('click',()=>{const p=$('genPrompt').value.trim();if(!p)return errorBox('genError','Сначала напишите идею.');$('genPrompt').value=enhancePrompt(p)});
-$('genClear')?.addEventListener('click',()=>{state.genImage='';setImage('genImage','genEmpty','');$('openEditor')?.classList.add('hidden');$('openVideo')?.classList.add('hidden');errorBox('genError','')});
+async function api(url, options) {
+  const response = await fetch(url, {
+    ...(options || {}),
+    headers: {
+      Accept: 'application/json',
+      ...((options && options.headers) || {})
+    }
+  });
 
-function openEditor(source){if(!source)return errorBox('genError','Сначала создайте изображение.');state.editorImage=source;sessionStorage.setItem('miyaEditorImage',source);setImage('editorSource','editEmpty',source);$('editResult')?.classList.add('hidden');show('edit')}
-$('openEditor')?.addEventListener('click',()=>openEditor(state.genImage));
-$('editorChoose')?.addEventListener('click',()=>$('editorFile')?.click());
-$('editorFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.editorImage=await fileData(f);setImage('editorSource','editEmpty',state.editorImage);errorBox('editError','')}catch(x){errorBox('editError',x)}});
-$('editCanvas')?.addEventListener('dragover',e=>{e.preventDefault();$('editCanvas').classList.add('drag')});
-$('editCanvas')?.addEventListener('dragleave',()=>$('editCanvas').classList.remove('drag'));
-$('editCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('editCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f?.type.startsWith('image/'))return errorBox('editError','Нужен файл изображения.');state.editorImage=await fileData(f);setImage('editorSource','editEmpty',state.editorImage)});
+  const text = await response.text();
+  let data = {};
 
-async function runGenerate(){const prompt=$('genPrompt').value.trim();if(!prompt)return errorBox('genError','Введите промпт.');const b=$('generateBtn');b.disabled=true;errorBox('genError','');busy(true,'Miya AI создаёт изображение','FLUX Dev · генерация…');try{const d=await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,ratio:state.genRatio,model:'legacy-flux',quality:'auto',size:'auto',outputFormat:'png'})});if(!d.imageUrl)throw new Error('Генератор не вернул изображение.');state.genImage=d.imageUrl;setImage('genImage','genEmpty',d.imageUrl);$('openEditor').classList.remove('hidden');$('openVideo').classList.remove('hidden');addHistory(d.imageUrl)}catch(e){errorBox('genError',e)}finally{b.disabled=false;busy(false)}}
-$('generateBtn')?.addEventListener('click',runGenerate);
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error('Сервер вернул не JSON (HTTP ' + response.status + ').');
+  }
 
-$('editorClear')?.addEventListener('click',()=>{state.editorImage='';$('editorFile').value='';setImage('editorSource','editEmpty','');$('editResult')?.classList.add('hidden');errorBox('editError','')});
-$('editUseResult')?.addEventListener('click',()=>{if(state.editorImage)setImage('editorSource','editEmpty',state.editorImage)});
-async function runEdit(){const source=state.editorImage||$('editorSource').src;const prompt=$('editPrompt').value.trim();if(!source)return errorBox('editError','Сначала загрузите изображение.');if(!prompt)return errorBox('editError','Введите, что изменить.');const b=$('editAI');b.disabled=true;errorBox('editError','');busy(true,'Фото-редактор','Выполняем изменение…');try{const payload={prompt,ratio:state.editRatio,model:'legacy-flux',quality:'auto',size:'auto',outputFormat:'png'};if(String(source).startsWith('data:image/'))payload.imageBase64=source;else if(/^https?:\\/\\//i.test(String(source)))payload.imageUrl=source;else throw new Error('Не удалось определить исходное изображение.');const d=await api('/api/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');state.editorImage=d.imageUrl;setImage('editorSource','editEmpty',d.imageUrl);addHistory(d.imageUrl)}catch(e){errorBox('editError',e)}finally{b.disabled=false;busy(false)}}
-$('editAI')?.addEventListener('click',runEdit);
+  if (!response.ok) {
+    throw new Error(data.error || data.message || ('HTTP ' + response.status));
+  }
 
-function openVideo(source){if(!source)return errorBox('genError','Сначала создайте или загрузите изображение.');state.videoImage=source;sessionStorage.setItem('miyaVideoImage',source);setImage('videoImage','videoEmpty',source);$('videoResult')?.classList.add('hidden');show('video')}
-$('openVideo')?.addEventListener('click',()=>openVideo(state.genImage));
-$('editorAnimate')?.addEventListener('click',()=>openVideo(state.editorImage||$('editorSource')?.src||''));
-$('videoChoose')?.addEventListener('click',()=>$('videoFile')?.click());
-$('videoReplace')?.addEventListener('click',()=>$('videoFile')?.click());
-$('videoFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.videoImage=await fileData(f);setImage('videoImage','videoEmpty',state.videoImage);errorBox('videoError','')}catch(x){errorBox('videoError',x)}});
-$('videoCanvas')?.addEventListener('dragover',e=>{e.preventDefault();$('videoCanvas').classList.add('drag')});
-$('videoCanvas')?.addEventListener('dragleave',()=>$('videoCanvas').classList.remove('drag'));
-$('videoCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('videoCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f?.type.startsWith('image/'))return errorBox('videoError','Нужен файл изображения.');state.videoImage=await fileData(f);setImage('videoImage','videoEmpty',state.videoImage)});
-$('videoReset')?.addEventListener('click',()=>{state.videoImage='';$('videoFile').value='';setImage('videoImage','videoEmpty','');$('videoResult').classList.add('hidden');errorBox('videoError','')});
+  return data;
+}
 
-async function runVideo(){const source=state.videoImage||$('videoImage').src;const prompt=$('videoPrompt').value.trim();if(!source)return errorBox('videoError','Сначала загрузите изображение.');if(!prompt)return errorBox('videoError','Введите сценарий движения.');const b=$('videoGenerate');b.disabled=true;errorBox('videoError','');$('videoStatus').classList.add('show');$('videoStatus').textContent='Запускаем…';busy(true,'Miya AI создаёт видео','Передаём исходный кадр напрямую в видеосервер…');try{const body={prompt,aspect:state.videoRatio};if(source.startsWith('data:image/'))body.imageBase64=source;else body.imageUrl=source;const d=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!d.taskId)throw new Error('Видеосервер не вернул taskId.');for(let i=0;i<540;i++){await new Promise(r=>setTimeout(r,4000));const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId),{cache:'no-store'});if(s.done){if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');$('videoResult').src=s.videoUrl;$('videoResult').classList.remove('hidden');$('videoResult').load();$('videoStatus').textContent='Видео готово · '+(s.provider||'LTX');return}$('videoStatus').textContent='Генерация: '+(s.status||'RUNNING')+'…';busy(true,'Miya AI создаёт видео',(s.provider||'LTX GPU')+' · '+(s.status||'RUNNING'))}}catch(e){errorBox('videoError',e);$('videoStatus').classList.remove('show')}finally{b.disabled=false;busy(false)}}
-$('videoGenerate')?.addEventListener('click',runVideo);
+function showView(view) {
+  document.querySelectorAll('.view').forEach((el) => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach((el) => el.classList.remove('active'));
 
-document.querySelectorAll('[data-history-clear]').forEach(b=>b.addEventListener('click',()=>{historyWrite([]);renderHistory()}));
-async function videoHealth(){try{const d=await api('/api/video?health=1',{cache:'no-store'});$('videoBackend').textContent=d.reachable?'LTX GPU онлайн · '+(d.model||'LTX'):'Видеосервер не подключён. Нужен LTX_SERVER_URL.'}catch{$('videoBackend').textContent='Видеосервер не подключён. Нужен LTX_SERVER_URL.'}}
-videoHealth();
+  const target = $(view + 'View');
+  const tab = document.querySelector('.tab[data-view="' + view + '"]');
+
+  if (target) target.classList.add('active');
+  if (tab) tab.classList.add('active');
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setImage(imageId, emptyId, url) {
+  const image = $(imageId);
+  const empty = $(emptyId);
+  if (!image || !empty) return;
+
+  if (url) {
+    image.src = url;
+    image.classList.remove('hidden');
+    empty.classList.add('hidden');
+  } else {
+    image.removeAttribute('src');
+    image.classList.add('hidden');
+    empty.classList.remove('hidden');
+  }
+}
+
+function readFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Не удалось прочитать файл.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function enhancePrompt(text) {
+  return text.trim() +
+    '\n\nVisual quality: natural cinematic lighting, realistic shadows, clear composition, high detail, natural textures, realistic materials, correct anatomy and natural proportions, no text, no watermark.';
+}
+
+function nextIdea() {
+  const prompt = $('genPrompt');
+  if (!prompt) return;
+
+  let current = Number(prompt.dataset.ideaIndex || '-1');
+  current = (current + 1) % ideas.length;
+  prompt.dataset.ideaIndex = String(current);
+
+  prompt.value = (current + 1) + '. ' + ideas[current];
+  prompt.focus();
+}
+
+function clearPrompt() {
+  const prompt = $('genPrompt');
+  if (prompt) {
+    prompt.value = '';
+    prompt.dataset.ideaIndex = '-1';
+    prompt.focus();
+  }
+  showError('genError', '');
+}
+
+function historyRead() {
+  try { return JSON.parse(localStorage.getItem('miyaHistory') || '[]'); }
+  catch { return []; }
+}
+
+function historyWrite(items) {
+  try { localStorage.setItem('miyaHistory', JSON.stringify(items.slice(0, 24))); }
+  catch {}
+}
+
+function addHistory(url) {
+  if (!url || !/^https?:|^data:image/.test(url)) return;
+  const items = historyRead().filter((x) => x.url !== url);
+  items.unshift({ url, at: Date.now() });
+  historyWrite(items);
+  renderHistory();
+}
+
+function renderHistory() {
+  const items = historyRead();
+
+  document.querySelectorAll('.history-grid').forEach((grid) => {
+    grid.innerHTML = '';
+
+    items.slice(0, 12).forEach((item) => {
+      const button = document.createElement('button');
+      button.className = 'history-item';
+      button.type = 'button';
+      button.title = 'Открыть в фото-редакторе';
+
+      const image = document.createElement('img');
+      image.src = item.url;
+      image.loading = 'lazy';
+
+      button.appendChild(image);
+      button.addEventListener('click', () => openEditor(item.url));
+      grid.appendChild(button);
+    });
+  });
+}
+
+function setRatio(groupId, key, button) {
+  document.querySelectorAll('#' + groupId + ' .ratio').forEach((item) => item.classList.remove('active'));
+  button.classList.add('active');
+  state[key] = button.dataset.ratio || state[key];
+}
+
+async function runGenerate() {
+  const prompt = $('genPrompt')?.value.trim();
+  if (!prompt) return showError('genError', 'Введите промпт или нажмите «Идеи».');
+
+  const button = $('generateBtn');
+  if (button) button.disabled = true;
+
+  showError('genError', '');
+  setBusy(true, 'Miya AI создаёт изображение', 'FLUX Dev · генерация…');
+
+  try {
+    const data = await api('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        ratio: state.genRatio,
+        model: 'legacy-flux',
+        quality: 'auto',
+        size: 'auto',
+        outputFormat: 'png'
+      })
+    });
+
+    if (!data.imageUrl) throw new Error('Генератор не вернул изображение.');
+
+    state.genImage = data.imageUrl;
+    setImage('genImage', 'genEmpty', data.imageUrl);
+    $('openEditor')?.classList.remove('hidden');
+    $('openVideo')?.classList.remove('hidden');
+    addHistory(data.imageUrl);
+  } catch (error) {
+    showError('genError', error);
+  } finally {
+    if (button) button.disabled = false;
+    setBusy(false);
+  }
+}
+
+async function runEdit() {
+  const source = state.editorImage || $('editorSource')?.src || '';
+  const prompt = $('editPrompt')?.value.trim();
+
+  if (!source) return showError('editError', 'Сначала загрузите изображение.');
+  if (!prompt) return showError('editError', 'Введите, что изменить.');
+
+  const button = $('editAI');
+  if (button) button.disabled = true;
+
+  showError('editError', '');
+  setBusy(true, 'Фото-редактор', 'Выполняем изменение…');
+
+  try {
+    const payload = {
+      prompt,
+      ratio: state.editRatio,
+      model: 'legacy-flux',
+      quality: 'auto',
+      size: 'auto',
+      outputFormat: 'png'
+    };
+
+    if (source.startsWith('data:image/')) payload.imageBase64 = source;
+    else if (/^https?:\/\//i.test(source)) payload.imageUrl = source;
+    else throw new Error('Не удалось определить исходное изображение.');
+
+    const data = await api('/api/edit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!data.imageUrl) throw new Error('Редактор не вернул изображение.');
+
+    state.editorImage = data.imageUrl;
+    setImage('editorSource', 'editEmpty', data.imageUrl);
+    addHistory(data.imageUrl);
+  } catch (error) {
+    showError('editError', error);
+  } finally {
+    if (button) button.disabled = false;
+    setBusy(false);
+  }
+}
+
+function openEditor(source) {
+  if (!source) return showError('genError', 'Сначала создайте изображение.');
+
+  state.editorImage = source;
+
+  try { sessionStorage.setItem('miyaEditorImage', source); } catch {}
+
+  setImage('editorSource', 'editEmpty', source);
+  $('editResult')?.classList.add('hidden');
+  showView('edit');
+}
+
+function openVideo(source) {
+  if (!source) {
+    showError('genError', 'Сначала создайте или загрузите изображение.');
+    return;
+  }
+
+  state.videoImage = source;
+
+  try { sessionStorage.setItem('miyaVideoImage', source); } catch {}
+
+  setImage('videoImage', 'videoEmpty', source);
+  $('videoResult')?.classList.add('hidden');
+  showView('video');
+}
+
+async function runVideo() {
+  const source = state.videoImage || $('videoImage')?.src || '';
+  const prompt = $('videoPrompt')?.value.trim();
+
+  if (!source) return showError('videoError', 'Сначала загрузите изображение.');
+  if (!prompt) return showError('videoError', 'Введите сценарий движения.');
+
+  const button = $('videoGenerate');
+  if (button) button.disabled = true;
+
+  showError('videoError', '');
+  $('videoStatus')?.classList.add('show');
+
+  setBusy(true, 'Miya AI создаёт видео', 'Передаём исходный кадр в видеосервер…');
+
+  try {
+    const body = { prompt, aspect: state.videoRatio };
+
+    if (source.startsWith('data:image/')) body.imageBase64 = source;
+    else body.imageUrl = source;
+
+    const task = await api('/api/video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!task.taskId) throw new Error('Видеосервер не вернул taskId.');
+
+    for (let i = 0; i < 540; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      const status = await api(
+        '/api/video?taskId=' + encodeURIComponent(task.taskId),
+        { cache: 'no-store' }
+      );
+
+      if (status.done) {
+        if (!status.success || !status.videoUrl) {
+          throw new Error(status.error || 'Видео не создано.');
+        }
+
+        const video = $('videoResult');
+        video.src = status.videoUrl;
+        video.classList.remove('hidden');
+        video.load();
+
+        $('videoStatus').textContent =
+          'Видео готово · ' + (status.provider || 'LTX GPU');
+
+        setBusy(false);
+        return;
+      }
+
+      $('videoStatus').textContent =
+        'Генерация: ' + (status.status || 'RUNNING') + '…';
+    }
+  } catch (error) {
+    showError('videoError', error);
+    $('videoStatus')?.classList.remove('show');
+  } finally {
+    if (button) button.disabled = false;
+    setBusy(false);
+  }
+}
+
+function chooseFile(id) {
+  const input = $(id);
+  if (input) input.click();
+}
+
+/*
+ * ONE delegated click handler.
+ * This keeps the interface clickable even if individual sections are
+ * redrawn later. Event delegation is also easier to maintain than
+ * dozens of independent handlers.
+ */
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('button');
+  if (!target) return;
+
+  if (target.dataset.view) {
+    showView(target.dataset.view);
+    return;
+  }
+
+  if (target.classList.contains('ratio')) {
+    const parent = target.closest('.ratios');
+    if (!parent) return;
+
+    if (parent.id === 'genRatios') setRatio('genRatios', 'genRatio', target);
+    if (parent.id === 'editRatios') setRatio('editRatios', 'editRatio', target);
+    if (parent.id === 'videoRatios') setRatio('videoRatios', 'videoRatio', target);
+    return;
+  }
+
+  switch (target.id) {
+    case 'randomIdea':
+      nextIdea();
+      break;
+
+    case 'aiPromptBtn': {
+      const prompt = $('genPrompt')?.value.trim();
+      if (!prompt) showError('genError', 'Сначала нажмите «Идеи» или напишите промпт.');
+      else $('genPrompt').value = enhancePrompt(prompt);
+      break;
+    }
+
+    case 'genClearPrompt':
+      clearPrompt();
+      break;
+
+    case 'genClear':
+      state.genImage = '';
+      setImage('genImage', 'genEmpty', '');
+      $('openEditor')?.classList.add('hidden');
+      $('openVideo')?.classList.add('hidden');
+      showError('genError', '');
+      break;
+
+    case 'generateBtn':
+      runGenerate();
+      break;
+
+    case 'openEditor':
+      openEditor(state.genImage);
+      break;
+
+    case 'openVideo':
+      openVideo(state.genImage);
+      break;
+
+    case 'editorChoose':
+      chooseFile('editorFile');
+      break;
+
+    case 'editorClear':
+      state.editorImage = '';
+      if ($('editorFile')) $('editorFile').value = '';
+      setImage('editorSource', 'editEmpty', '');
+      $('editResult')?.classList.add('hidden');
+      showError('editError', '');
+      break;
+
+    case 'editorAnimate':
+      openVideo(state.editorImage || $('editorSource')?.src || '');
+      break;
+
+    case 'editAI':
+      runEdit();
+      break;
+
+    case 'editUseResult':
+      if (state.editorImage) setImage('editorSource', 'editEmpty', state.editorImage);
+      break;
+
+    case 'videoChoose':
+      chooseFile('videoFile');
+      break;
+
+    case 'videoReplace':
+      chooseFile('videoFile');
+      break;
+
+    case 'videoReset':
+      state.videoImage = '';
+      if ($('videoFile')) $('videoFile').value = '';
+      setImage('videoImage', 'videoEmpty', '');
+      $('videoResult')?.classList.add('hidden');
+      showError('videoError', '');
+      break;
+
+    case 'videoGenerate':
+      runVideo();
+      break;
+
+    default:
+      if (target.dataset.historyClear) {
+        historyWrite([]);
+        renderHistory();
+      }
+      break;
+  }
+});
+
+document.addEventListener('change', async (event) => {
+  const input = event.target;
+
+  if (input.id === 'editorFile') {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    try {
+      state.editorImage = await readFile(file);
+      setImage('editorSource', 'editEmpty', state.editorImage);
+      showError('editError', '');
+    } catch (error) {
+      showError('editError', error);
+    }
+  }
+
+  if (input.id === 'videoFile') {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    try {
+      state.videoImage = await readFile(file);
+      setImage('videoImage', 'videoEmpty', state.videoImage);
+      showError('videoError', '');
+    } catch (error) {
+      showError('videoError', error);
+    }
+  }
+});
+
+document.addEventListener('dragover', (event) => {
+  const canvas = event.target.closest('.canvas');
+  if (!canvas) return;
+  event.preventDefault();
+  canvas.classList.add('drag');
+});
+
+document.addEventListener('dragleave', (event) => {
+  const canvas = event.target.closest('.canvas');
+  if (canvas) canvas.classList.remove('drag');
+});
+
+document.addEventListener('drop', async (event) => {
+  const canvas = event.target.closest('.canvas');
+  if (!canvas) return;
+
+  event.preventDefault();
+  canvas.classList.remove('drag');
+
+  const file = event.dataTransfer?.files?.[0];
+  if (!file || !file.type.startsWith('image/')) {
+    showError(canvas.id === 'editCanvas' ? 'editError' : 'videoError', 'Нужен файл изображения.');
+    return;
+  }
+
+  try {
+    const data = await readFile(file);
+
+    if (canvas.id === 'editCanvas') {
+      state.editorImage = data;
+      setImage('editorSource', 'editEmpty', data);
+    } else {
+      state.videoImage = data;
+      setImage('videoImage', 'videoEmpty', data);
+    }
+  } catch (error) {
+    showError(canvas.id === 'editCanvas' ? 'editError' : 'videoError', error);
+  }
+});
+
+function loadSavedImages() {
+  try {
+    const editor = sessionStorage.getItem('miyaEditorImage');
+    if (editor) {
+      state.editorImage = editor;
+      setImage('editorSource', 'editEmpty', editor);
+    }
+
+    const video = sessionStorage.getItem('miyaVideoImage');
+    if (video) {
+      state.videoImage = video;
+      setImage('videoImage', 'videoEmpty', video);
+    }
+  } catch {}
+}
+
+async function checkVideoBackend() {
+  const el = $('videoBackend');
+  if (!el) return;
+
+  try {
+    const data = await api('/api/video?health=1', { cache: 'no-store' });
+    el.textContent = data.reachable
+      ? 'LTX GPU онлайн · ' + (data.model || 'LTX')
+      : 'Видеосервер не подключён. Нужен LTX_SERVER_URL.';
+  } catch {
+    el.textContent = 'Видеосервер не подключён. Нужен LTX_SERVER_URL.';
+  }
+}
+
+loadSavedImages();
+renderHistory();
+checkVideoBackend();
+
 console.log('Miya AI UI ready');
 </script>
 </body>
