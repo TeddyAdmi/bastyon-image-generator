@@ -131,43 +131,41 @@ export async function editImage(options) {
   const {
     prompt,
     imageBase64,
-    ratio = "1:1"
+    ratio = "1:1",
+    model = "or-nano-banana-2",
+    quality = "auto",
+    size = "auto",
+    outputFormat = "png"
   } = options;
 
   const normalized = normalizeImageInput(imageBase64);
-
   if (!normalized) {
+    throw new Error("Редактор не смог распознать исходное изображение.");
+  }
+
+  if (!process.env.OPENROUTER_API_KEY) {
     throw new Error(
-      "Редактор не смог распознать изображение. Поддерживается data:image/...;base64 или обычный base64."
+      "OPENROUTER_API_KEY не настроен в Vercel. Старый Legacy FLUX Editor отключён, потому что он возвращает HTTP 403."
     );
   }
 
-  const response = await fetch("https://ahm7xmakki.com/api/pti", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      prompt: String(prompt || "").trim(),
-      ratio,
-      imageBase64: normalized.base64
-    })
+  const selected = OPENROUTER_MODELS[model] || OPENROUTER_MODELS["or-nano-banana-2"];
+
+  return openRouterImage({
+    model: selected,
+    prompt: String(prompt || "").trim(),
+    ratio,
+    quality,
+    size,
+    outputFormat,
+    imageDataUrl: normalized.dataUrl
   });
-
-  const data = await readJsonResponse(response, "PixelSter editor");
-
-  if (!data.imageUrl) {
-    throw new Error("PixelSter editor не вернул imageUrl.");
-  }
-
-  return {
-    imageUrl: data.imageUrl,
-    provider: "PixelSter",
-    model: "Flux Kontext Dev"
-  };
 }
 
 export function getProviderStatus() {
   return {
+    openrouter: Boolean(process.env.OPENROUTER_API_KEY),
     blob: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-    legacy: true
+    legacy: false
   };
 }
