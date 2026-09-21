@@ -5338,14 +5338,14 @@
 
           $("sendVideoToGeneratorBtn").onclick = () => {
             renderVideoGallery(
-              statusData.videoUrl,
+              finalVideoUrl,
               generatedAspect
             );
             switchMode("generator");
           };
 
           saveVideoHistory(
-            statusData.videoUrl,
+            finalVideoUrl,
             prompt,
             generatedAspect
           );
