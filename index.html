@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 </section>
 
-<div class="footer">Miya AI · FLUX Dev · Photo Canvas + Video Canvas</div>
+<div class="footer">Miya AI · PixelSter · Flux Dev + Flux Kontext Dev + Image → Video</div>
 </div>
 <div id="loading" class="loading"><div class="loader"><div class="spinner"></div><b id="loadingTitle">Miya AI работает</b><div id="loadingText" style="font-size:12px;color:#777181;margin-top:5px">Подождите…</div></div></div>
 
@@ -340,7 +340,7 @@ async function runGenerate() {
       body: JSON.stringify({
         prompt,
         ratio: state.genRatio,
-        model: 'or-nano-banana-2',
+        model: 'pixelster-flux',
         quality: 'auto',
         size: 'auto',
         outputFormat: 'png'
@@ -379,7 +379,7 @@ async function runEdit() {
     const payload = {
       prompt,
       ratio: state.editRatio,
-      model: 'or-nano-banana-2',
+      model: 'pixelster-flux',
       quality: 'auto',
       size: 'auto',
       outputFormat: 'png'
@@ -447,51 +447,36 @@ async function runVideo() {
 
   showError('videoError', '');
   $('videoStatus')?.classList.add('show');
-
-  setBusy(true, 'Miya AI создаёт видео', 'Передаём исходный кадр в видеосервер…');
+  setBusy(true, 'Miya AI создаёт видео', 'PixelSter · Image → Video…');
 
   try {
-    const body = { prompt, aspect: state.videoRatio };
+    const body = {
+      prompt,
+      aspect: state.videoRatio,
+      duration: 6
+    };
 
     if (source.startsWith('data:image/')) body.imageBase64 = source;
     else body.imageUrl = source;
 
-    const task = await api('/api/video', {
+    const data = await api('/api/video', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
 
-    if (!task.taskId) throw new Error('Видеосервер не вернул taskId.');
-
-    for (let i = 0; i < 540; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-
-      const status = await api(
-        '/api/video?taskId=' + encodeURIComponent(task.taskId),
-        { cache: 'no-store' }
-      );
-
-      if (status.done) {
-        if (!status.success || !status.videoUrl) {
-          throw new Error(status.error || 'Видео не создано.');
-        }
-
-        const video = $('videoResult');
-        video.src = status.videoUrl;
-        video.classList.remove('hidden');
-        video.load();
-
-        $('videoStatus').textContent =
-          'Видео готово · ' + (status.provider || 'LTX GPU');
-
-        setBusy(false);
-        return;
-      }
-
-      $('videoStatus').textContent =
-        'Генерация: ' + (status.status || 'RUNNING') + '…';
+    if (!data.videoUrl) {
+      throw new Error('PixelSter не вернул готовое видео.');
     }
+
+    const video = $('videoResult');
+    video.src = data.videoUrl;
+    video.classList.remove('hidden');
+    video.load();
+
+    $('videoStatus').textContent =
+      'Видео готово · AHM7 PixelSter · Motion synthesis';
+
   } catch (error) {
     showError('videoError', error);
     $('videoStatus')?.classList.remove('show');
@@ -712,11 +697,11 @@ async function checkVideoBackend() {
 
   try {
     const data = await api('/api/video?health=1', { cache: 'no-store' });
-    el.textContent = data.reachable
-      ? 'LTX GPU онлайн · ' + (data.model || 'LTX')
-      : 'Видеосервер не подключён. Нужен LTX_SERVER_URL.';
+    el.textContent = data.free
+      ? 'PixelSter онлайн · Image → Video · 5–20 сек · без API key'
+      : 'PixelSter видеосервис недоступен.';
   } catch {
-    el.textContent = 'Видеосервер не подключён. Нужен LTX_SERVER_URL.';
+    el.textContent = 'PixelSter Image → Video · /api/ptv';
   }
 }
 
