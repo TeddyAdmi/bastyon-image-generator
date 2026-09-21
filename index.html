@@ -25,7 +25,7 @@ button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{
 .empty{text-align:center;max-width:440px;padding:40px 25px;color:var(--muted)}.empty .emoji{font-size:55px;margin-bottom:14px}.empty b{display:block;color:var(--ink);font-size:17px}.empty p{font-size:13px;line-height:1.6}
 .side{display:flex;flex-direction:column;gap:14px}.control{padding:18px}.control h3{letter-spacing:-.01em}.control h3{margin:0 0 11px;font-size:14px}.label{display:block;font-size:11px;color:var(--muted);font-weight:800;margin:0 0 6px}
 textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;outline:none;color:var(--ink)}textarea{min-height:130px;resize:vertical}textarea:focus,input:focus,select:focus{border-color:#b9a3f4;box-shadow:0 0 0 4px #7040ef12}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btn{border:1px solid var(--line);min-height:44px;background:#fff;border-radius:13px;padding:11px 13px;font-weight:800;color:var(--ink);transition:.16s}.btn:hover{transform:translateY(-1px)}.btn.primary{border:0;color:#fff;background:linear-gradient(135deg,var(--violet),var(--violet2));box-shadow:0 10px 25px #7040ef32}.btn.dark{background:#19151f;color:#fff;border-color:#19151f}.btn.full{width:100%}.btn.small{padding:8px 10px;font-size:12px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btn{border:1px solid var(--line);min-height:44px;background:#fff;border-radius:13px;padding:11px 13px;font-weight:800;color:var(--ink);transition:.16s}.btn:hover{transform:translateY(-1px)}.btn.primary{border:0;color:#fff;background:linear-gradient(135deg,var(--violet),var(--violet2));box-shadow:0 10px 25px #7040ef32}.animate-action{min-height:48px;font-size:14px;letter-spacing:-.01em}.btn.dark{background:#19151f;color:#fff;border-color:#19151f}.btn.full{width:100%}.btn.small{padding:8px 10px;font-size:12px}
 .ratios{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.ratio{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 4px;font-size:12px;font-weight:800}.ratio.active{background:var(--soft);border-color:#9c7af0;color:#5b2bd4}
 .quick{display:flex;flex-wrap:wrap;gap:7px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 10px;font-size:11px;color:var(--muted)}
 .error{display:none;margin-top:9px;padding:10px 12px;border-radius:12px;background:#fff0f3;color:var(--danger);font-size:12px;line-height:1.5}.error.show{display:block}
@@ -69,7 +69,7 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
  <div class="canvas-head"><div><div class="title">Photo Canvas</div><div class="sub">Отдельный холст фото-редактора</div></div><button id="editorClear" class="btn small">Очистить</button></div>
  <div id="editCanvas" class="canvas"><div id="editEmpty" class="empty"><div class="emoji">🖼️</div><b>Загрузите изображение</b><p>Выберите файл, перетащите его на холст или откройте результат генерации.</p><button id="editorChoose" class="btn primary">Выбрать изображение</button></div><img id="editorSource" class="hidden" alt="Source image"><img id="editResult" class="hidden" alt="Edited result"></div>
  <input id="editorFile" type="file" accept="image/*" hidden>
- <div class="row" style="margin-top:12px"><button id="editorAnimate" class="btn primary">🎬 Анимировать изображение</button><button id="editUseResult" class="btn hidden">Использовать результат</button></div>
+ <div class="row" style="margin-top:12px"><button id="editorAnimate" class="btn primary animate-action">🎬 Анимировать изображение</button><button id="editUseResult" class="btn hidden">Использовать результат</button></div>
 </div>
 <div class="side">
  <div class="card control"><h3>Что изменить?</h3><textarea id="editPrompt" placeholder="Например: добавь лёгкий ветер в волосы, сохрани лицо, одежду, композицию и освещение..."></textarea><div id="editError" class="error"></div><button id="editBtn" class="btn primary full" style="margin-top:10px">Применить изменение</button></div>
@@ -82,7 +82,7 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
   <div class="hint" style="margin-top:9px">AI-редактирование через OpenRouter доступно только при наличии рабочего баланса API.</div>
   <select id="editModel" class="hidden"><option value="or-nano-banana-2">Nano Banana 2</option></select>
  </div>
- <div class="card control"><h3>🎬 Видео</h3><button id="editorAnimateBig" class="btn dark full">🎬 Анимировать это изображение</button><div class="hint" style="margin-top:9px">Видео — отдельный редактор. Фото-редактор не нужен для подготовки видео.</div></div>
+ <div class="card control"><h3>🎬 Видео</h3><button id="editorAnimateBig" class="btn primary full animate-action">🎬 Анимировать это изображение</button><div class="hint" style="margin-top:9px">Видео — отдельный редактор. Фото-редактор не нужен для подготовки видео.</div></div>
 </div>
 </div>
 </section>
@@ -263,7 +263,12 @@ $('editBtn')?.addEventListener('click',async()=>{
    $('editUseResult').classList.remove('hidden');
  }catch(e){
    console.warn('AI edit unavailable:',e);
-   showError('editError','AI-редактор сейчас недоступен: '+textError(e)+' Можно использовать ползунки выше — они работают без API.');
+   try{
+     renderLocalEdit();
+     showError('editError','AI-сервис сейчас недоступен. Применено локальное редактирование в браузере.');
+   }catch(localError){
+     showError('editError','Редактор: '+textError(localError));
+   }
  }finally{
    $('editBtn').disabled=false;
    loading(false);
@@ -296,7 +301,7 @@ $('videoCanvas')?.addEventListener('dragover',e=>{e.preventDefault();$('videoCan
 $('videoCanvas')?.addEventListener('dragleave',()=>$('videoCanvas').classList.remove('drag'));
 $('videoCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('videoCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return showError('videoError','Нужен файл изображения.');state.videoImage=await fileData(f);setImage('videoImage','videoEmpty',state.videoImage)});
 
-$('videoReset')?.addEventListener('click',()=>{state.videoImage='';$('videoFile').value='';setImage('videoImage','videoEmpty','');$('videoResult').classList.add('hidden');$('videoResult').removeAttribute('src');$('videoDownload').classList.add('hidden');$('videoStatus').classList.remove('show')});
+$('videoReset')?.addEventListener('click',()=>{state.videoImage='';$('videoFile').value='';setImage('videoImage','videoEmpty','');$('videoResult').classList.add('hidden');$('videoResult').removeAttribute('src');$('videoDownload').classList.add('hidden');$('videoStatus').classList.add('show');$('videoStatus').textContent='Добавьте изображение и нажмите «Создать видео».'});
 
 async function sourceForVideo(src){
  if(src.startsWith('data:image/'))return src;
@@ -316,7 +321,14 @@ async function makeLocalVideo(){
  else {canvas.width=1280;canvas.height=720}
  const ctx=canvas.getContext('2d');
  const stream=canvas.captureStream(24);
- const rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'});
+ const mimeCandidates=[
+   'video/webm;codecs=vp8',
+   'video/webm',
+   'video/mp4'
+ ];
+ const supported=mimeCandidates.find(x=>window.MediaRecorder&&MediaRecorder.isTypeSupported(x));
+ if(!supported) throw new Error('Браузер не поддерживает запись видео WebM/MP4.');
+ const rec=new MediaRecorder(stream,{mimeType:supported});
  const chunks=[];
  rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
  const done=new Promise((resolve,reject)=>{rec.onstop=resolve;rec.onerror=reject});
