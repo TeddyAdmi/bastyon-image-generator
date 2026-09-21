@@ -121,80 +121,64 @@ const ideas=[
 'Белый тигр в неоновом Токио под дождём, мокрая шерсть, отражения, ultra realistic',
 'Лиса на снегу в зимнем лесу, золотой час, реалистичная фотография',
 'Маленький медвежонок возле озера, туманное утро, cinematic realism',
-'Кот-путешественник на старинном вокзале, объёмный свет, 35mm photography',
-'Оранжевый поросёнок за рулём маленького автомобиля, реалистичная шерсть, comedy cinema',
-'Два волка на горном хребте, ветер в шерсти, драматичный закат'
+'Кот-путешественник на старинном вокзале, объёмный свет, 35mm photography'
 ];
-
 function msg(e){if(!e)return 'Неизвестная ошибка';if(typeof e==='string')return e;if(e.message)return e.message;try{return JSON.stringify(e)}catch{return String(e)}}
 function error(id,e){const x=$(id);if(!x)return;x.textContent=e?msg(e):'';x.classList.toggle('show',!!e)}
-function load(on,title,text){$('loading').classList.toggle('show',on);if(title)$('loadingTitle').textContent=title;if(text)$('loadingText').textContent=text}
+function load(on,title,text){const x=$('loading');if(x)x.classList.toggle('show',on);if(title&&$('loadingTitle'))$('loadingTitle').textContent=title;if(text&&$('loadingText'))$('loadingText').textContent=text}
 async function api(url,opt){const r=await fetch(url,opt);const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{throw new Error('Сервер вернул не JSON (HTTP '+r.status+').')}if(!r.ok)throw new Error(d.error||d.message||('HTTP '+r.status));return d}
 function dataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=reject;r.readAsDataURL(file)})}
-function show(view){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));$(view+'View').classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view));window.scrollTo({top:0,behavior:'smooth'})}
-function setImage(imgId,emptyId,src){const img=$(imgId),empty=$(emptyId);if(!src){img?.classList.add('hidden');if(empty)empty.classList.remove('hidden');return}img.src=src;img.classList.remove('hidden');if(empty)empty.classList.add('hidden')}
-function openVideo(src){if(!src){error('editError','Сначала загрузите или создайте изображение.');return}state.videoImage=src;setImage('videoImage','videoEmpty',src);$('videoResult').classList.add('hidden');$('videoResult').removeAttribute('src');error('videoError','');show('video')}
-function wireRatios(id,key){document.querySelectorAll('#'+id+' .ratio').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+id+' .ratio').forEach(x=>x.classList.remove('active'));b.classList.add('active');state[key]=b.dataset.ratio}))}
-wireRatios('genRatios','genRatio');wireRatios('videoRatios','videoRatio');
+function show(view){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const v=$(view+'View');if(v)v.classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view));window.scrollTo({top:0,behavior:'smooth'})}
+function setImage(imgId,emptyId,src){const img=$(imgId),empty=$(emptyId);if(!img)return;if(!src){img.classList.add('hidden');if(empty)empty.classList.remove('hidden');return}img.src=src;img.classList.remove('hidden');if(empty)empty.classList.add('hidden')}
+function openVideo(src){if(!src){error('editError','Сначала загрузите или создайте изображение.');return}state.videoImage=src;setImage('videoImage','videoEmpty',src);$('videoResult')?.classList.add('hidden');$('videoResult')?.removeAttribute('src');error('videoError','');show('video')}
+function wireRatios(id,key){document.querySelectorAll('#'+id+' .ratio').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+id+' .ratio').forEach(x=>x.classList.remove('active'));b.classList.add('active');state[key]=b.dataset.ratio||state[key]}))}
+wireRatios('genRatios','genRatio');wireRatios('editRatios','editRatio');wireRatios('videoRatios','videoRatio');
 
-$('quickIdeas').innerHTML=ideas.slice(0,6).map((x,i)=>'<button class="chip" data-i="'+i+'">'+x.slice(0,34)+'…</button>').join('');
-$('quickIdeas').querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{$('genPrompt').value=ideas[Number(b.dataset.i)]}));
-
+const qi=$('quickIdeas');if(qi){qi.innerHTML=ideas.map((x,i)=>'<button class="chip" data-i="'+i+'">'+x.slice(0,34)+'…</button>').join('');qi.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{$('genPrompt').value=ideas[+b.dataset.i]}))}
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>show(t.dataset.view)));
-$('genClearPrompt').onclick=()=>$('genPrompt').value='';
-$('genRandom').onclick=()=>{$('genPrompt').value=ideas[Math.floor(Math.random()*ideas.length)]};
-$('genClear').onclick=()=>{state.genImage='';setImage('genImage','genEmpty','');$('openEditor').classList.add('hidden');$('openVideo').classList.add('hidden');error('genError','')};
+$('genClearPrompt')?.addEventListener('click',()=>$('genPrompt').value='');
+$('genRandom')?.addEventListener('click',()=>{$('genPrompt').value=ideas[Math.floor(Math.random()*ideas.length)]});
+$('genClear')?.addEventListener('click',()=>{state.genImage='';setImage('genImage','genEmpty','');$('openEditor')?.classList.add('hidden');$('openVideo')?.classList.add('hidden');error('genError','')});
 
-$('generateBtn').onclick=async()=>{
+$('generateBtn')?.addEventListener('click',async()=>{
  if(state.busy)return;const prompt=$('genPrompt').value.trim();error('genError','');if(!prompt)return error('genError','Введите промпт.');
  state.busy=true;$('generateBtn').disabled=true;load(true,'Miya AI создаёт изображение','Генерируем кадр…');
- try{const d=await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({prompt,ratio:state.genRatio,model:$('genModel').value,quality:$('genQuality').value,size:'auto',outputFormat:'png'})});if(!d.imageUrl)throw new Error('Сервер не вернул изображение.');state.genImage=d.imageUrl;setImage('genImage','genEmpty',d.imageUrl);$('openEditor').classList.remove('hidden');$('openVideo').classList.remove('hidden');}
- catch(e){console.error(e);error('genError',e)}finally{state.busy=false;$('generateBtn').disabled=false;load(false)}
-};
+ try{const d=await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({prompt,ratio:state.genRatio,model:$('genModel')?.value||'auto',quality:$('genQuality')?.value||'auto',size:'auto',outputFormat:'png'})});if(!d.imageUrl)throw new Error('Сервер не вернул изображение.');state.genImage=d.imageUrl;setImage('genImage','genEmpty',d.imageUrl);$('openEditor')?.classList.remove('hidden');$('openVideo')?.classList.remove('hidden')}catch(e){console.error(e);error('genError',e)}finally{state.busy=false;$('generateBtn').disabled=false;load(false)}
+});
+$('openEditor')?.addEventListener('click',()=>{state.editorImage=state.genImage;setImage('editorSource','editEmpty',state.genImage);show('edit')});
+$('openVideo')?.addEventListener('click',()=>openVideo(state.genImage));
 
-$('openEditor').onclick=()=>{state.editorImage=state.genImage;setImage('editorSource','editEmpty',state.genImage);show('edit')};
-$('openVideo').onclick=()=>openVideo(state.genImage);
+$('editorChoose')?.addEventListener('click',()=>$('editorFile').click());
+$('editorFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.editorImage=await dataUrl(f);setImage('editorSource','editEmpty',state.editorImage);$('editResult')?.classList.add('hidden');error('editError','')}catch(x){error('editError',x)}});
+$('editCanvas')?.addEventListener('dragover',e=>{e.preventDefault();$('editCanvas').classList.add('drag')});
+$('editCanvas')?.addEventListener('dragleave',()=>$('editCanvas').classList.remove('drag'));
+$('editCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('editCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return error('editError','Перетащите JPG, PNG или WEBP.');state.editorImage=await dataUrl(f);setImage('editorSource','editEmpty',state.editorImage)});
+$('editorClear')?.addEventListener('click',()=>{state.editorImage='';$('editorFile').value='';setImage('editorSource','editEmpty','');$('editResult')?.classList.add('hidden');$('editUseResult')?.classList.add('hidden');error('editError','')});
 
-$('editorChoose').onclick=()=>$('editorFile').click();
-$('editorFile').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{state.editorImage=await dataUrl(f);setImage('editorSource','editEmpty',state.editorImage);$('editResult').classList.add('hidden');error('editError','')}catch(x){error('editError',x)}};
-$('editCanvas').addEventListener('dragover',e=>{e.preventDefault();$('editCanvas').classList.add('drag')});
-$('editCanvas').addEventListener('dragleave',()=>$('editCanvas').classList.remove('drag'));
-$('editCanvas').addEventListener('drop',async e=>{e.preventDefault();$('editCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return error('editError','Перетащите изображение JPG, PNG или WEBP.');state.editorImage=await dataUrl(f);setImage('editorSource','editEmpty',state.editorImage)});
-$('editorClear').onclick=()=>{state.editorImage='';$('editorFile').value='';setImage('editorSource','editEmpty','');$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden');error('editError','')};
+$('editBtn')?.addEventListener('click',async()=>{
+ const prompt=$('editPrompt')?.value.trim();error('editError','');if(!state.editorImage)return error('editError','Сначала загрузите изображение.');if(!prompt)return error('editError','Введите описание изменения.');
+ $('editBtn').disabled=true;load(true,'Miya AI редактирует','Обрабатываем исходный кадр…');
+ try{const d=await api('/api/edit',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({prompt,imageBase64:state.editorImage,ratio:state.editRatio,model:$('editModel')?.value||'auto',quality:$('editQuality')?.value||'auto',size:'auto',outputFormat:'png'})});if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');state.editorImage=d.imageUrl;$('editResult').src=d.imageUrl;$('editResult').classList.remove('hidden');$('editUseResult')?.classList.remove('hidden')}catch(e){console.error(e);error('editError',e)}finally{$('editBtn').disabled=false;load(false)}
+});
+$('editUseResult')?.addEventListener('click',()=>{const s=$('editResult').src;if(s){state.editorImage=s;setImage('editorSource','editEmpty',s);$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden')}});
+$('editorAnimate')?.addEventListener('click',()=>openVideo(state.editorImage||$('editorSource')?.src));
 
-$('editBtn').onclick=async()=>{
- const prompt=$('editPrompt').value.trim();error('editError','');if(!state.editorImage)return error('editError','Сначала загрузите изображение.');if(!prompt)return error('editError','Введите описание изменения.');
- $('editBtn').disabled=true;load(true,'Miya AI редактирует','Сохраняем исходный кадр и применяем изменение…');
- try{const d=await api('/api/edit',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({prompt,imageBase64:state.editorImage,ratio:state.editRatio,model:$('editModel').value,quality:$('editQuality').value,size:'auto',outputFormat:'png'})});if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');state.editorImage=d.imageUrl;$('editResult').src=d.imageUrl;$('editResult').classList.remove('hidden');$('editUseResult').classList.remove('hidden');}
- catch(e){console.error(e);error('editError',e)}finally{$('editBtn').disabled=false;load(false)}
-};
+$('videoChoose')?.addEventListener('click',()=>$('videoFile').click());
+$('videoReplace')?.addEventListener('click',()=>$('videoFile').click());
+$('videoFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{state.videoImage=await dataUrl(f);setImage('videoImage','videoEmpty',state.videoImage);$('videoResult')?.classList.add('hidden');error('videoError','')}catch(x){error('videoError',x)}});
+$('videoCanvas')?.addEventListener('dragover',e=>{e.preventDefault();$('videoCanvas').classList.add('drag')});
+$('videoCanvas')?.addEventListener('dragleave',()=>$('videoCanvas').classList.remove('drag'));
+$('videoCanvas')?.addEventListener('drop',async e=>{e.preventDefault();$('videoCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return error('videoError','Перетащите JPG, PNG или WEBP.');state.videoImage=await dataUrl(f);setImage('videoImage','videoEmpty',state.videoImage)});
+$('videoReset')?.addEventListener('click',()=>{state.videoImage='';$('videoFile').value='';setImage('videoImage','videoEmpty','');$('videoResult')?.classList.add('hidden');$('videoResult')?.removeAttribute('src');$('videoDownload')?.classList.add('hidden');error('videoError','')});
 
-$('editUseResult').onclick=()=>{const s=$('editResult').src;if(s){state.editorImage=s;setImage('editorSource','editEmpty',s);$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden')}};
-$('editorAnimate').onclick=()=>openVideo(state.editorImage||$('editorSource').src);
-
-$('videoChoose').onclick=()=>$('videoFile').click();
-$('videoReplace').onclick=()=>$('videoFile').click();
-$('videoFile').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{state.videoImage=await dataUrl(f);setImage('videoImage','videoEmpty',state.videoImage);$('videoResult').classList.add('hidden');error('videoError','')}catch(x){error('videoError',x)}};
-$('videoCanvas').addEventListener('dragover',e=>{e.preventDefault();$('videoCanvas').classList.add('drag')});
-$('videoCanvas').addEventListener('dragleave',()=>$('videoCanvas').classList.remove('drag'));
-$('videoCanvas').addEventListener('drop',async e=>{e.preventDefault();$('videoCanvas').classList.remove('drag');const f=e.dataTransfer.files?.[0];if(!f||!f.type.startsWith('image/'))return error('videoError','Перетащите изображение JPG, PNG или WEBP.');state.videoImage=await dataUrl(f);setImage('videoImage','videoEmpty',state.videoImage)});
-$('videoReset').onclick=()=>{state.videoImage='';$('videoFile').value='';setImage('videoImage','videoEmpty','');$('videoResult').classList.add('hidden');$('videoResult').removeAttribute('src');$('videoDownload').classList.add('hidden');error('videoError','');$('videoStatus').classList.remove('show')};
-
-$('videoGenerate').onclick=async()=>{
- if(state.busy)return;error('videoError','');const prompt=$('videoPrompt').value.trim();if(!state.videoImage)return error('videoError','Сначала загрузите исходный кадр.');if(!prompt)return error('videoError','Введите описание движения.');
- state.busy=true;$('videoGenerate').disabled=true;$('videoStatus').classList.add('show');$('videoStatus').textContent='Запускаем LTX-Video GPU…';
- try{
-  const d=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({imageBase64:state.videoImage,prompt,aspect:state.videoRatio})});
-  if(!d.taskId)throw new Error('Видеосервер не вернул taskId.');
-  for(let i=0;i<900;i++){
-   await new Promise(r=>setTimeout(r,4000));
-   const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId),{cache:'no-store'});
-   $('videoStatus').textContent=(s.provider||'LTX-Video GPU')+' · '+(s.status||'RUNNING')+'…';
-   if(s.done){if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');$('videoResult').src=s.videoUrl;$('videoResult').classList.remove('hidden');$('videoDownload').classList.remove('hidden');$('videoDownload').onclick=()=>window.open(s.videoUrl,'_blank','noopener');$('videoStatus').textContent='Готово · '+(s.model||'LTX-Video');return}
-  }
+$('videoGenerate')?.addEventListener('click',async()=>{
+ if(state.busy)return;error('videoError','');const prompt=$('videoPrompt')?.value.trim();if(!state.videoImage)return error('videoError','Сначала загрузите исходный кадр.');if(!prompt)return error('videoError','Введите описание движения.');
+ state.busy=true;$('videoGenerate').disabled=true;$('videoStatus')?.classList.add('show');$('videoStatus').textContent='Запускаем LTX-Video GPU…';
+ try{const d=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({imageBase64:state.videoImage,prompt,aspect:state.videoRatio})});if(!d.taskId)throw new Error('Видеосервер не вернул taskId.');
+  for(let i=0;i<900;i++){await new Promise(r=>setTimeout(r,4000));const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId),{cache:'no-store',headers:{'Accept':'application/json'}});$('videoStatus').textContent=(s.provider||'LTX-Video GPU')+' · '+(s.status||'RUNNING')+'…';if(s.done){if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');$('videoResult').src=s.videoUrl;$('videoResult').classList.remove('hidden');$('videoDownload').classList.remove('hidden');$('videoDownload').onclick=()=>window.open(s.videoUrl,'_blank','noopener');$('videoStatus').textContent='Готово · '+(s.model||'LTX-Video');return}}
   throw new Error('Видео слишком долго обрабатывается.');
- }catch(e){console.error(e);error('videoError',e);$('videoStatus').classList.remove('show')}finally{state.busy=false;$('videoGenerate').disabled=false}
-};
+ }catch(e){console.error(e);error('videoError',e);$('videoStatus')?.classList.remove('show')}finally{state.busy=false;$('videoGenerate').disabled=false}
+});
 console.log('Miya AI stable UI loaded');
 })();
 </script>
