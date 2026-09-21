@@ -29,7 +29,7 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 .footer-note{text-align:center;color:#a19aa9;font-size:11px;margin-top:18px}
 @media(max-width:980px){.layout{grid-template-columns:1fr}.canvas-card{min-height:560px}.canvas{min-height:500px}.side{order:2}}@media(max-width:620px){.app{padding:12px 10px 30px}.top{align-items:flex-start;flex-direction:column}.tabs{width:100%}.tab{flex:1;padding:10px 7px;font-size:12px}.row,.row3{grid-template-columns:1fr}.ratios{grid-template-columns:repeat(2,1fr)}.canvas{min-height:430px}}
 </style>
-</head>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237040ef'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Arial' font-size='32' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E%3C/link></head>
 <body>
 <div class="app">
 <header class="top">
@@ -80,7 +80,11 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 <div class="side">
 <div class="card control"><h3>Что изменить?</h3><textarea id="editPrompt" placeholder="Например: добавь лёгкий ветер в волосы, сохрани лицо, одежду, композицию и освещение..."></textarea><div id="editError" class="error"></div><button id="editBtn" class="btn primary full" style="margin-top:10px">Применить изменение</button></div>
 <div class="card control"><h3>Параметры</h3><div class="row"><div><label class="label">Модель</label><select id="editModel"><option value="auto">Auto · FLUX Kontext</option><option value="legacy-flux">FLUX Kontext Dev</option><option value="or-nano-banana-2">Nano Banana 2</option><option value="or-gpt-image-2">GPT Image 2</option><option value="or-flux-klein">FLUX.2 Klein</option></select></div><div><label class="label">Качество</label><select id="editQuality"><option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div></div></div>
-<div class="card control"><div class="hint">Видео-редактор полностью отделён от фото-редактора. Кнопка «Анимировать» передаёт текущий кадр напрямую в /api/video, без /api/edit.</div></div>
+<div class="card control">
+<h3>🎬 Видео</h3>
+<button id="editorAnimateBig" class="btn primary full">Анимировать этот кадр</button>
+<div class="hint" style="margin-top:9px">Откроется отдельный Video Canvas. Фото-редактор не используется для подготовки видео.</div>
+</div>
 </div>
 </div>
 </section>
@@ -101,6 +105,7 @@ textarea,input,select{width:100%;border:1px solid var(--line);background:#fff;bo
 <div class="card control"><h3>Сценарий движения</h3><textarea id="videoPrompt" placeholder="Например: животные начинают двигаться и смотреть друг на друга, камера плавно приближается, естественная физика, кинематографичный реализм..."></textarea><div id="videoError" class="error"></div><div id="videoStatus" class="status"></div><button id="videoGenerate" class="btn primary full" style="margin-top:10px">🎬 Создать видео</button></div>
 <div class="card control"><h3>Формат видео</h3><div id="videoRatios" class="ratios"><button class="ratio active" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="4:3">4:3</button></div></div>
 <div class="card control"><h3>Источник кадра</h3><button id="videoReplace" class="btn full">Заменить изображение</button><div class="hint" style="margin-top:9px">Видео не использует /api/edit. Кадр отправляется непосредственно на видеосервер.</div></div>
+<div class="card control"><h3>Статус видеодвижка</h3><div id="videoBackendStatus" class="status show">Проверяем LTX GPU…</div></div>
 </div>
 </div>
 </section>
@@ -123,10 +128,37 @@ const ideas=[
 'Маленький медвежонок возле озера, туманное утро, cinematic realism',
 'Кот-путешественник на старинном вокзале, объёмный свет, 35mm photography'
 ];
-function msg(e){if(!e)return 'Неизвестная ошибка';if(typeof e==='string')return e;if(e.message)return e.message;try{return JSON.stringify(e)}catch{return String(e)}}
+function msg(e){
+ if(!e)return 'Неизвестная ошибка';
+ if(typeof e==='string')return e;
+ if(typeof e.message==='string'&&e.message)return e.message;
+ if(typeof e.error==='string'&&e.error)return e.error;
+ if(e.error&&typeof e.error==='object'&&typeof e.error.message==='string')return e.error.message;
+ try{return JSON.stringify(e)}catch{return String(e)}
+}
 function error(id,e){const x=$(id);if(!x)return;x.textContent=e?msg(e):'';x.classList.toggle('show',!!e)}
 function load(on,title,text){const x=$('loading');if(x)x.classList.toggle('show',on);if(title&&$('loadingTitle'))$('loadingTitle').textContent=title;if(text&&$('loadingText'))$('loadingText').textContent=text}
 async function api(url,opt){const r=await fetch(url,opt);const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{throw new Error('Сервер вернул не JSON (HTTP '+r.status+').')}if(!r.ok)throw new Error(d.error||d.message||('HTTP '+r.status));return d}
+async function checkVideoBackend(){
+ const box=$('videoBackendStatus');
+ if(!box)return;
+ try{
+   const r=await fetch('/api/video?health=1',{cache:'no-store'});
+   const t=await r.text();
+   let d={};try{d=t?JSON.parse(t):{}}catch{}
+   if(d.ltxConfigured){
+     box.textContent='✓ LTX GPU подключён';
+     box.style.background='#eaf9f1';box.style.color='#16764f';
+   }else{
+     box.textContent='⚠ LTX GPU ещё не подключён. Добавьте LTX_SERVER_URL в Vercel.';
+     box.style.background='#fff7e8';box.style.color='#8a5a00';
+   }
+ }catch(e){
+   box.textContent='⚠ Не удалось проверить видеосервер.';
+ }
+}
+checkVideoBackend();
+
 function dataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=reject;r.readAsDataURL(file)})}
 function show(view){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const v=$(view+'View');if(v)v.classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view));window.scrollTo({top:0,behavior:'smooth'})}
 function setImage(imgId,emptyId,src){const img=$(imgId),empty=$(emptyId);if(!img)return;if(!src){img.classList.add('hidden');if(empty)empty.classList.remove('hidden');return}img.src=src;img.classList.remove('hidden');if(empty)empty.classList.add('hidden')}
@@ -170,7 +202,16 @@ $('editBtn')?.addEventListener('click',async()=>{
 })});if(!d.imageUrl)throw new Error('Редактор не вернул изображение.');state.editorImage=d.imageUrl;$('editResult').src=d.imageUrl;$('editResult').classList.remove('hidden');$('editUseResult')?.classList.remove('hidden')}catch(e){console.error(e);error('editError',e)}finally{$('editBtn').disabled=false;load(false)}
 });
 $('editUseResult')?.addEventListener('click',()=>{const s=$('editResult').src;if(s){state.editorImage=s;setImage('editorSource','editEmpty',s);$('editResult').classList.add('hidden');$('editUseResult').classList.add('hidden')}});
-$('editorAnimate')?.addEventListener('click',()=>openVideo(state.editorImage||$('editorSource')?.src));
+function animateCurrentFrame(){
+ const src=state.editorImage||$('editorSource')?.src||'';
+ if(!src){
+   error('editError','Сначала загрузите изображение.');
+   return;
+ }
+ openVideo(src);
+}
+$('editorAnimate')?.addEventListener('click',animateCurrentFrame);
+$('editorAnimateBig')?.addEventListener('click',animateCurrentFrame);
 
 $('videoChoose')?.addEventListener('click',()=>$('videoFile').click());
 $('videoReplace')?.addEventListener('click',()=>$('videoFile').click());
