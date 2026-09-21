@@ -465,16 +465,18 @@
       background: #f7f7f8;
     }
 
-    .gallery-item img {
+    .gallery-item img,
+    .gallery-item video {
       width: 100%;
       height: 100%;
-
       display: block;
-
       object-fit: contain;
       object-position: center;
+      background: #111;
+    }
 
-      background: #f7f7f8;
+    .gallery-item video {
+      aspect-ratio: 16 / 9;
     }
 
     .image-toolbar {
@@ -938,15 +940,18 @@
       border-color: var(--border-purple);
     }
 
-    .history-item img {
+    .history-item img,
+    .history-item video {
       width: 100%;
       aspect-ratio: 1 / 1;
-
       display: block;
-
       object-fit: cover;
+      background: #111;
+    }
 
-      background: #f3f2f5;
+    .history-item.video-history video {
+      aspect-ratio: 16 / 9;
+      object-fit: contain;
     }
 
     .history-caption {
@@ -1216,6 +1221,17 @@
       justify-content: space-between;
       align-items: center;
       margin-top: 7px;
+    }
+
+    .editor-video-result {
+      width: 100%;
+      height: auto;
+      max-height: 520px;
+      display: block;
+      object-fit: contain;
+      aspect-ratio: 16 / 9;
+      border-radius: 18px;
+      background: #111;
     }
 
     /* LOADING */
@@ -2259,11 +2275,10 @@
 
           <video
             id="editorVideoResult"
-            class="hidden"
+            class="hidden editor-video-result"
             controls
             playsinline
             preload="metadata"
-            style="width:100%;height:100%;object-fit:contain;border-radius:18px;background:#111"
           ></video>
 
         </div>
@@ -2300,6 +2315,22 @@
             id="animateEditedBtn"
           >
             🎬 Анимировать
+          </button>
+
+          <button
+            type="button"
+            class="small-button hidden"
+            id="downloadVideoBtn"
+          >
+            ↓ Скачать видео
+          </button>
+
+          <button
+            type="button"
+            class="small-button hidden"
+            id="sendVideoToGeneratorBtn"
+          >
+            ✨ Видео в генератор
           </button>
 
         </div>
@@ -2380,6 +2411,8 @@
   let editorRatio = "1:1";
 
   let lastImages = [];
+
+  let lastVideo = null;
 
   let editorImageBase64 = "";
 
@@ -3310,6 +3343,53 @@
   }
 
 
+
+
+  function renderVideoGallery(
+    videoUrl,
+    aspect = "16:9"
+  ) {
+
+    const gallery = $("generatorGallery");
+    const empty = $("generatorEmpty");
+
+    const item = document.createElement("div");
+    item.className = "gallery-item video-gallery-item";
+
+    item.innerHTML = `
+      <video
+        src="${escapeHtml(videoUrl)}"
+        controls
+        playsinline
+        preload="metadata"
+        style="aspect-ratio:${aspect === "9:16" ? "9 / 16" : "16 / 9"}"
+      ></video>
+
+      <div class="image-toolbar">
+        <button type="button" class="image-tool" id="mainVideoDownload">
+          ↓ Скачать
+        </button>
+        <button type="button" class="image-tool" id="mainVideoEditor">
+          🎨 В редактор
+        </button>
+      </div>
+    `;
+
+    $("mainVideoDownload").addEventListener("click", () => {
+      downloadImage(videoUrl, "miya-video.mp4");
+    });
+
+    $("mainVideoEditor").addEventListener("click", () => {
+      showVideoInEditor(videoUrl, aspect);
+    });
+
+    gallery.innerHTML = "";
+    gallery.appendChild(item);
+
+    empty.classList.add("hidden");
+    gallery.classList.remove("hidden");
+  }
+
   /* =====================================================
      DOWNLOAD
   ====================================================== */
@@ -3570,6 +3650,34 @@
   }
 
 
+
+
+  function saveVideoHistory(
+    videoUrl,
+    prompt,
+    aspect
+  ) {
+
+    const history = getHistory();
+
+    history.unshift({
+      type: "video",
+      videoUrl,
+      prompt,
+      aspect: aspect || "16:9",
+      createdAt: Date.now()
+    });
+
+    try {
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify(history.slice(0, 21))
+      );
+    } catch (error) {
+      console.warn("Video history save error:", error);
+    }
+  }
+
   function renderHistory() {
 
     const grid =
@@ -3610,36 +3718,80 @@
             "div"
           );
 
+        const isVideo =
+          item.type === "video";
+
+        const historyUrl =
+          isVideo
+            ? item.videoUrl
+            : item.imageUrl;
+
+        if (!historyUrl) {
+          return;
+        }
+
         card.className =
-          "history-item";
+          "history-item" +
+          (isVideo ? " video-history" : "");
 
+        card.innerHTML = isVideo
+          ? `
 
-        card.innerHTML = `
+            <video
+              src="${escapeHtml(historyUrl)}"
+              muted
+              playsinline
+              preload="metadata"
+            ></video>
 
-          <img
-            src="${escapeHtml(item.imageUrl)}"
-            alt="History image"
-          >
+            <div class="history-caption">
+              🎬 Видео · ${escapeHtml(item.prompt)}
+            </div>
 
-          <div class="history-caption">
-            ${escapeHtml(item.prompt)}
-          </div>
+          `
+          : `
 
-        `;
+            <img
+              src="${escapeHtml(historyUrl)}"
+              alt="History image"
+            >
+
+            <div class="history-caption">
+              ${escapeHtml(item.prompt)}
+            </div>
+
+          `;
 
 
         card.addEventListener(
           "click",
           () => {
 
-            lastImages =
-              [item.imageUrl];
+            if (isVideo) {
 
+              lastVideo = {
+                type: "video",
+                url: historyUrl,
+                videoUrl: historyUrl,
+                prompt: item.prompt || "",
+                aspect: item.aspect || "16:9"
+              };
 
-            renderGallery(
-              lastImages
-            );
+              renderVideoGallery(
+                historyUrl,
+                item.aspect || "16:9"
+              );
 
+            } else {
+
+              lastImages =
+                [item.imageUrl];
+
+              renderGallery(
+                lastImages
+              );
+
+            }
 
             switchMode(
               "generator"
@@ -4276,6 +4428,18 @@
         "hidden"
       );
 
+    $("downloadVideoBtn")
+      .classList
+      .add(
+        "hidden"
+      );
+
+    $("sendVideoToGeneratorBtn")
+      .classList
+      .add(
+        "hidden"
+      );
+
     $("editorVideoResult").src = "";
     $("editorVideoResult")
       .classList
@@ -4716,6 +4880,68 @@
     }
   }
 
+  function showVideoInEditor(
+    videoUrl,
+    aspect = "16:9"
+  ) {
+
+    const video = $("editorVideoResult");
+
+    if (!video || !videoUrl) {
+      return;
+    }
+
+    video.src = videoUrl;
+    video.style.aspectRatio =
+      aspect === "9:16"
+        ? "9 / 16"
+        : "16 / 9";
+
+    video.classList.remove("hidden");
+
+    $("editorResultImage")
+      .classList
+      .add("hidden");
+
+    $("editorResultPlaceholder")
+      .classList
+      .add("hidden");
+
+    $("downloadVideoBtn")
+      .classList
+      .remove("hidden");
+
+    $("sendVideoToGeneratorBtn")
+      .classList
+      .remove("hidden");
+
+    $("downloadVideoBtn").onclick = () =>
+      downloadImage(
+        videoUrl,
+        "miya-video.mp4"
+      );
+
+    $("sendVideoToGeneratorBtn").onclick = () => {
+      lastVideo = {
+        type: "video",
+        url: videoUrl,
+        videoUrl,
+        prompt: $("editPrompt").value.trim(),
+        aspect
+      };
+
+      renderVideoGallery(
+        videoUrl,
+        aspect
+      );
+
+      switchMode("generator");
+    };
+
+    video.load();
+  }
+
+
   async function animateEditorImage() {
     const resultImage = $("editorResultImage");
     const sourceImage = $("editorSource");
@@ -4780,7 +5006,7 @@
           imageUrl: videoImageUrl,
           imageBase64: videoImageBase64,
           prompt,
-          aspect: "9:16"
+          aspect: editorRatio || "16:9"
         })
       });
 
@@ -4883,8 +5109,55 @@
           }
 
           const video = $("editorVideoResult");
+          const generatedAspect =
+            editorRatio || "16:9";
+
+          lastVideo = {
+            type: "video",
+            url: statusData.videoUrl,
+            videoUrl: statusData.videoUrl,
+            prompt,
+            aspect: generatedAspect,
+            createdAt: Date.now()
+          };
+
           video.src = statusData.videoUrl;
+          video.style.aspectRatio =
+            generatedAspect === "9:16"
+              ? "9 / 16"
+              : "16 / 9";
+
           video.classList.remove("hidden");
+
+          $("downloadVideoBtn")
+            .classList
+            .remove("hidden");
+
+          $("sendVideoToGeneratorBtn")
+            .classList
+            .remove("hidden");
+
+          $("downloadVideoBtn").onclick = () =>
+            downloadImage(
+              statusData.videoUrl,
+              "miya-video.mp4"
+            );
+
+          $("sendVideoToGeneratorBtn").onclick = () => {
+            renderVideoGallery(
+              statusData.videoUrl,
+              generatedAspect
+            );
+            switchMode("generator");
+          };
+
+          saveVideoHistory(
+            statusData.videoUrl,
+            prompt,
+            generatedAspect
+          );
+
+          renderHistory();
 
           $("editorResultImage").classList.add(
             "hidden"
