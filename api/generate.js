@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     const {
       prompt,
       ratio = "1:1",
-      model = "auto",
+      model = "or-nano-banana-2",
       quality = "auto",
       size = "auto",
       outputFormat = "png"
