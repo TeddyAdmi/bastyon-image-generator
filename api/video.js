@@ -106,8 +106,8 @@ function getPixazoKey() {
   ).trim();
 }
 
-const PIXAZO_CREATE_URL =
-  "https://gateway.pixazo.ai/ltx-video/v1/image-to-video";
+const PIXELSTER_VIDEO_URL =
+  "https://ahm7xmakki.com/api/ptv";
 
 const PIXAZO_STATUS_URL =
   "https://gateway.pixazo.ai/v2/requests/status/";
@@ -373,47 +373,56 @@ export default async function handler(req, res) {
       });
     }
 
-    // Fallback only when LTX_SERVER_URL is not configured.
-    const publicImageUrl = await makePublicImageUrl(
-      imageUrl,
-      imageBase64
+    // Free fallback: PixelSter image-to-video.
+    // This is used when the dedicated LTX GPU is not configured.
+    const pixelImageBase64 = imageBase64 || (
+      imageUrl ? await toDataUrlFromUrl(imageUrl) : ""
     );
 
-    const data = await pixazoRequest(
-      PIXAZO_CREATE_URL,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          prompt,
-          image_url: publicImageUrl,
-          duration: 6,
-          fps: 24,
-          aspect_ratio: body.aspect || "16:9",
-          generate_audio: true,
-          num_inference_steps: 8,
-          guidance_scale: 1,
-          enable_prompt_expansion: false,
-          enable_safety_checker: true
-        })
-      }
-    );
+    const pixelResponse = await fetch(PIXELSTER_VIDEO_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        prompt,
+        ratio: body.aspect || "16:9",
+        duration: Math.min(20, Math.max(5, Number(body.duration) || 6)),
+        imageBase64: pixelImageBase64
+      })
+    });
 
-    if (!data?.request_id) {
-      return res.status(502).json({
-        success: false,
-        error: "Pixazo не вернул request_id."
-      });
+    const pixelText = await pixelResponse.text();
+    let pixelData = {};
+    try {
+      pixelData = pixelText ? JSON.parse(pixelText) : {};
+    } catch {
+      throw new Error(
+        "PixelSter видео вернул не JSON (HTTP " +
+          pixelResponse.status +
+          ")."
+      );
     }
 
-    return res.status(202).json({
+    if (!pixelResponse.ok || !pixelData.videoUrl) {
+      throw new Error(
+        pixelData.error ||
+          pixelData.message ||
+          "PixelSter не смог создать видео (HTTP " +
+          pixelResponse.status +
+          ")."
+      );
+    }
+
+    return res.status(200).json({
       success: true,
-      done: false,
-      taskId: "pixazo:" + data.request_id,
-      requestId: data.request_id,
-      status: data.status || "QUEUED",
-      provider: "Pixazo",
-      model: "LTX 2.5",
-      pollingUrl: data.polling_url || ""
+      done: true,
+      status: "SUCCEEDED",
+      videoUrl: pixelData.videoUrl,
+      provider: "PixelSter",
+      model: "Motion Synthesis",
+      duration: Number(body.duration) || 6
     });
   } catch (error) {
     console.error("Video API error:", error);
