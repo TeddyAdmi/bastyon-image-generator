@@ -101,7 +101,11 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("Edit error:", error);
 
-    const message = String(error?.message || error || "Редактор временно недоступен.");
+    const message =
+      typeof error?.message === "string" ? error.message :
+      typeof error === "string" ? error :
+      error ? JSON.stringify(error) :
+      "Редактор временно недоступен.";
 
     return res.status(503).json({
       success: false,
