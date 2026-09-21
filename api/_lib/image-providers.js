@@ -1,9 +1,4 @@
-const OPENROUTER_MODELS = {
-  "or-nano-banana-2": "google/gemini-3.1-flash-image",
-  "or-gpt-image-2": "openai/gpt-image-2",
-  "or-flux-klein": "black-forest-labs/flux.2-klein-4b",
-  "or-seedream-4-5": "bytedance-seed/seedream-4.5"
-};
+const PIXELSTER = "https://ahm7xmakki.com/api";
 
 function normalizeImageInput(value) {
   const text = String(value || "").trim();
@@ -28,224 +23,117 @@ function normalizeImageInput(value) {
   };
 }
 
-function ratioToSize(ratio) {
-  const map = {
-    "1:1": [1024, 1024],
-    "16:9": [1536, 864],
-    "9:16": [864, 1536],
-    "4:3": [1365, 1024]
-  };
-  return map[ratio] || map["1:1"];
-}
-
-function mediaTypeFromDataUrl(dataUrl) {
-  return String(dataUrl || "").match(/^data:(image\/[^;]+);base64,/i)?.[1] || "image/png";
-}
-
-function extensionForType(mediaType) {
-  const type = String(mediaType || "").toLowerCase();
-  if (type.includes("jpeg") || type.includes("jpg")) return "jpg";
-  if (type.includes("webp")) return "webp";
-  return "png";
-}
-
-async function storeImage(dataUrl, prefix = "miya") {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return dataUrl;
-
-  const mediaType = mediaTypeFromDataUrl(dataUrl);
-  const base64 = dataUrl.split(",").pop();
-  const bytes = Buffer.from(base64, "base64");
-
-  const { put } = await import("@vercel/blob");
-  const blob = await put(
-    prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2) + "." + extensionForType(mediaType),
-    bytes,
-    { access: "public", contentType: mediaType, addRandomSuffix: false }
-  );
-
-  return blob.url;
-}
-
-async function readJson(response, provider) {
+async function parseResponse(response, provider) {
   const text = await response.text();
   let data = {};
-  try { data = text ? JSON.parse(text) : {}; }
-  catch {
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
     throw new Error(provider + " вернул не JSON (HTTP " + response.status + ").");
   }
 
   if (!response.ok) {
-    throw new Error(
+    const message =
       data?.error?.message ||
       data?.error ||
       data?.message ||
-      provider + " HTTP " + response.status
-    );
+      provider + " HTTP " + response.status;
+
+    throw new Error(String(message));
   }
 
   return data;
 }
 
-function editInstruction(prompt) {
+function editPrompt(prompt) {
   return String(prompt || "").trim() + `
 
-STRICT IMAGE EDITING:
-- Treat the supplied image as the source photograph, not as an object to redesign.
-- Preserve every existing subject unless the user explicitly asks to remove or replace it.
-- Perform ONLY the requested change.
-- If the user asks to "add another animal", the new animal is a SEPARATE animal placed beside/in the scene. NEVER merge it into, fuse it with, replace, or grow out of an existing animal.
-- Do not invent a different animal.
-- Do not change the species, anatomy, face, fur, clothing, pose or identity of the original subject unless explicitly requested.
-- Keep the original camera angle, composition, lighting and environment as much as possible.
+STRICT IMAGE EDIT:
+- Use the supplied image as the exact source image.
+- Preserve the original main subject, identity, species, anatomy, face, clothing, pose, camera angle and environment unless explicitly asked to change them.
+- Make only the requested modification.
+- If the request says to add an animal, create a separate new animal beside/in the scene; never merge it with the existing subject.
+- Do not replace the original subject.
 - Return one coherent natural photograph, not a collage.
 `;
 }
 
-async function openRouterImage({
-  model,
-  prompt,
-  ratio,
-  quality,
-  size,
-  outputFormat,
-  imageDataUrl
-}) {
-  const key = String(process.env.OPENROUTER_API_KEY || "").trim();
-  if (!key) {
-    throw new Error("OPENROUTER_API_KEY не настроен в Vercel.");
-  }
-
-  const body = {
-    model,
-    prompt: imageDataUrl ? editInstruction(prompt) : String(prompt || "").trim(),
-    aspect_ratio: ratio || "1:1"
-  };
-
-  if (size && ["1024x1024", "1536x1024", "1024x1536"].includes(size)) {
-    body.resolution = size === "1024x1024" ? "1K" : "2K";
-  }
-
-  if (quality && quality !== "auto") body.quality = quality;
-
-  if (["png", "jpeg", "webp"].includes(String(outputFormat || "").toLowerCase())) {
-    body.output_format = outputFormat;
-  }
-
-  if (imageDataUrl) {
-    body.input_references = [{
-      type: "image_url",
-      image_url: { url: imageDataUrl }
-    }];
-  }
-
-  const response = await fetch("https://openrouter.ai/api/v1/images", {
+async function pixelsterGenerate({ prompt, ratio }) {
+  const response = await fetch(PIXELSTER + "/tti", {
     method: "POST",
     headers: {
-      Authorization: "Bearer " + key,
       "Content-Type": "application/json",
-      "HTTP-Referer": process.env.APP_URL || "https://bastyon-image-generator.vercel.app/",
-      "X-Title": "Miya AI"
+      "Accept": "application/json"
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify({
+      prompt: String(prompt || "").trim(),
+      ratio: ratio || "1:1"
+    })
   });
 
-  const data = await readJson(response, "OpenRouter");
-  const item = data?.data?.[0];
+  const data = await parseResponse(response, "PixelSter Flux Dev");
 
-  if (!item?.b64_json) {
-    throw new Error("OpenRouter не вернул изображение.");
+  if (!data.imageUrl) {
+    throw new Error("PixelSter не вернул imageUrl.");
   }
-
-  const dataUrl = "data:" + (item.media_type || "image/png") + ";base64," + item.b64_json;
-
-  return {
-    imageUrl: await storeImage(dataUrl, imageDataUrl ? "miya-edit" : "miya-image"),
-    provider: "OpenRouter",
-    model,
-    cost: data?.usage?.cost ?? null
-  };
-}
-
-async function legacyGenerate({ prompt, ratio }) {
-  const response = await fetch("https://ahm7xmakki.com/api/tti", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ prompt, ratio })
-  });
-  const data = await readJson(response, "Legacy provider");
-
-  if (!data.imageUrl) throw new Error("Legacy provider не вернул imageUrl.");
 
   return {
     imageUrl: data.imageUrl,
-    provider: "Legacy PixelSter",
+    provider: "AHM7 PixelSter",
     model: "Flux Dev"
   };
 }
 
-export async function generateImage(options) {
-  const {
-    prompt,
-    ratio = "1:1",
-    model = "auto",
-    quality = "auto",
-    size = "auto",
-    outputFormat = "png"
-  } = options;
+async function pixelsterEdit({ prompt, imageBase64, ratio }) {
+  const normalized = normalizeImageInput(imageBase64);
 
-  const selection = String(model || "auto");
-
-  if (selection === "legacy-flux") {
-    return legacyGenerate({ prompt, ratio });
+  if (!normalized) {
+    throw new Error("Редактор не смог распознать исходное изображение.");
   }
 
-  const selectedModel =
-    OPENROUTER_MODELS[selection] ||
-    OPENROUTER_MODELS["or-nano-banana-2"];
-
-  return openRouterImage({
-    model: selectedModel,
-    prompt,
-    ratio,
-    quality,
-    size,
-    outputFormat
+  const response = await fetch(PIXELSTER + "/pti", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify({
+      prompt: editPrompt(prompt),
+      ratio: ratio || "auto",
+      imageBase64: normalized.base64
+    })
   });
+
+  const data = await parseResponse(response, "PixelSter Flux Kontext Dev");
+
+  if (!data.imageUrl) {
+    throw new Error("PixelSter не вернул imageUrl.");
+  }
+
+  return {
+    imageUrl: data.imageUrl,
+    provider: "AHM7 PixelSter",
+    model: "Flux Kontext Dev"
+  };
+}
+
+export async function generateImage(options) {
+  return pixelsterGenerate(options);
 }
 
 export async function editImage(options) {
-  const {
-    prompt,
-    imageBase64,
-    ratio = "auto",
-    model = "or-nano-banana-2",
-    quality = "auto",
-    size = "auto",
-    outputFormat = "png"
-  } = options;
-
-  const normalized = normalizeImageInput(imageBase64);
-  if (!normalized) throw new Error("Редактор не смог распознать исходное изображение.");
-
-  const selectedModel =
-    OPENROUTER_MODELS[model] ||
-    OPENROUTER_MODELS["or-nano-banana-2"];
-
-  return openRouterImage({
-    model: selectedModel,
-    prompt,
-    ratio: ratio === "auto" ? "1:1" : ratio,
-    quality,
-    size,
-    outputFormat,
-    imageDataUrl: normalized.dataUrl
-  });
+  return pixelsterEdit(options);
 }
 
 export function getProviderStatus() {
   return {
-    openrouter: Boolean(process.env.OPENROUTER_API_KEY),
-    blob: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-    legacy: true
+    pixelster: true,
+    textToImage: "Flux Dev",
+    imageToImage: "Flux Kontext Dev",
+    imageToVideo: "Motion synthesis",
+    auth: false
   };
 }
+
+export { normalizeImageInput };
