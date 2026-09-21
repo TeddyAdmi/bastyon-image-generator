@@ -7,29 +7,95 @@ function isHttpUrl(value) {
   }
 }
 
-function parseImageData(imageBase64) {
-  const value = String(imageBase64 || "").trim();
-  const match = value.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
-
-  if (!match) {
-    throw new Error("Изображение должно быть data:image/...;base64,...");
-  }
+function parseImageData(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^data:(image\\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
+  if (!match) throw new Error("Изображение должно быть data:image/...;base64,...");
 
   const mimeType = match[1].toLowerCase();
-  const base64 = match[2].replace(/\s/g, "");
-
-  const extensionMap = {
-    "image/png": "png",
-    "image/jpeg": "jpg",
-    "image/webp": "webp",
-    "image/gif": "gif"
-  };
+  const base64 = match[2].replace(/\\s/g, "");
+  const extension =
+    mimeType === "image/jpeg" ? "jpg" :
+    mimeType === "image/webp" ? "webp" :
+    mimeType === "image/gif" ? "gif" : "png";
 
   return {
     mimeType,
-    extension: extensionMap[mimeType] || "png",
+    extension,
     buffer: Buffer.from(base64, "base64")
   };
+}
+
+async function toDataUrlFromUrl(url) {
+  const response = await fetch(url, {
+    headers: { "User-Agent": "Miya-AI/1.0" }
+  });
+
+  if (!response.ok) {
+    throw new Error("Не удалось получить исходное изображение: HTTP " + response.status);
+  }
+
+  const contentType = (response.headers.get("content-type") || "image/jpeg").split(";")[0];
+  if (!contentType.startsWith("image/")) {
+    throw new Error("Источник вернул не изображение.");
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+
+  if (bytes.length > 8_000_000) {
+    throw new Error("Исходное изображение слишком большое.");
+  }
+
+  return "data:" + contentType + ";base64," + bytes.toString("base64");
+}
+
+async function normalizeImageForLtx(imageBase64, imageUrl) {
+  const value = String(imageBase64 || "").trim();
+
+  if (value.startsWith("data:image/")) return value;
+
+  const url = String(imageUrl || "").trim();
+
+  if (isHttpUrl(url)) {
+    return toDataUrlFromUrl(url);
+  }
+
+  throw new Error("Для LTX не найдено исходное изображение.");
+}
+
+function getLtxBaseUrl() {
+  return String(process.env.LTX_SERVER_URL || "").replace(/\\/$/, "");
+}
+
+async function ltxRequest(path, options = {}) {
+  const base = getLtxBaseUrl();
+
+  if (!base) {
+    throw new Error("LTX_SERVER_URL не настроен.");
+  }
+
+  const response = await fetch(base + path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+
+  const text = await response.text();
+  let data = {};
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error("LTX GPU сервер вернул не JSON (HTTP " + response.status + ").");
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || "Ошибка LTX GPU сервера.");
+  }
+
+  return data;
 }
 
 function getPixazoKey() {
@@ -40,7 +106,6 @@ function getPixazoKey() {
   ).trim();
 }
 
-// Official Pixazo LTX 2.5 FREE image-to-video endpoint.
 const PIXAZO_CREATE_URL =
   "https://gateway.pixazo.ai/ltx-video/v1/image-to-video";
 
@@ -52,7 +117,7 @@ async function pixazoRequest(url, options = {}) {
 
   if (!key) {
     throw new Error(
-      "PIXAZO_API_KEY не настроен в Vercel. Добавьте Primary API key Pixazo."
+      "Не настроен ни LTX GPU, ни PIXAZO_API_KEY. Сначала подключите LTX_SERVER_URL."
     );
   }
 
@@ -66,17 +131,12 @@ async function pixazoRequest(url, options = {}) {
   });
 
   const text = await response.text();
+  let data = {};
 
-  let data = null;
   try {
     data = text ? JSON.parse(text) : {};
   } catch {
-    throw new Error(
-      "Pixazo вернул не JSON. HTTP " +
-      response.status +
-      ". Ответ: " +
-      text.slice(0, 300)
-    );
+    throw new Error("Pixazo вернул не JSON (HTTP " + response.status + ").");
   }
 
   if (!response.ok) {
@@ -84,20 +144,18 @@ async function pixazoRequest(url, options = {}) {
       data?.message ||
       data?.error ||
       data?.detail ||
-      ("Pixazo HTTP " + response.status);
+      "Pixazo HTTP " + response.status;
 
     if (response.status === 401) {
       throw new Error("Pixazo: неверный или отсутствующий API key.");
     }
 
     if (response.status === 402) {
-      throw new Error(
-        "Pixazo: недостаточно баланса. Проверьте бесплатный LTX 2.5 endpoint."
-      );
+      throw new Error("Pixazo: недостаточно баланса или бесплатная квота недоступна.");
     }
 
     if (response.status === 429) {
-      throw new Error("Pixazo: превышен лимит запросов. Попробуйте позже.");
+      throw new Error("Pixazo: превышен лимит запросов.");
     }
 
     throw new Error(String(message));
@@ -108,7 +166,6 @@ async function pixazoRequest(url, options = {}) {
 
 function getBody(req) {
   if (!req || req.body == null) return {};
-
   if (typeof req.body === "object") return req.body;
 
   if (typeof req.body === "string") {
@@ -124,55 +181,35 @@ function getBody(req) {
 
 async function makePublicImageUrl(imageUrl, imageBase64) {
   const directUrl = String(imageUrl || "").trim();
-
   if (isHttpUrl(directUrl)) return directUrl;
 
   const source = String(imageBase64 || "").trim();
 
-  if (isHttpUrl(source)) return source;
-
-  if (source.startsWith("blob:")) {
-    throw new Error(
-      "Изображение имеет локальный blob: URL. Для видео нужен публичный HTTPS URL."
-    );
-  }
-
   if (!source.startsWith("data:image/")) {
-    throw new Error(
-      "Pixazo требует публичный HTTPS URL исходного изображения."
-    );
+    throw new Error("Для Pixazo нужен публичный HTTPS URL исходного изображения.");
   }
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const { mimeType, extension, buffer } = parseImageData(source);
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("Для Pixazo нужен Vercel Blob, чтобы сделать изображение публичным.");
+  }
 
-    if (!buffer.length) {
-      throw new Error("Не удалось прочитать исходное изображение.");
+  const { mimeType, extension, buffer } = parseImageData(source);
+  const { put } = await import("@vercel/blob");
+
+  const blob = await put(
+    "miya-video-input/" +
+      Date.now() + "-" +
+      Math.random().toString(36).slice(2) +
+      "." + extension,
+    buffer,
+    {
+      access: "public",
+      contentType: mimeType,
+      addRandomSuffix: false
     }
-
-    const { put } = await import("@vercel/blob");
-
-    const blob = await put(
-      "miya-video-input/" +
-        Date.now() +
-        "-" +
-        Math.random().toString(36).slice(2) +
-        "." +
-        extension,
-      buffer,
-      {
-        access: "public",
-        contentType: mimeType,
-        addRandomSuffix: false
-      }
-    );
-
-    return blob.url;
-  }
-
-  throw new Error(
-    "Для видео это изображение пока недоступно по публичному HTTPS URL. Vercel Blob не настроен."
   );
+
+  return blob.url;
 }
 
 export default async function handler(req, res) {
@@ -180,6 +217,7 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
   try {
+    // LTX GPU is the primary video engine.
     if (req.method === "GET") {
       const taskId = String(req.query?.taskId || "").trim();
 
@@ -190,61 +228,92 @@ export default async function handler(req, res) {
         });
       }
 
-      const requestId = taskId.startsWith("pixazo:")
-        ? taskId.slice("pixazo:".length)
-        : taskId;
+      if (taskId.startsWith("ltx:")) {
+        const jobId = taskId.slice(4);
+        const data = await ltxRequest("/jobs/" + encodeURIComponent(jobId));
 
-      const data = await pixazoRequest(
-        PIXAZO_STATUS_URL + encodeURIComponent(requestId),
-        { method: "GET" }
-      );
+        if (data.done && data.success && data.videoUrl) {
+          return res.status(200).json({
+            success: true,
+            done: true,
+            status: "SUCCEEDED",
+            videoUrl: data.videoUrl,
+            provider: "LTX-Video GPU",
+            model: data.model || "ltxv-2b-0.9.8-distilled"
+          });
+        }
 
-      const status = String(data?.status || "").toUpperCase();
-
-      const videoUrl =
-        data?.output?.media_url?.[0] ||
-        data?.output?.mediaUrl?.[0] ||
-        "";
-
-      if (status === "COMPLETED") {
-        if (!videoUrl) {
-          return res.status(502).json({
+        if (data.done && !data.success) {
+          return res.status(200).json({
             success: false,
             done: true,
-            error: "Pixazo завершил задачу, но не вернул ссылку на видео."
+            status: "FAILED",
+            error: data.error || "LTX GPU не смог создать видео."
           });
         }
 
         return res.status(200).json({
           success: true,
-          done: true,
-          status,
-          videoUrl,
-          provider: "Pixazo",
-          model: "LTX 2.5 Free",
-          mediaType: data?.output?.media_type || "video/mp4",
-          hasNativeAudio: true
+          done: false,
+          status: data.status || "RUNNING",
+          provider: "LTX-Video GPU",
+          model: data.model || "ltxv-2b-0.9.8-distilled"
         });
       }
 
-      if (status === "FAILED" || status === "ERROR") {
+      if (taskId.startsWith("pixazo:")) {
+        const requestId = taskId.slice("pixazo:".length);
+        const data = await pixazoRequest(
+          PIXAZO_STATUS_URL + encodeURIComponent(requestId),
+          { method: "GET" }
+        );
+
+        const status = String(data?.status || "").toUpperCase();
+        const videoUrl =
+          data?.output?.media_url?.[0] ||
+          data?.output?.mediaUrl?.[0] ||
+          "";
+
+        if (status === "COMPLETED") {
+          if (!videoUrl) {
+            return res.status(502).json({
+              success: false,
+              done: true,
+              error: "Pixazo завершил задачу, но не вернул видео."
+            });
+          }
+
+          return res.status(200).json({
+            success: true,
+            done: true,
+            status,
+            videoUrl,
+            provider: "Pixazo",
+            model: "LTX 2.5"
+          });
+        }
+
+        if (status === "FAILED" || status === "ERROR") {
+          return res.status(200).json({
+            success: false,
+            done: true,
+            status,
+            error: data?.error || data?.message || "Pixazo не смог создать видео."
+          });
+        }
+
         return res.status(200).json({
-          success: false,
-          done: true,
-          status,
-          error:
-            data?.error ||
-            data?.message ||
-            "Pixazo не смог создать видео."
+          success: true,
+          done: false,
+          status: status || "QUEUED",
+          provider: "Pixazo",
+          model: "LTX 2.5"
         });
       }
 
-      return res.status(200).json({
-        success: true,
-        done: false,
-        status: status || "QUEUED",
-        provider: "Pixazo",
-        model: "LTX 2.5 Free"
+      return res.status(400).json({
+        success: false,
+        error: "Неизвестный формат taskId."
       });
     }
 
@@ -274,21 +343,42 @@ export default async function handler(req, res) {
       });
     }
 
-    if (imageBase64.length > 4_000_000) {
-      return res.status(413).json({
-        success: false,
-        error:
-          "Изображение слишком большое для передачи в Vercel API."
+    // LTX path: no /api/edit and no paid image preparation.
+    if (getLtxBaseUrl()) {
+      const normalizedImage = await normalizeImageForLtx(
+        imageBase64,
+        imageUrl
+      );
+
+      const ltxData = await ltxRequest("/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          imageBase64: normalizedImage,
+          prompt
+        })
+      });
+
+      if (!ltxData?.jobId) {
+        throw new Error("LTX GPU сервер не вернул jobId.");
+      }
+
+      return res.status(202).json({
+        success: true,
+        done: false,
+        taskId: "ltx:" + ltxData.jobId,
+        status: ltxData.status || "queued",
+        provider: "LTX-Video GPU",
+        model: ltxData.model || "ltxv-2b-0.9.8-distilled",
+        duration: ltxData.duration || 5
       });
     }
 
+    // Fallback only when LTX_SERVER_URL is not configured.
     const publicImageUrl = await makePublicImageUrl(
       imageUrl,
       imageBase64
     );
 
-    // Important: use Pixazo's native synchronized audio.
-    // No second Tracks request and no browser FFmpeg muxing.
     const data = await pixazoRequest(
       PIXAZO_CREATE_URL,
       {
@@ -322,19 +412,15 @@ export default async function handler(req, res) {
       requestId: data.request_id,
       status: data.status || "QUEUED",
       provider: "Pixazo",
-      model: "LTX 2.5 Free · native audio",
+      model: "LTX 2.5",
       pollingUrl: data.polling_url || ""
     });
   } catch (error) {
-    console.error("Pixazo video API error:", error);
+    console.error("Video API error:", error);
 
     return res.status(500).json({
       success: false,
-      error:
-        error?.message ||
-        "Ошибка видеогенерации через Pixazo.",
-      provider: "Pixazo",
-      model: "LTX 2.5 Free"
+      error: error?.message || "Ошибка видеогенерации."
     });
   }
 }
