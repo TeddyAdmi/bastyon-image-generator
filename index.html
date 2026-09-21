@@ -4744,7 +4744,7 @@
     setLoading(
       true,
       "Miya AI создаёт видео",
-      "LTX-Video 2B · GPU Server…"
+      "LTX 2.5 Free · Pixazo…"
     );
 
     try {
@@ -4755,9 +4755,10 @@
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
+          imageUrl: videoImage,
           imageBase64: videoImage,
           prompt,
-          resolution: "480P"
+          aspect: "9:16"
         })
       });
 
@@ -4824,14 +4825,14 @@
         setLoading(
           true,
           "Miya AI создаёт видео",
-          "LTX-Video 2B · GPU Server · " +
+          "LTX 2.5 Free · Pixazo · " +
             String(statusData.status || "в очереди") +
             "…"
         );
       }
 
       if ($("editorVideoResult").classList.contains("hidden")) {
-        throw new Error("Alibaba Cloud слишком долго обрабатывает видео. Попробуйте ещё раз.");
+        throw new Error("Pixazo слишком долго обрабатывает видео. Попробуйте ещё раз.");
       }
     } catch (error) {
       console.error("Video generation error:", error);
@@ -4839,7 +4840,7 @@
 
       showError(
         $("editorError"),
-        "Не удалось создать видео: " + message
+        "Не удалось создать видео через Pixazo: " + message
       );
     } finally {
       setLoading(false);
