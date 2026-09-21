@@ -1,97 +1,72 @@
-function parseJson(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 export default async function handler(req, res) {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+
   if (req.method !== "POST") {
-    return res.status(405).json({ success: false, error: "Method not allowed" });
+    return res.status(405).json({ success:false, error:"Method not allowed" });
   }
 
-  const prompt = String(req.body?.prompt || "").trim();
-
-  if (!prompt) {
-    return res.status(400).json({
-      success: false,
-      error: "Введите исходный промпт."
-    });
+  const source = String(req.body?.prompt || "").trim();
+  if (!source) {
+    return res.status(400).json({ success:false, error:"Введите исходную идею." });
   }
 
-  if (!process.env.OPENROUTER_API_KEY) {
-    return res.status(503).json({
-      success: false,
-      error: "AI Prompt пока не настроен: добавьте OPENROUTER_API_KEY в Vercel."
-    });
-  }
+  const fallback =
+    source +
+    ", ultra-detailed, photorealistic, cinematic lighting, natural textures, realistic anatomy, professional photography, depth of field, coherent composition, high detail";
 
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.APP_URL || "https://bastyon-image-generator.vercel.app/",
-        "X-Title": "Miya AI Prompt"
+    if (!process.env.OPENROUTER_API_KEY) {
+      return res.status(200).json({
+        success:true,
+        provider:"local",
+        prompt:fallback
+      });
+    }
+
+    const response = await fetch(OPENROUTER_URL,{
+      method:"POST",
+      headers:{
+        Authorization:"Bearer "+process.env.OPENROUTER_API_KEY,
+        "Content-Type":"application/json",
+        "HTTP-Referer":process.env.APP_URL||"https://bastyon-image-generator.vercel.app/",
+        "X-Title":"Miya AI"
       },
-      body: JSON.stringify({
-        model: process.env.PROMPT_MODEL || "openai/gpt-5-mini",
-        temperature: 0.7,
-        messages: [
+      body:JSON.stringify({
+        model:"openai/gpt-4o-mini",
+        messages:[
           {
-            role: "system",
-            content:
-              "Ты профессиональный AI prompt engineer для генерации изображений. " +
-              "Отвечай только готовым промптом без кавычек, пояснений и markdown. " +
-              "Сохраняй исходный объект, персонажа, композиционную идею и смысл. " +
-              "Добавляй кинематографичный свет, реалистичные материалы, детали, " +
-              "камеру, глубину резкости и визуальную атмосферу только там, где это уместно. " +
-              "Не добавляй водяные знаки, логотипы или текст в изображение, если пользователь этого не просил."
+            role:"system",
+            content:"You are Miya AI prompt engineer. Rewrite the user's short image idea into one polished image-generation prompt. Preserve every requested subject, action and setting. Add composition, camera, lighting, materials, realism and detail when useful. Do not explain. Return only the final prompt in the user's language."
           },
-          {
-            role: "user",
-            content: prompt
-          }
-        ]
+          {role:"user",content:source}
+        ],
+        temperature:0.7,
+        max_tokens:500
       })
     });
 
-    const text = await response.text();
-    const data = parseJson(text);
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        success: false,
-        error: data?.error?.message || "OpenRouter Prompt вернул ошибку."
-      });
+    const text=await response.text();
+    let data={};
+    try{data=JSON.parse(text)}catch{
+      throw new Error("OpenRouter вернул не JSON (HTTP "+response.status+").");
+    }
+    if(!response.ok){
+      throw new Error(data?.error?.message||data?.error||"OpenRouter HTTP "+response.status);
     }
 
-    const result = String(
-      data?.choices?.[0]?.message?.content ||
-      data?.choices?.[0]?.text ||
-      ""
-    ).trim();
+    const prompt=String(data?.choices?.[0]?.message?.content||"").trim();
+    if(!prompt)throw new Error("OpenRouter не вернул улучшенный промпт.");
 
-    if (!result) {
-      return res.status(502).json({
-        success: false,
-        error: "AI Prompt не вернул текст."
-      });
-    }
-
+    return res.status(200).json({success:true,provider:"OpenRouter",prompt});
+  } catch(error) {
     return res.status(200).json({
-      success: true,
-      prompt: result,
-      provider: "OpenRouter",
-      model: process.env.PROMPT_MODEL || "openrouter/free"
-    });
-  } catch (error) {
-    console.error("Prompt error:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Ошибка AI Prompt."
+      success:true,
+      provider:"local-fallback",
+      prompt:fallback,
+      warning:error?.message||"AI Prompt fallback"
     });
   }
 }
