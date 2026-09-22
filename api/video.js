@@ -1,7 +1,3 @@
-import { spawn } from "node:child_process";
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import os from "node:os";
 
 const PIXELSTER = "https://ahm7xmakki.com/api";
 const WAN_SPACE = "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space";
@@ -235,115 +231,6 @@ async function wanVideo({ prompt, duration, image }) {
   return { ...result, endpoint, sourceUrl };
 }
 
-function validateWav(bytes) {
-  if (!Buffer.isBuffer(bytes) || bytes.length < 44) {
-    throw new Error("Stable Audio 3 вернул слишком маленький WAV.");
-  }
-  const riff = bytes.toString("ascii", 0, 4);
-  const wave = bytes.toString("ascii", 8, 12);
-  if (riff !== "RIFF" || wave !== "WAVE") {
-    throw new Error("Stable Audio 3 вернул файл, который не является WAV.");
-  }
-}
-
-async function stableAudio({ prompt, duration }) {
-  const { Client } = await import("@gradio/client");
-  const audioPrompt =
-    "Sound effects only. No music, no speech, no singing. Realistic cinematic environmental sound effects for this exact scene: " +
-    String(prompt || "").trim();
-
-  const app = await Client.connect(
-    "stabilityai/stable-audio-3",
-    process.env.HF_TOKEN ? { token: process.env.HF_TOKEN } : undefined
-  );
-
-  const seconds = Math.min(5, Math.max(1, Number(duration) || 5));
-  const result = await app.predict("/infer", [
-    "small-sfx",
-    audioPrompt,
-    seconds,
-    8,
-    1.0,
-    "pingpong",
-    Math.floor(Math.random() * 2147483647)
-  ]);
-
-  const values = Array.isArray(result?.data) ? result.data : [result?.data];
-  let rawUrl = null;
-
-  for (const value of values) {
-    const candidates = [
-      value?.url,
-      value?.path,
-      value?.audio?.url,
-      value?.audio?.path,
-      value?.data?.url,
-      value?.data?.path
-    ];
-    for (const candidate of candidates) {
-      if (typeof candidate === "string" && candidate.trim()) {
-        rawUrl = candidate.trim();
-        break;
-      }
-    }
-    if (rawUrl) break;
-  }
-
-  if (!rawUrl) {
-    throw new Error(
-      "Stable Audio 3 не вернул WAV-файл. Ответ: " +
-      JSON.stringify(result?.data || result).slice(0, 1200)
-    );
-  }
-
-  const audioUrl = /^https?:\\/\\/i.test(rawUrl)
-    ? rawUrl
-    : AUDIO_SPACE + "/gradio_api/file=" + rawUrl.replace(/^\\//, "");
-
-  const response = await fetch(audioUrl, {
-    headers: authHeaders()
-  });
-
-  if (!response.ok) {
-    throw new Error("Stable Audio 3 WAV HTTP " + response.status);
-  }
-
-  const bytes = Buffer.from(await response.arrayBuffer());
-
-  if (bytes.length < 1000) {
-    throw new Error("Stable Audio 3 вернул слишком маленький WAV: " + bytes.length + " bytes");
-  }
-
-  return bytes;
-}
-
-async function muxVideoAudio(videoBytes, audioBytes) {
-  const ffmpegModule = await import("ffmpeg-static");
-  const ffmpegPath = ffmpegModule.default || ffmpegModule;
-  if (!ffmpegPath) throw new Error("FFmpeg binary не найден в Vercel runtime.");
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "miya-av-"));
-  const videoPath = path.join(dir, "video.mp4");
-  const audioPath = path.join(dir, "audio.wav");
-  const outputPath = path.join(dir, "final.mp4");
-  await fs.writeFile(videoPath, videoBytes);
-  await fs.writeFile(audioPath, audioBytes);
-  await new Promise((resolve, reject) => {
-    const proc = spawn(ffmpegPath, [
-      "-y", "-i", videoPath, "-i", audioPath,
-      "-map", "0:v:0", "-map", "1:a:0",
-      "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
-      "-shortest", "-movflags", "faststart", outputPath
-    ]);
-    let stderr = "";
-    proc.stderr.on("data", d => { stderr += d.toString(); });
-    proc.on("error", reject);
-    proc.on("close", code => code === 0 ? resolve() : reject(new Error("FFmpeg mux failed: " + stderr.slice(-1200))));
-  });
-  const result = await fs.readFile(outputPath);
-  await fs.rm(dir, { recursive: true, force: true });
-  return result;
-}
-
 async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
   const response = await fetch(PIXELSTER + "/ptv", {
     method: "POST",
@@ -497,30 +384,18 @@ export default async function handler(req, res) {
         throw new Error("Wan вернул слишком маленький MP4: " + videoBytes.length + " bytes");
       }
 
-      // Generate a real WAV and mux it into the MP4 on the server.
-      // This makes the downloaded file contain an actual audio track,
-      // instead of relying on a separate <audio> element in the browser.
-      const audioBytes = await stableAudio({ prompt, duration });
-      const finalBytes = await muxVideoAudio(videoBytes, audioBytes);
-
-      // Keep the response compact enough for Vercel while making the final
-      // MP4 self-contained. The generated Wan clips are currently small.
-      const videoUrl = "data:video/mp4;base64," + finalBytes.toString("base64");
-
       return res.status(200).json({
         success: true,
         done: true,
-        videoUrl,
+        videoUrl: wan.sourceUrl,
         provider: "Hugging Face ZeroGPU",
         model: "Wan 2.2 I2V 14B Fast",
-        audioAttached: true,
+        audioAttached: false,
         audioPending: false,
         endpoint: wan.endpoint,
         promptUsed: prompt,
         promptLength: prompt.length,
         videoBytes: videoBytes.length,
-        audioBytes: audioBytes.length,
-        finalBytes: finalBytes.length,
         fallbackUsed: false
       });
     } catch (wanError) {
