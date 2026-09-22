@@ -20,13 +20,13 @@ const LTX23_OFFICIAL_SPACE = {
 };
 
 const LTX25_ALTERNATES = [
-  LTX25_SPACE,
   {
     name: "LTX-2.5 Community",
     base: "https://myarenaosx-ltx-2-5.hf.space",
     endpoint: "run",
     mode: "ltx25-community"
   },
+  LTX25_SPACE,
   {
     name: "LTX-2.5 Distilled Demo",
     base: "https://gangsternerd-ltx-2-5-demo.hf.space",
@@ -71,17 +71,33 @@ function errorMessage(error) {
 }
 
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: { ...authHeaders(), ...(options.headers || {}) }
-  });
+  const controller = new AbortController();
+  const timeoutMs = Number(options.timeoutMs || 6000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const fetchOptions = { ...options };
+  delete fetchOptions.timeoutMs;
+
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      headers: { ...authHeaders(), ...(fetchOptions.headers || {}) },
+      signal: controller.signal
+    });
   const text = await response.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch {}
-  if (!response.ok) {
-    throw new Error("HTTP " + response.status + ": " + (text || response.statusText).slice(0, 1000));
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status + ": " + (text || response.statusText).slice(0, 1000));
+    }
+    return data;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("LTX request timeout after " + timeoutMs + "ms: " + url);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
-  return data;
 }
 
 function buildPrompt(prompt) {
@@ -200,11 +216,24 @@ async function uploadToGradio(spaceBase, imageDataUri) {
     "miya-input." + (mime.includes("png") ? "png" : "jpg")
   );
 
-  const response = await fetch(spaceBase + "/gradio_api/upload", {
-    method: "POST",
-    headers: authHeaders(),
-    body: form
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  let response;
+  try {
+    response = await fetch(spaceBase + "/gradio_api/upload", {
+      method: "POST",
+      headers: authHeaders(),
+      body: form,
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("LTX upload timeout after 8000ms: " + spaceBase);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 
   const text = await response.text();
   if (!response.ok) {
@@ -279,15 +308,30 @@ async function submitLtx25({ image, prompt, duration, aspect }) {
 
       for (const url of candidates) {
         try {
-          const response = await fetch(url, {
-            method: "POST",
-            headers: {
-              ...authHeaders(),
-              "Content-Type": "application/json",
-              Accept: "application/json"
-            },
-            body: JSON.stringify({ data })
-          });
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 8000);
+          let response;
+          try {
+            response = await fetch(url, {
+              method: "POST",
+              headers: {
+                ...authHeaders(),
+                "Content-Type": "application/json",
+                Accept: "application/json"
+              },
+              body: JSON.stringify({ data }),
+              signal: controller.signal
+            });
+          } catch (error) {
+            if (error?.name === "AbortError") {
+              lastError = new Error(space.name + " submit timeout after 8000ms");
+            } else {
+              lastError = error;
+            }
+            continue;
+          } finally {
+            clearTimeout(timer);
+          }
 
           const text = await response.text();
           if (!response.ok) {
@@ -334,7 +378,10 @@ async function submitLtx25({ image, prompt, duration, aspect }) {
     }
   }
 
-  throw lastError || new Error("Все LTX-2.5 серверы недоступны.");
+  throw new Error(
+    "LTX-2.5: все доступные Spaces недоступны. Последняя ошибка: " +
+    errorMessage(lastError)
+  );
 }
 
 async function submitOfficialLtx({ space, image, prompt, duration, aspect }) {
