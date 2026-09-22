@@ -237,62 +237,74 @@ async function wanVideo({ prompt, duration, image }) {
 }
 
 async function stableAudio({ prompt, duration }) {
-  const audioPrompt = "Sound effects only, no music, no singing, no speech. Create realistic cinematic environmental audio matching this video scene: " + String(prompt || "").trim();
-  const seed = Math.floor(Math.random() * 2147483647);
-  const response = await fetch(AUDIO_API + "/call/infer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({
-      data: ["medium", audioPrompt, Math.min(5, Math.max(1, Number(duration) || 5)), 8, 1.0, "pingpong", seed]
-    })
-  });
-  const text = await response.text();
-  let payload = null;
-  try { payload = text ? JSON.parse(text) : null; } catch {}
-  if (!response.ok || !payload?.event_id) {
-    throw new Error("Stable Audio 3 call HTTP " + response.status + ": " + (payload?.error || text || "no event_id"));
-  }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 120000);
-  try {
-    const poll = await fetch(
-      AUDIO_API + "/call/infer/" + encodeURIComponent(payload.event_id),
-      { headers: authHeaders(), signal: controller.signal }
-    );
-    if (!poll.ok) throw new Error("Stable Audio 3 polling HTTP " + poll.status);
-    const body = await poll.text();
-    let event = "";
-    for (const line of body.split(/\r?\n/)) {
-      if (line.startsWith("event:")) event = line.slice(6).trim();
-      if (line.startsWith("data:")) {
-        const raw = line.slice(5).trim();
-        if (!raw || raw === "null") continue;
-        let data;
-        try { data = JSON.parse(raw); } catch { data = raw; }
-        if (event === "error") throw new Error(typeof data === "string" ? data : JSON.stringify(data));
-        if (event === "complete" || event === "process_completed" || event === "data") {
-          const first = Array.isArray(data) ? data[0] : data;
-          const url =
-            first?.url ||
-            first?.path ||
-            first?.audio?.url ||
-            first?.audio?.path ||
-            first?.data?.url ||
-            first?.data?.path;
-          if (!url) continue;
-          const audioUrl = /^https?:\/\//i.test(String(url))
-            ? String(url)
-            : AUDIO_SPACE + "/gradio_api/file=" + String(url).replace(/^\//, "");
-          const audioResponse = await fetch(audioUrl, { headers: authHeaders() });
-          if (!audioResponse.ok) throw new Error("Stable Audio 3 WAV download HTTP " + audioResponse.status);
-          return Buffer.from(await audioResponse.arrayBuffer());
-        }
+  const { Client } = await import("@gradio/client");
+  const audioPrompt =
+    "Sound effects only. No music, no speech, no singing. Realistic cinematic environmental sound effects for this exact scene: " +
+    String(prompt || "").trim();
+
+  const app = await Client.connect(
+    "stabilityai/stable-audio-3",
+    process.env.HF_TOKEN ? { token: process.env.HF_TOKEN } : undefined
+  );
+
+  const seconds = Math.min(5, Math.max(1, Number(duration) || 5));
+  const result = await app.predict("/infer", [
+    "small-sfx",
+    audioPrompt,
+    seconds,
+    8,
+    1.0,
+    "pingpong",
+    Math.floor(Math.random() * 2147483647)
+  ]);
+
+  const values = Array.isArray(result?.data) ? result.data : [result?.data];
+  let rawUrl = null;
+
+  for (const value of values) {
+    const candidates = [
+      value?.url,
+      value?.path,
+      value?.audio?.url,
+      value?.audio?.path,
+      value?.data?.url,
+      value?.data?.path
+    ];
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        rawUrl = candidate.trim();
+        break;
       }
     }
-    throw new Error("Stable Audio 3 завершил запрос без события complete.");
-  } finally {
-    clearTimeout(timer);
+    if (rawUrl) break;
   }
+
+  if (!rawUrl) {
+    throw new Error(
+      "Stable Audio 3 не вернул WAV-файл. Ответ: " +
+      JSON.stringify(result?.data || result).slice(0, 1200)
+    );
+  }
+
+  const audioUrl = /^https?:\\/\\/i.test(rawUrl)
+    ? rawUrl
+    : AUDIO_SPACE + "/gradio_api/file=" + rawUrl.replace(/^\\//, "");
+
+  const response = await fetch(audioUrl, {
+    headers: authHeaders()
+  });
+
+  if (!response.ok) {
+    throw new Error("Stable Audio 3 WAV HTTP " + response.status);
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+
+  if (bytes.length < 1000) {
+    throw new Error("Stable Audio 3 вернул слишком маленький WAV: " + bytes.length + " bytes");
+  }
+
+  return bytes;
 }
 
 async function muxVideoAudio(videoBytes, audioBytes) {
@@ -427,7 +439,28 @@ export default async function handler(req, res) {
 
     try {
       const wan = await wanVideo({ prompt, duration, image });
-      const videoUrl = "/api/video-proxy?url=" + encodeURIComponent(wan.sourceUrl);
+
+      const videoResponse = await fetch(wan.sourceUrl, {
+        headers: authHeaders()
+      });
+      if (!videoResponse.ok) {
+        throw new Error("Wan MP4 download HTTP " + videoResponse.status);
+      }
+
+      const videoBytes = Buffer.from(await videoResponse.arrayBuffer());
+      if (videoBytes.length < 10000) {
+        throw new Error("Wan вернул слишком маленький MP4: " + videoBytes.length + " bytes");
+      }
+
+      // Generate a real WAV and mux it into the MP4 on the server.
+      // This makes the downloaded file contain an actual audio track,
+      // instead of relying on a separate <audio> element in the browser.
+      const audioBytes = await stableAudio({ prompt, duration });
+      const finalBytes = await muxVideoAudio(videoBytes, audioBytes);
+
+      // Keep the response compact enough for Vercel while making the final
+      // MP4 self-contained. The generated Wan clips are currently small.
+      const videoUrl = "data:video/mp4;base64," + finalBytes.toString("base64");
 
       return res.status(200).json({
         success: true,
@@ -435,11 +468,14 @@ export default async function handler(req, res) {
         videoUrl,
         provider: "Hugging Face ZeroGPU",
         model: "Wan 2.2 I2V 14B Fast",
-        audioAttached: false,
-        audioPending: true,
+        audioAttached: true,
+        audioPending: false,
         endpoint: wan.endpoint,
         promptUsed: prompt,
         promptLength: prompt.length,
+        videoBytes: videoBytes.length,
+        audioBytes: audioBytes.length,
+        finalBytes: finalBytes.length,
         fallbackUsed: false
       });
     } catch (wanError) {
