@@ -181,9 +181,11 @@ async function uploadToGradio(spaceBase, imageDataUri) {
   const path = Array.isArray(data) ? data[0] : data?.files?.[0] || data?.path;
   if (!path) throw new Error("LTX upload не вернул путь файла.");
   const cleanPath = String(path);
-  const fileUrl = /^https?:\\/\\//i.test(cleanPath)
-    ? cleanPath
-    : spaceBase.replace(/\\/+$/, "") + (cleanPath.startsWith("/") ? "/file=" + cleanPath : "/file=" + cleanPath);
+  const base = spaceBase.replace(/\\/+$/, "");
+  let fileUrl;
+  if (/^https?:\\/\\//i.test(cleanPath)) fileUrl = cleanPath;
+  else if (cleanPath.startsWith("/file=")) fileUrl = base + cleanPath;
+  else fileUrl = base + "/file=" + (cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath);
 
   // Gradio 6 expects a FileData object with BOTH path and url for file inputs.
   // Sending only path can make the queued function fail during preprocessing.
@@ -398,6 +400,7 @@ async function pollLtxTask(task, timeoutMs = 12000) {
 
           const event = String(parsed.event || "").toLowerCase();
           const data = parsed.data;
+          lastEvent = event || lastEvent;
 
           if (event === "heartbeat" || event === "generating" || event === "progress") continue;
 
@@ -410,11 +413,16 @@ async function pollLtxTask(task, timeoutMs = 12000) {
               data?.status?.message ||
               (typeof data?.status === "string" ? data.status : "") ||
               raw;
+            const diagnostic = [
+              "event=" + (event || "unknown"),
+              "data=" + (raw || "<empty>"),
+              "chunk=" + (lastRawChunk || "<empty>")
+            ].join(" | ").slice(0, 5000);
             return {
               done: true,
               success: false,
               status: "ERROR",
-              error: "LTX-2.3 provider error: " + (detail && detail !== "{}" ? detail : "провайдер завершил SSE-задачу с ошибкой без подробностей.")
+              error: "LTX-2.3 provider error: " + (detail && detail !== "{}" ? detail : diagnostic)
             };
           }
 
