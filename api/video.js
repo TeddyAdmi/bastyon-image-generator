@@ -19,7 +19,23 @@ const LTX23_OFFICIAL_SPACE = {
   mode: "official"
 };
 
-const LTX_SPACES = [LTX25_SPACE, LTX23_FAST_SPACE, LTX23_OFFICIAL_SPACE];
+const LTX25_ALTERNATES = [
+  LTX25_SPACE,
+  {
+    name: "LTX-2.5 Community",
+    base: "https://myarenaosx-ltx-2-5.hf.space",
+    endpoint: "run",
+    mode: "ltx25-community"
+  },
+  {
+    name: "LTX-2.5 Distilled Demo",
+    base: "https://gangsternerd-ltx-2-5-demo.hf.space",
+    endpoint: "run",
+    mode: "ltx25-community"
+  }
+];
+
+const LTX_SPACES = [...LTX25_ALTERNATES, LTX23_FAST_SPACE, LTX23_OFFICIAL_SPACE];
 const PIXELSTER = "https://ahm7xmakki.com/api";
 
 function authHeaders() {
@@ -238,81 +254,87 @@ async function submitLtx25({ image, prompt, duration, aspect }) {
   };
   const [height, width] = dims[aspect] || dims["16:9"];
   const seed = Math.floor(Math.random() * 2147483647);
-
-  const space = LTX25_SPACE;
-  const imageFile = await uploadToGradio(space.base, image);
-
-  const data = [
-    buildPrompt(prompt),
-    imageFile,
-    height,
-    width,
-    seconds,
-    seed,
-    "conv",
-    false,
-    false
-  ];
-
-  const candidates = [
-    space.base + "/gradio_api/call/" + space.endpoint,
-    space.base + "/gradio_api/call/v2/" + space.endpoint
-  ];
-
   let lastError = null;
-  for (const url of candidates) {
+
+  for (const space of LTX25_ALTERNATES) {
     try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          ...authHeaders(),
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
-        body: JSON.stringify({ data })
-      });
+      const imageFile = await uploadToGradio(space.base, image);
+      const data = [
+        buildPrompt(prompt),
+        imageFile,
+        height,
+        width,
+        seconds,
+        seed,
+        "conv",
+        false,
+        false
+      ];
 
-      const text = await response.text();
-      if (!response.ok) {
-        lastError = new Error("LTX-2.5 submit HTTP " + response.status + ": " + text.slice(0, 900));
-        continue;
+      const resolvedEndpoint = await resolveLtxEndpoint(space, space.endpoint);
+      const candidates = [
+        space.base + "/gradio_api/call/" + resolvedEndpoint,
+        space.base + "/gradio_api/call/v2/" + resolvedEndpoint
+      ];
+
+      for (const url of candidates) {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              ...authHeaders(),
+              "Content-Type": "application/json",
+              Accept: "application/json"
+            },
+            body: JSON.stringify({ data })
+          });
+
+          const text = await response.text();
+          if (!response.ok) {
+            lastError = new Error(space.name + " submit HTTP " + response.status + ": " + text.slice(0, 900));
+            continue;
+          }
+
+          let payload = null;
+          try {
+            payload = text ? JSON.parse(text) : null;
+          } catch {
+            lastError = new Error(space.name + " submit вернул некорректный JSON: " + text.slice(0, 600));
+            continue;
+          }
+
+          const eventId = String(payload?.event_id || "").trim();
+          if (!eventId) {
+            lastError = new Error(space.name + " не вернул event_id: " + text.slice(0, 700));
+            continue;
+          }
+
+          return {
+            taskId: taskIdFor({
+              v: 25,
+              provider: "huggingface",
+              model: "ltx25-audio",
+              space: space.base,
+              callUrl: url,
+              eventId,
+              prompt: String(prompt || "").trim(),
+              duration: seconds,
+              aspect
+            }),
+            endpoint: "/" + resolvedEndpoint,
+            eventId
+          };
+        } catch (error) {
+          lastError = error;
+        }
       }
-
-      let payload = null;
-      try {
-        payload = text ? JSON.parse(text) : null;
-      } catch {
-        lastError = new Error("LTX-2.5 submit вернул некорректный JSON: " + text.slice(0, 600));
-        continue;
-      }
-
-      const eventId = String(payload?.event_id || "").trim();
-      if (!eventId) {
-        lastError = new Error("LTX-2.5 не вернул event_id: " + text.slice(0, 700));
-        continue;
-      }
-
-      return {
-        taskId: taskIdFor({
-          v: 25,
-          provider: "huggingface",
-          model: "ltx25-audio",
-          space: space.base,
-          callUrl: url,
-          eventId,
-          prompt: String(prompt || "").trim(),
-          duration: seconds,
-          aspect
-        }),
-        endpoint: "/" + space.endpoint,
-        eventId
-      };
     } catch (error) {
       lastError = error;
+      console.warn("LTX-2.5 Space unavailable:", space.name, errorMessage(error));
     }
   }
 
-  throw lastError || new Error("LTX-2.5 не принял запрос.");
+  throw lastError || new Error("Все LTX-2.5 серверы недоступны.");
 }
 
 async function submitOfficialLtx({ space, image, prompt, duration, aspect }) {
