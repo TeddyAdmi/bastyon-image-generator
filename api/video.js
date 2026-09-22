@@ -125,11 +125,11 @@ async function startWanTask({ model, prompt, duration, image }) {
     data = [
       { path: imagePath, meta: { _type: "gradio.FileData" }, orig_name: "miya-video.jpg" },
       String(prompt || "").trim(),
-      6,
-      "blurry, low quality, distorted, static, frozen frame, no motion, deformed, extra limbs",
+      8,
+      "blurry, low quality, distorted, static, frozen frame, no motion, deformed, extra limbs, identity change, subject change, scene change, camera teleportation",
       Math.min(5, Math.max(1, Number(duration) || 5)),
-      1,
-      1,
+      1.5,
+      2,
       Math.floor(Math.random() * 2147483647),
       true
     ];
