@@ -169,7 +169,16 @@ async function wanVideo({ prompt, duration, image }) {
   const imagePath = await uploadWanImage(image);
   const eventId = await callWan(endpoint, imagePath, prompt, duration);
   const result = await waitWan(endpoint, eventId);
-  return { ...result, endpoint };
+  const response = await fetch(result.url, { headers: authHeaders() });
+  if (!response.ok) {
+    const e = new Error("Wan MP4 download HTTP " + response.status);
+    e.statusCode = response.status;
+    throw e;
+  }
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (!bytes.length) throw new Error("Wan вернул пустой MP4.");
+  if (bytes.length > 45_000_000) throw new Error("Wan MP4 слишком большой для проксирования через Vercel.");
+  return { ...result, endpoint, bytes };
 }
 
 async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
@@ -287,7 +296,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         success: true,
         done: true,
-        videoUrl: wan.url,
+        videoUrl: "data:video/mp4;base64," + wan.bytes.toString("base64"),
         provider: "Hugging Face ZeroGPU",
         model: "Wan 2.2 I2V 14B Fast",
         endpoint: wan.endpoint,
