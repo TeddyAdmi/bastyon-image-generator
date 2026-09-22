@@ -1,4 +1,5 @@
 const LIGHTNING_SPACE = "https://saravutw-wan2-2-i2v-lightning-4-8step-custom.hf.space";
+const LIGHTNING_API_PREFIX = "/gradio_api";
 const LIGHTNING_INFO = LIGHTNING_SPACE + "/gradio_api/info";
 const LIGHTNING_API_NAMES = ["/generate_video", "generate_video"];
 const PIXELSTER = "https://ahm7xmakki.com/api";
