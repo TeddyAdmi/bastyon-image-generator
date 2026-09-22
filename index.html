@@ -401,7 +401,21 @@ async function runVideo(){
     let ltxFallbackTried=false;
     for(let i=0;i<180;i++){
       await new Promise(r=>setTimeout(r,1500));
-      const s=await api('/api/video?taskId='+encodeURIComponent(currentTaskId));
+      let s;
+      try{
+        s=await api('/api/video?taskId='+encodeURIComponent(currentTaskId));
+      }catch(pollError){
+        // A Netlify/Vercel adapter can surface the SSE failure as HTTP 502.
+        // Convert it into the same terminal state so the existing LTX fallback
+        // chain still runs instead of escaping straight to the UI error box.
+        s={
+          done:true,
+          success:false,
+          status:'ERROR',
+          model:currentTaskId && state.videoModel==='ltx25' ? 'LTX-2.3 Official · Audio' : 'LTX-2.3 Fast · Audio',
+          error:String(pollError?.message||pollError||'Ошибка опроса LTX-2.3')
+        };
+      }
       if($('videoStatus')){
         $('videoStatus').textContent='Статус: '+(s.status||'RUNNING')+' · '+(s.model||'LTX-2.3 Fast · Audio');
       }
