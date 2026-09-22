@@ -218,7 +218,7 @@ async function wan5bVideo({ prompt, duration, image }) {
   // Wan2.2-TI2V-5B public Space:
   // prompt, image, width, height, frames, steps, guidance, seed
   const seconds = Math.min(5, Math.max(3, Number(duration) || 3));
-  const frames = Math.min(145, Math.max(73, 1 + Math.round(seconds * 24 / 24) * 24);
+  const frames = Math.min(145, Math.max(73, 1 + Math.round((seconds * 24 - 1) / 24) * 24);
   const data = [
     String(prompt || "").trim(),
     { path: imagePath, meta: { _type: "gradio.FileData" }, orig_name: "miya-video.jpg" },
