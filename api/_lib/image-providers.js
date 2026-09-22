@@ -30,7 +30,8 @@ async function parseResponse(response, provider) {
   try {
     data = text ? JSON.parse(text) : {};
   } catch {
-    throw new Error(provider + " вернул не JSON (HTTP " + response.status + ").");
+    const detail = text ? " " + text.slice(0, 300).replace(/\s+/g, " ").trim() : "";
+    throw new Error(provider + " вернул не JSON (HTTP " + response.status + ")." + detail);
   }
 
   if (!response.ok) {
@@ -40,10 +41,55 @@ async function parseResponse(response, provider) {
       data?.message ||
       provider + " HTTP " + response.status;
 
-    throw new Error(String(message));
+    const error = new Error(String(message));
+    error.upstreamStatus = response.status;
+    error.provider = provider;
+    throw error;
   }
 
   return data;
+}
+
+async function postPixelster(path, payload, provider) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 55000);
+
+      let response;
+      try {
+        response = await fetch(PIXELSTER + path, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+
+      return await parseResponse(response, provider);
+    } catch (error) {
+      lastError = error;
+      const status = Number(error?.upstreamStatus || 0);
+      const retryable =
+        error?.name === "AbortError" ||
+        status === 408 ||
+        status === 429 ||
+        status >= 500;
+
+      if (!retryable || attempt === 2) break;
+
+      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+    }
+  }
+
+  throw lastError || new Error(provider + " не ответил.");
 }
 
 function editPrompt(prompt) {
@@ -60,19 +106,14 @@ STRICT IMAGE EDIT:
 }
 
 async function pixelsterGenerate({ prompt, ratio }) {
-  const response = await fetch(PIXELSTER + "/tti", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json"
-    },
-    body: JSON.stringify({
+  const data = await postPixelster(
+    "/tti",
+    {
       prompt: String(prompt || "").trim(),
       ratio: ratio || "1:1"
-    })
-  });
-
-  const data = await parseResponse(response, "PixelSter Flux Dev");
+    },
+    "PixelSter Flux Dev"
+  );
 
   if (!data.imageUrl) {
     throw new Error("PixelSter не вернул imageUrl.");
@@ -92,20 +133,15 @@ async function pixelsterEdit({ prompt, imageBase64, ratio }) {
     throw new Error("Редактор не смог распознать исходное изображение.");
   }
 
-  const response = await fetch(PIXELSTER + "/pti", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json"
-    },
-    body: JSON.stringify({
+  const data = await postPixelster(
+    "/pti",
+    {
       prompt: editPrompt(prompt),
       ratio: ratio || "auto",
       imageBase64: normalized.base64
-    })
-  });
-
-  const data = await parseResponse(response, "PixelSter Flux Kontext Dev");
+    },
+    "PixelSter Flux Kontext Dev"
+  );
 
   if (!data.imageUrl) {
     throw new Error("PixelSter не вернул imageUrl.");
