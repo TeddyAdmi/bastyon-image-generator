@@ -1,0 +1,41 @@
+[build]
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/generate"
+  to = "/.netlify/functions/generate"
+  status = 200
+
+[[redirects]]
+  from = "/api/edit"
+  to = "/.netlify/functions/edit"
+  status = 200
+
+[[redirects]]
+  from = "/api/video"
+  to = "/.netlify/functions/video"
+  status = 200
+
+[[redirects]]
+  from = "/api/prompt"
+  to = "/.netlify/functions/prompt"
+  status = 200
+
+[[redirects]]
+  from = "/api/audio"
+  to = "/.netlify/functions/audio"
+  status = 200
+
+[[redirects]]
+  from = "/api/image-proxy"
+  to = "/.netlify/functions/image-proxy"
+  status = 200
+
+[[redirects]]
+  from = "/api/video-proxy"
+  to = "/.netlify/functions/video-proxy"
+  status = 200
