@@ -517,7 +517,7 @@ export default async function handler(req, res) {
       });
     } catch (wanError) {
       console.error("Miya Wan 2.2 video failed:", wanError);
-      return res.status(wanError?.statusCode || 502).json({
+      return res.status((Number(wanError?.statusCode) >= 500 ? 502 : (wanError?.statusCode || 502))).json({
         success: false,
         done: false,
         error: "Wan 2.2 не смог создать видео: " + (wanError?.message || "неизвестная ошибка"),
@@ -530,7 +530,7 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error("Miya video API:", error);
-    const status = Number(error?.statusCode) >= 400 && Number(error?.statusCode) <= 599 ? Number(error.statusCode) : 502;
+    const status = Number(error?.statusCode) >= 400 && Number(error?.statusCode) < 500 ? Number(error.statusCode) : 502;
     return res.status(status).json({
       success: false,
       error: error?.message || "Ошибка видео API.",
