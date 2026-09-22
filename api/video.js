@@ -135,42 +135,82 @@ async function callWan(endpoint, imagePath, prompt, duration) {
   return payload.event_id;
 }
 
-async function waitWan(endpoint, eventId, timeoutMs = 160000) {
+async function waitWan(endpoint, eventId, timeoutMs = 220000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(
       WAN_SPACE + "/gradio_api/call/" + endpoint + "/" + encodeURIComponent(eventId),
-      { headers: authHeaders(), signal: controller.signal }
+      {
+        headers: { ...authHeaders(), Accept: "text/event-stream" },
+        signal: controller.signal
+      }
     );
     if (!response.ok) throw new Error("Wan polling HTTP " + response.status);
 
     const text = await response.text();
-    const lines = text.split(/\r?\n/);
     let event = "";
-    for (const line of lines) {
-      if (line.startsWith("event:")) event = line.slice(6).trim();
-      if (line.startsWith("data:")) {
-        const raw = line.slice(5).trim();
-        if (!raw || raw === "null") continue;
-        let data;
-        try { data = JSON.parse(raw); } catch { data = raw; }
-        if (event === "error") throw new Error(typeof data === "string" ? data : JSON.stringify(data));
-        if (event === "complete") {
-          const output = Array.isArray(data) ? data[0] : data;
-          const url = output?.url || output?.path || output?.video?.url || output?.videoUrl;
-          if (!url) throw new Error("Wan завершил задачу, но MP4 URL не найден.");
+    let lastData = null;
+    const events = [];
+
+    for (const line of text.split(/\r?\n/)) {
+      if (line.startsWith("event:")) {
+        event = line.slice(6).trim();
+        events.push(event);
+        continue;
+      }
+
+      if (!line.startsWith("data:")) continue;
+      const raw = line.slice(5).trim();
+      if (!raw || raw === "null") continue;
+
+      let data;
+      try { data = JSON.parse(raw); } catch { data = raw; }
+      lastData = data;
+
+      if (event === "error" || event === "unexpected_error") {
+        throw new Error(typeof data === "string" ? data : JSON.stringify(data));
+      }
+
+      // Gradio versions use both "complete" and "process_completed".
+      if (event === "complete" || event === "process_completed") {
+        const output = Array.isArray(data) ? data[0] : data;
+        const url =
+          output?.url ||
+          output?.path ||
+          output?.video?.url ||
+          output?.videoUrl ||
+          output?.data?.url ||
+          output?.data?.path;
+
+        if (url) return { output, url };
+      }
+
+      // Some Space/Gradio revisions send the final file in a data event
+      // immediately before closing the SSE stream.
+      if (event === "data" || event === "generating" || event === "streaming") {
+        const output = Array.isArray(data) ? data[0] : data;
+        const url =
+          output?.url ||
+          output?.path ||
+          output?.video?.url ||
+          output?.videoUrl ||
+          output?.data?.url ||
+          output?.data?.path;
+
+        if (url && /\.mp4(?:$|\?)/i.test(String(url))) {
           return { output, url };
         }
       }
     }
-    throw new Error("Wan завершил HTTP-запрос без события complete.");
+
+    const diagnostic = events.length ? "События: " + events.join(", ") : "SSE-события не получены";
+    throw new Error("Wan завершил HTTP-запрос без финального события. " + diagnostic + (lastData ? " Последние данные: " + JSON.stringify(lastData).slice(0, 700) : ""));
   } finally {
     clearTimeout(timer);
   }
 }
-
 async function wanVideo({ prompt, duration, image }) {
   const info = await getWanInfo();
   const endpoint = findWanEndpoint(info);
