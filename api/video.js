@@ -437,7 +437,7 @@ export default async function handler(req, res) {
         }
         return res.end();
       }
-      if (task.v !== 3 || task.provider !== "huggingface" || !task.eventId || !task.endpoint || !task.space) {
+      if (task.v !== 4 || task.provider !== "huggingface" || !task.eventId || !task.endpoint || !task.space) {
         return res.status(400).json({ success: false, error: "Некорректная задача видео." });
       }
 
