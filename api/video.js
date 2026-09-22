@@ -107,7 +107,26 @@ function taskFromId(id) {
   }
 }
 
-async function startWanTask({ model, prompt, duration, image }) {
+
+function buildWanPrompt(prompt) {
+  const text = String(prompt || "").trim();
+  if (!text) return text;
+  // Wan I2V is more reliable when the prompt explicitly separates subject,
+  // scene, one main action, camera behavior, and temporal progression.
+  const normalized = text
+    .replace(/\s+/g, " ")
+    .replace(/\bthen\b/gi, "then")
+    .trim();
+  return [
+    "Preserve the identity, appearance, clothing, proportions, and main objects from the input image.",
+    "Subject and scene: " + normalized + ".",
+    "Motion: make the described physical action clearly visible and continuous.",
+    "Camera: use natural cinematic camera movement that supports the action; keep the subject and scene coherent.",
+    "Timing: the action starts immediately, develops continuously through the middle of the clip, and reaches the described final beat by the end.",
+    "Realistic motion, natural body mechanics, stable composition, consistent lighting."
+  ].join(" ");
+}
+\nasync function startWanTask({ model, prompt, duration, image }) {
   const space = model === "wan5b" ? WAN5B_SPACE : WAN_SPACE;
   const infoUrl = model === "wan5b" ? WAN5B_INFO : WAN_INFO;
   const info = await hfJson(infoUrl, { headers: { Accept: "application/json" } });
@@ -602,6 +621,23 @@ export default async function handler(req, res) {
         }
       }
 
+      const rawVideo = String(req.query?.raw || "") === "1";
+      const rawTaskId = String(req.query?.taskId || "").trim();
+      if (rawVideo && rawTaskId) {
+        const rawTask = taskFromId(rawTaskId);
+        if (!rawTask.eventId || !rawTask.endpoint || !rawTask.space) return res.status(400).end();
+        const status = await pollWanTask(rawTask, 15000);
+        if (!status.done || !status.videoUrl) return res.status(409).json({success:false,error:"Видео ещё не готово."});
+        const upstream = await fetch(status.videoUrl, { headers: authHeaders() });
+        if (!upstream.ok || !upstream.body) return res.status(502).json({success:false,error:"Не удалось получить MP4 от Wan: HTTP "+upstream.status});
+        res.setHeader("Content-Type","video/mp4");
+        res.setHeader("Cache-Control","no-store");
+        res.setHeader("Content-Disposition",'inline; filename="miya-wan.mp4"');
+        return new Promise((resolve) => {
+          upstream.body.on ? upstream.body.pipe(res).on("finish", resolve) : resolve();
+        });
+      }
+
       const taskId = String(req.query?.taskId || "").trim();
       if (!taskId) {
         return res.status(400).json({
@@ -668,7 +704,7 @@ export default async function handler(req, res) {
         success: true,
         done: true,
         status: "COMPLETED",
-        videoUrl: finalVideo.videoUrl,
+        videoUrl: finalVideo.audioAttached ? finalVideo.videoUrl : (process.env.BLOB_READ_WRITE_TOKEN ? finalVideo.videoUrl : "/api/video?taskId=" + encodeURIComponent(taskId) + "&raw=1"),
         provider: "Hugging Face ZeroGPU",
         model: task.model === "wan5b" ? "Wan 2.2 TI2V-5B" : "Wan 2.2 I2V 14B Fast",
         audioAttached: Boolean(finalVideo.audioAttached),
