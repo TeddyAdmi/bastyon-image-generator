@@ -453,6 +453,14 @@ export default async function handler(req, res) {
     const duration = Math.min(5, Math.max(1, Number(body.duration) || 5));
     const model = String(body.model || "pixelster-motion").trim();
 
+    console.log("Miya video request:", {
+      model,
+      duration,
+      aspect: body.aspect || body.ratio || "9:16",
+      promptLength: prompt.length,
+      imageBytes: image.startsWith("data:") ? Math.floor((image.length * 3) / 4) : 0
+    });
+
     if (model === "ltx25") {
       return res.status(501).json({ success:false, error:"LTX 2.5 выбран, но публичный маршрут требует принятия лицензии Lightricks и HF_TOKEN. Для Miya AI он пока не подключён без токена.", code:"LTX25_REQUIRES_HF_ACCESS", model:"LTX 2.5 Free", provider:"Hugging Face" });
     }
