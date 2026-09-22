@@ -229,16 +229,11 @@ async function wanVideo({ prompt, duration, image }) {
   const imagePath = await uploadWanImage(image);
   const eventId = await callWan(endpoint, imagePath, prompt, duration);
   const result = await waitWan(endpoint, eventId);
-  const response = await fetch(result.url, { headers: authHeaders() });
-  if (!response.ok) {
-    const e = new Error("Wan MP4 download HTTP " + response.status);
-    e.statusCode = response.status;
-    throw e;
-  }
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (!bytes.length) throw new Error("Wan вернул пустой MP4.");
-  if (bytes.length > 45_000_000) throw new Error("Wan MP4 слишком большой для проксирования через Vercel.");
-  return { ...result, endpoint, bytes };
+  if (!result?.url) throw new Error("Wan не вернул URL готового MP4.");
+  const sourceUrl = /^https?:\/\//i.test(String(result.url))
+    ? String(result.url)
+    : WAN_SPACE + "/gradio_api/file=" + String(result.url).replace(/^\//, "");
+  return { ...result, endpoint, sourceUrl };
 }
 
 async function stableAudio({ prompt, duration }) {
@@ -432,42 +427,16 @@ export default async function handler(req, res) {
 
     try {
       const wan = await wanVideo({ prompt, duration, image });
-
-      let audio = null;
-      let audioError = null;
-      try {
-        audio = await stableAudio({ prompt, duration });
-      } catch (error) {
-        audioError = error?.message || "Stable Audio 3 не смог создать звук.";
-        console.error("Miya Stable Audio 3 failed:", error);
-      }
-
-      if (audio) {
-        const finalBytes = await muxVideoAudio(wan.bytes, audio);
-        return res.status(200).json({
-          success: true,
-          done: true,
-          videoUrl: "data:video/mp4;base64," + finalBytes.toString("base64"),
-          provider: "Hugging Face ZeroGPU + Stable Audio 3 SFX",
-          model: "Wan 2.2 I2V 14B Fast",
-          audioModel: "Stable Audio 3 Small SFX",
-          audioAttached: true,
-          endpoint: wan.endpoint,
-          promptUsed: prompt,
-          promptLength: prompt.length,
-          audioPromptUsed: "Sound effects only, no music, no singing, no speech. Create realistic cinematic environmental audio matching this video scene: " + prompt,
-          fallbackUsed: false
-        });
-      }
+      const videoUrl = "/api/video-proxy?url=" + encodeURIComponent(wan.sourceUrl);
 
       return res.status(200).json({
         success: true,
         done: true,
-        videoUrl: "data:video/mp4;base64," + wan.bytes.toString("base64"),
+        videoUrl,
         provider: "Hugging Face ZeroGPU",
         model: "Wan 2.2 I2V 14B Fast",
         audioAttached: false,
-        audioError,
+        audioPending: true,
         endpoint: wan.endpoint,
         promptUsed: prompt,
         promptLength: prompt.length,
