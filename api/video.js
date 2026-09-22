@@ -1,3 +1,10 @@
+import { spawn } from "node:child_process";
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import ffmpegPath from "ffmpeg-static";
+import { put } from "@vercel/blob";
+
 const PIXELSTER = "https://ahm7xmakki.com/api";
 const WAN_SPACE = "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space";
 const WAN5B_SPACE = "https://openking-wan2-video-generation.hf.space";
@@ -160,7 +167,9 @@ async function startWanTask({ model, prompt, duration, image }) {
       model,
       space,
       endpoint,
-      eventId: payload.event_id
+      eventId: payload.event_id,
+      prompt: String(prompt || "").trim(),
+      duration: Math.min(5, Math.max(1, Number(duration) || 5))
     }),
     endpoint,
     eventId: payload.event_id
@@ -276,6 +285,249 @@ async function pollWanTask(task, timeoutMs = 240000) {
   }
 }
 
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function makeWavHeader(dataLength, sampleRate = 44100, channels = 1, bits = 16) {
+  const header = Buffer.alloc(44);
+  const byteRate = sampleRate * channels * bits / 8;
+  const blockAlign = channels * bits / 8;
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + dataLength, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bits, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(dataLength, 40);
+  return header;
+}
+
+function addTone(samples, sampleRate, start, duration, frequency, volume, type = "sine") {
+  const from = Math.max(0, Math.floor(start * sampleRate));
+  const to = Math.min(samples.length, Math.floor((start + duration) * sampleRate));
+  for (let i = from; i < to; i++) {
+    const t = (i - from) / sampleRate;
+    const x = t / Math.max(duration, 0.001);
+    const envelope = Math.pow(Math.max(0, 1 - x), 1.8);
+    let wave = Math.sin(2 * Math.PI * frequency * t);
+    if (type === "triangle") wave = 2 * Math.abs(2 * ((frequency * t) % 1) - 1) - 1;
+    samples[i] += wave * volume * envelope;
+  }
+}
+
+function addNoise(samples, sampleRate, start, duration, volume, color = "white") {
+  const from = Math.max(0, Math.floor(start * sampleRate));
+  const to = Math.min(samples.length, Math.floor((start + duration) * sampleRate));
+  let last = 0;
+  for (let i = from; i < to; i++) {
+    const t = (i - from) / sampleRate;
+    const x = t / Math.max(duration, 0.001);
+    const envelope = Math.pow(Math.max(0, 1 - x), 2);
+    let n = Math.random() * 2 - 1;
+    if (color === "brown") {
+      last = last * 0.985 + n * 0.015;
+      n = last * 4;
+    }
+    samples[i] += n * volume * envelope;
+  }
+}
+
+function addWhoosh(samples, sampleRate, start, duration) {
+  const from = Math.max(0, Math.floor(start * sampleRate));
+  const to = Math.min(samples.length, Math.floor((start + duration) * sampleRate));
+  for (let i = from; i < to; i++) {
+    const t = (i - from) / sampleRate;
+    const x = t / Math.max(duration, 0.001);
+    const envelope = Math.sin(Math.PI * x) * 0.16;
+    const freq = 180 + 900 * x;
+    samples[i] += Math.sin(2 * Math.PI * freq * t) * envelope;
+  }
+  addNoise(samples, sampleRate, start, duration, 0.10, "white");
+}
+
+function addImpact(samples, sampleRate, start) {
+  addTone(samples, sampleRate, start, 0.34, 78, 0.52);
+  addTone(samples, sampleRate, start, 0.18, 145, 0.25);
+  addNoise(samples, sampleRate, start, 0.16, 0.28, "brown");
+}
+
+function addMetal(samples, sampleRate, start) {
+  addTone(samples, sampleRate, start, 0.75, 620, 0.28);
+  addTone(samples, sampleRate, start, 0.55, 1040, 0.20);
+  addTone(samples, sampleRate, start, 0.40, 1510, 0.14);
+  addNoise(samples, sampleRate, start, 0.10, 0.16, "white");
+}
+
+function addFootsteps(samples, sampleRate, start, duration) {
+  const count = Math.max(2, Math.min(8, Math.round(duration * 2)));
+  const gap = Math.max(0.22, duration / count);
+  for (let i = 0; i < count; i++) {
+    const t = start + i * gap;
+    addTone(samples, sampleRate, t, 0.08, 72, 0.30);
+    addNoise(samples, sampleRate, t, 0.055, 0.08, "brown");
+  }
+}
+
+function addWater(samples, sampleRate, start, duration) {
+  addNoise(samples, sampleRate, start, duration, 0.10, "white");
+  addTone(samples, sampleRate, start, duration, 420, 0.035);
+  addTone(samples, sampleRate, start + 0.18, duration - 0.18, 680, 0.025);
+}
+
+function addFire(samples, sampleRate, start, duration) {
+  addNoise(samples, sampleRate, start, duration, 0.08, "brown");
+  const count = Math.max(4, Math.floor(duration * 5));
+  for (let i = 0; i < count; i++) {
+    const t = start + Math.random() * duration;
+    addNoise(samples, sampleRate, t, 0.025, 0.20, "white");
+  }
+}
+
+function addGlass(samples, sampleRate, start) {
+  addTone(samples, sampleRate, start, 0.60, 1850, 0.20);
+  addTone(samples, sampleRate, start, 0.48, 2670, 0.14);
+  addTone(samples, sampleRate, start + 0.03, 0.32, 3400, 0.10);
+}
+
+function addDoor(samples, sampleRate, start) {
+  addTone(samples, sampleRate, start, 0.30, 62, 0.40);
+  addNoise(samples, sampleRate, start, 0.10, 0.10, "brown");
+}
+
+function createAutomaticSfxWav(prompt, duration) {
+  const sampleRate = 44100;
+  const seconds = clamp(Number(duration) || 5, 1, 5);
+  const samples = new Float32Array(Math.ceil(seconds * sampleRate));
+  const text = String(prompt || "").toLowerCase();
+
+  const events = [];
+  const addEvent = (time, fn, label) => {
+    if (time < seconds) events.push({ time, fn, label });
+  };
+
+  const movement = /беж|бег|ид[её]|ходит|движ|прыж|прыг|падает|падени|скольз|машет|летит|летя|вращ|камера|двига|runs?|walk|walking|run|running|jump|jumping|fall|falls|slide|slips?|moves?|moving|flies|flying|camera|whip|pan|zoom/i.test(text);
+  const footsteps = /шаг|ид[её]т|идут|ходит|беж|бег|footstep|walking|walk|running|runs?/i.test(text);
+  const impact = /удар|стук|врез|падает|падени|толка|огр[её]л|ударил|crash|hit|impact|slam|punch|kick|fall|falls|collid/i.test(text);
+  const metal = /кастрюл|сковород|металл|желез|банка|metal|pan|pot|clang/i.test(text);
+  const water = /вода|вод[еыу]|море|океан|дожд|бассейн|water|ocean|sea|rain|splash/i.test(text);
+  const fire = /огонь|пламя|кост[её]р|горит|fire|flame|burn|explos/i.test(text);
+  const glass = /стекл|бутыл|glass|bottle|shatter/i.test(text);
+  const door = /двер|door|закрыва|открыва/i.test(text);
+  const quiet = /без звука|без звуков|тишин|silent|no sound|mute/i.test(text);
+
+  if (quiet) return Buffer.concat([makeWavHeader(0, sampleRate), Buffer.alloc(0)]);
+
+  if (footsteps) addEvent(Math.min(0.25, seconds * 0.08), (s) => addFootsteps(s, sampleRate, Math.min(0.25, seconds * 0.08), Math.max(0.7, seconds * 0.55)), "footsteps");
+  if (movement && !footsteps) addEvent(Math.min(0.55, seconds * 0.12), (s) => addWhoosh(s, sampleRate, Math.min(0.55, seconds * 0.12), 0.55), "movement");
+  if (impact) addEvent(Math.max(0.7, seconds * 0.58), (s) => addImpact(s, sampleRate, Math.max(0.7, seconds * 0.58)), "impact");
+  if (metal) addEvent(Math.min(seconds - 0.1, Math.max(1.0, seconds * 0.68)), (s) => addMetal(s, sampleRate, Math.min(seconds - 0.1, Math.max(1.0, seconds * 0.68))), "metal");
+  if (water) addEvent(Math.min(0.2, seconds * 0.05), (s) => addWater(s, sampleRate, 0.08, Math.max(0.4, seconds - 0.08)), "water");
+  if (fire) addEvent(0.08, (s) => addFire(s, sampleRate, 0.08, seconds - 0.08), "fire");
+  if (glass) addEvent(Math.max(0.5, seconds * 0.62), (s) => addGlass(s, sampleRate, Math.max(0.5, seconds * 0.62)), "glass");
+  if (door) addEvent(Math.max(0.4, seconds * 0.48), (s) => addDoor(s, sampleRate, Math.max(0.4, seconds * 0.48)), "door");
+
+  if (!events.length) {
+    addEvent(Math.min(0.6, seconds * 0.12), (s) => addWhoosh(s, sampleRate, Math.min(0.6, seconds * 0.12), 0.50), "generic movement");
+    addEvent(Math.max(1.0, seconds * 0.65), (s) => addImpact(s, sampleRate, Math.max(1.0, seconds * 0.65)), "generic action");
+  }
+
+  for (const event of events) event.fn(samples);
+
+  for (let i = 0; i < samples.length; i++) {
+    samples[i] = clamp(samples[i], -0.92, 0.92);
+  }
+
+  const pcm = Buffer.alloc(samples.length * 2);
+  for (let i = 0; i < samples.length; i++) {
+    pcm.writeInt16LE(Math.round(samples[i] * 32767), i * 2);
+  }
+
+  return Buffer.concat([makeWavHeader(pcm.length, sampleRate), pcm]);
+}
+
+async function runFfmpeg(args) {
+  return new Promise((resolve, reject) => {
+    if (!ffmpegPath) return reject(new Error("FFmpeg binary не найден после установки ffmpeg-static."));
+    const child = spawn(ffmpegPath, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let stderr = "";
+    child.stderr.on("data", chunk => { stderr += chunk.toString(); });
+    child.on("error", reject);
+    child.on("close", code => {
+      if (code === 0) resolve();
+      else reject(new Error("FFmpeg завершился с кодом " + code + ": " + stderr.slice(-1200)));
+    });
+  });
+}
+
+async function attachAutomaticSfx(videoUrl, prompt, duration) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return {
+      videoUrl,
+      audioAttached: false,
+      audioPending: false,
+      audioError: "Для финального MP4 со звуком нужен Vercel Blob: BLOB_READ_WRITE_TOKEN не настроен."
+    };
+  }
+
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "miya-video-"));
+  const input = path.join(dir, "input.mp4");
+  const audio = path.join(dir, "sfx.wav");
+  const output = path.join(dir, "output.mp4");
+
+  try {
+    const response = await fetch(videoUrl, { headers: authHeaders() });
+    if (!response.ok) throw new Error("Не удалось скачать готовое видео для FFmpeg: HTTP " + response.status);
+    await fs.writeFile(input, Buffer.from(await response.arrayBuffer()));
+    await fs.writeFile(audio, createAutomaticSfxWav(prompt, duration));
+
+    await runFfmpeg([
+      "-y",
+      "-i", input,
+      "-i", audio,
+      "-map", "0:v:0",
+      "-map", "1:a:0",
+      "-c:v", "copy",
+      "-c:a", "aac",
+      "-b:a", "128k",
+      "-ar", "44100",
+      "-ac", "2",
+      "-shortest",
+      "-movflags", "+faststart",
+      output
+    ]);
+
+    const bytes = await fs.readFile(output);
+    const blob = await put(
+      "miya/videos/" + Date.now() + "-" + Math.random().toString(36).slice(2) + ".mp4",
+      bytes,
+      {
+        access: "public",
+        contentType: "video/mp4",
+        addRandomSuffix: false,
+        multipart: true
+      }
+    );
+
+    return {
+      videoUrl: blob.url,
+      audioAttached: true,
+      audioPending: false,
+      audioProvider: "Miya automatic SFX",
+      audioTracks: "synthetic sound effects"
+    };
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000);
@@ -385,15 +637,39 @@ export default async function handler(req, res) {
         });
       }
 
+      let finalVideo = {
+        videoUrl: status.videoUrl,
+        audioAttached: false,
+        audioPending: true
+      };
+      try {
+        finalVideo = await attachAutomaticSfx(
+          status.videoUrl,
+          task.prompt || "",
+          task.duration || 5
+        );
+      } catch (audioError) {
+        console.error("Miya SFX/FFmpeg:", audioError);
+        finalVideo = {
+          videoUrl: status.videoUrl,
+          audioAttached: false,
+          audioPending: false,
+          audioError: audioError?.message || "Не удалось добавить автоматические SFX."
+        };
+      }
+
       return res.status(200).json({
         success: true,
         done: true,
         status: "COMPLETED",
-        videoUrl: status.videoUrl,
+        videoUrl: finalVideo.videoUrl,
         provider: "Hugging Face ZeroGPU",
         model: task.model === "wan5b" ? "Wan 2.2 TI2V-5B" : "Wan 2.2 I2V 14B Fast",
-        audioAttached: false,
-        audioPending: false,
+        audioAttached: Boolean(finalVideo.audioAttached),
+        audioPending: Boolean(finalVideo.audioPending),
+        audioProvider: finalVideo.audioProvider || "Miya automatic SFX",
+        audioTracks: finalVideo.audioTracks || null,
+        audioError: finalVideo.audioError || null,
         endpoint: task.endpoint,
         taskId
       });
