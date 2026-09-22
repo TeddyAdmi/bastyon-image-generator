@@ -38,15 +38,32 @@ function makeResponse() {
 
 function makeRequest(event) {
   let body = event.body ?? null;
+
   if (body && event.isBase64Encoded) {
     body = Buffer.from(body, "base64").toString("utf8");
   }
 
+  if (typeof body === "string") {
+    const contentType = String(event.headers?.["content-type"] || event.headers?.["Content-Type"] || "").toLowerCase();
+    if (contentType.includes("application/json")) {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        // Leave the raw body intact so the original handler can report a useful error.
+      }
+    }
+  }
+
+  const query = event.queryStringParameters || {};
+  const path = event.path || "/";
+  const queryString = new URLSearchParams(query).toString();
+
   return {
     method: event.httpMethod || event.requestContext?.http?.method || "GET",
     headers: event.headers || {},
-    query: event.queryStringParameters || {},
-    body
+    query,
+    body,
+    url: queryString ? path + "?" + queryString : path
   };
 }
 
@@ -69,6 +86,7 @@ export async function runVercelHandler(handler, event) {
 
   const raw = state.body ?? "";
   const isBuffer = Buffer.isBuffer(raw);
+
   return {
     statusCode: state.statusCode || 200,
     headers: state.headers,
