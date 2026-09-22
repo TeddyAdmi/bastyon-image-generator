@@ -1,5 +1,3 @@
-import { Client, handle_file } from "@gradio/client";
-
 const LIGHTNING_SPACE =
   "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space";
 const LIGHTNING_ENDPOINT = "/generate_video";
@@ -172,47 +170,146 @@ function getErrorMessage(error) {
  * The previous implementation manually constructed the Gradio upload/call
  * protocol. That was returning 404 from the public Wan Space.
  *
- * The official @gradio/client package is already installed in this project.
- * It resolves the current Gradio config, uploads files in the format expected
- * by the Space, discovers the current endpoint and creates the queue event.
- *
- * We keep the task asynchronous so the browser can poll /api/video without
- * holding a Vercel function open for the entire GPU generation.
+ * We use Gradio 6 REST directly: upload -> POST call -> SSE GET.
+ * This avoids the queue/session mismatch that produced the 404 response.
  */
-async function connectLightning() {
-  const token = String(process.env.HF_TOKEN || "").trim();
-
-  return Client.connect(LIGHTNING_SPACE, {
-    ...(token ? { token } : {}),
-    events: ["status", "data"]
+async function gradioJson(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...authHeaders(),
+      ...(options.headers || {})
+    }
   });
+
+  const text = await response.text();
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {}
+
+  if (!response.ok) {
+    throw new Error(
+      "HTTP " + response.status + ": " + (text || response.statusText || "Not Found").slice(0, 700)
+    );
+  }
+
+  return data;
+}
+
+async function getLightningApi() {
+  const info = await gradioJson(
+    LIGHTNING_SPACE + "/gradio_api/info"
+  );
+
+  const named = info?.named_endpoints || {};
+  const names = Object.keys(named);
+
+  const endpoint =
+    names.find((name) => /generate_video/i.test(name)) ||
+    LIGHTNING_ENDPOINT;
+
+  const endpointName = String(endpoint).replace(/^\/+/, "");
+
+  return {
+    info,
+    endpoint: "/" + endpointName,
+    endpointInfo: named[endpoint] || named["/" + endpointName] || null
+  };
+}
+
+async function uploadLightningImage(image) {
+  const comma = image.indexOf(",");
+  if (comma < 0) {
+    throw new Error("Некорректный image data URL.");
+  }
+
+  const header = image.slice(0, comma);
+  const mime =
+    (header.match(/^data:([^;]+);base64$/i)?.[1] || "image/jpeg").trim();
+
+  const bytes = Buffer.from(image.slice(comma + 1), "base64");
+
+  if (!bytes.length) {
+    throw new Error("Пустое исходное изображение.");
+  }
+
+  const extension =
+    mime === "image/png"
+      ? "png"
+      : mime === "image/webp"
+        ? "webp"
+        : "jpg";
+
+  const form = new FormData();
+
+  form.append(
+    "files",
+    new Blob([bytes], { type: mime }),
+    "miya-input." + extension
+  );
+
+  const response = await fetch(
+    LIGHTNING_SPACE + "/gradio_api/upload",
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: form
+    }
+  );
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      "Wan Lightning upload HTTP " +
+        response.status +
+        ": " +
+        text.slice(0, 500)
+    );
+  }
+
+  let result;
+
+  try {
+    result = JSON.parse(text);
+  } catch {
+    throw new Error("Wan Lightning upload вернул некорректный JSON.");
+  }
+
+  const path = Array.isArray(result) ? result[0] : result?.path;
+
+  if (!path) {
+    throw new Error("Wan Lightning upload не вернул путь к изображению.");
+  }
+
+  return {
+    path: String(path),
+    meta: { _type: "gradio.FileData" },
+    orig_name: "miya-input." + extension
+  };
 }
 
 async function startLightningTask({ prompt, duration, image }) {
-  const app = await connectLightning();
+  const api = await getLightningApi();
 
-  const imageBlob = dataUrlToBlob(image);
-  const inputImage = await handle_file(imageBlob);
+  const inputImage = await uploadLightningImage(image);
 
-  const seconds = Math.min(5, Math.max(0.5, Number(duration) || 3));
+  const seconds = Math.min(
+    5,
+    Math.max(0.5, Number(duration) || 3)
+  );
+
   const wanPrompt = buildWanPrompt(prompt);
   const seed = Math.floor(Math.random() * 2147483647);
 
   /*
-   * Current Wan Space signature:
+   * The current public Space is Gradio 6.x and exposes the following
+   * generate_video inputs in this exact order:
    *
-   * input_image,
-   * prompt,
-   * steps=4,
-   * negative_prompt,
-   * duration_seconds,
-   * guidance_scale=1,
-   * guidance_scale_2=1,
-   * seed,
-   * randomize_seed
-   *
-   * The official Space currently advertises 4–8 steps, 16 fps and
-   * 8–80 frames (roughly 0.5–5 seconds).
+   * image, prompt, steps, negative_prompt, duration_seconds,
+   * guidance_scale, guidance_scale_2, seed, randomize_seed
    */
   const data = [
     inputImage,
@@ -226,273 +323,134 @@ async function startLightningTask({ prompt, duration, image }) {
     false
   ];
 
-  let job;
-
-  try {
-    job = app.submit(LIGHTNING_ENDPOINT, data);
-  } catch (error) {
-    throw new Error("Wan Lightning submit: " + getErrorMessage(error));
-  }
-
-  let eventId;
-
-  try {
-    eventId = await job.wait_for_id();
-  } catch (error) {
-    throw new Error("Wan Lightning queue: " + getErrorMessage(error));
-  }
-
-  if (!eventId) {
-    throw new Error("Wan Lightning не вернул event_id.");
-  }
-
-  const sessionHash = String(app.session_hash || "");
+  const endpointName = api.endpoint.replace(/^\/+/, "");
 
   /*
-   * IMPORTANT:
-   * Gradio's current client does not hard-code "/gradio_api". It resolves
-   * api_prefix from the Space config and then opens queue/data as an SSE
-   * stream. Persist those resolved values in the task so a later Vercel
-   * request can reconnect to the exact same queue namespace.
+   * Gradio 6 REST API:
+   * POST /gradio_api/call/<endpoint> -> { event_id }
+   * GET  /gradio_api/call/<endpoint>/<event_id> -> SSE
+   *
+   * Some Spaces expose the versioned v2 route. Try the normal route first,
+   * then v2 only if the server explicitly returns 404.
    */
-  // Gradio api_prefix may legitimately be empty. Never invent /gradio_api.
-  const apiPrefix = String(app.api_prefix ?? "")
-    .replace(/^\/+/, "")
-    .replace(/\/+$/, "");
+  const candidates = [
+    LIGHTNING_SPACE + "/gradio_api/call/" + endpointName,
+    LIGHTNING_SPACE + "/gradio_api/call/v2/" + endpointName
+  ];
 
-  const protocol = String(app.protocol || "");
-  const fnIndex =
-    app.api_map && Object.prototype.hasOwnProperty.call(app.api_map, LIGHTNING_ENDPOINT)
-      ? Number(app.api_map[LIGHTNING_ENDPOINT])
-      : null;
-  const root = String(app.config?.root || LIGHTNING_SPACE).replace(/\/$/, "");
+  let response = null;
+  let responseText = "";
+  let callUrl = "";
+
+  for (const candidate of candidates) {
+    const r = await fetch(candidate, {
+      method: "POST",
+      headers: {
+        ...authHeaders(),
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({ data })
+    });
+
+    const text = await r.text();
+
+    if (r.ok) {
+      response = r;
+      responseText = text;
+      callUrl = candidate;
+      break;
+    }
+
+    if (r.status !== 404) {
+      throw new Error(
+        "Wan Lightning submit HTTP " +
+          r.status +
+          ": " +
+          text.slice(0, 700)
+      );
+    }
+  }
+
+  if (!response) {
+    throw new Error(
+      "Wan Lightning: 404: Not Found. " +
+        "Не найден REST endpoint generate_video в Gradio Space."
+    );
+  }
+
+  let payload;
+
+  try {
+    payload = responseText ? JSON.parse(responseText) : null;
+  } catch {
+    throw new Error(
+      "Wan Lightning submit вернул некорректный JSON: " +
+        responseText.slice(0, 500)
+    );
+  }
+
+  const eventId = String(payload?.event_id || "").trim();
+
+  if (!eventId) {
+    throw new Error(
+      "Wan Lightning submit не вернул event_id: " +
+        responseText.slice(0, 500)
+    );
+  }
+
+  const task = {
+    v: 8,
+    provider: "huggingface",
+    model: "wan22-lightning",
+    space: LIGHTNING_SPACE,
+    endpoint: api.endpoint,
+    callUrl,
+    eventId,
+    prompt: wanPrompt,
+    duration: seconds
+  };
 
   return {
-    taskId: taskIdFor({
-      v: 7,
-      provider: "huggingface",
-      model: "wan22-lightning",
-      space: LIGHTNING_SPACE,
-      endpoint: LIGHTNING_ENDPOINT,
-      eventId,
-      sessionHash,
-      apiPrefix,
-      protocol,
-      fnIndex,
-      root,
-      prompt: wanPrompt,
-      duration: seconds
-    }),
-    endpoint: LIGHTNING_ENDPOINT,
-    eventId,
-    sessionHash,
-    apiPrefix,
-    protocol
+    taskId: taskIdFor(task),
+    endpoint: api.endpoint,
+    callUrl,
+    eventId
   };
 }
 
-function parseSseEvents(text) {
-  const events = [];
-  const chunks = String(text || "").split(/\r?\n\r?\n/);
+async function pollLightningTask(task, timeoutMs = 15000) {
+  const callUrl =
+    String(task.callUrl || "").replace(/\/+$/, "");
 
-  for (const chunk of chunks) {
-    let event = "";
-    let raw = "";
-
-    for (const line of chunk.split(/\r?\n/)) {
-      if (line.startsWith("event:")) {
-        event = line.slice(6).trim();
-      } else if (line.startsWith("data:")) {
-        raw += line.slice(5).trim();
-      }
-    }
-
-    if (!raw) continue;
-
-    let data = raw;
-
-    try {
-      data = JSON.parse(raw);
-    } catch {}
-
-    events.push({ event, data });
+  if (!callUrl || !task.eventId) {
+    throw new Error("Wan Lightning: отсутствует callUrl или event_id.");
   }
 
-  return events;
-}
-
-function resultFromGradioEvent(event) {
-  const data = event?.data;
-
-  if (
-    event?.event === "error" ||
-    event?.event === "unexpected_error"
-  ) {
-    return {
-      done: true,
-      success: false,
-      status: "ERROR",
-      error: "Wan Lightning: " + getErrorMessage(data)
-    };
-  }
-
-  const stage = String(
-    data?.stage ||
-      data?.status ||
-      event?.event ||
-      ""
-  ).toLowerCase();
-
-  if (
-    event?.event === "complete" ||
-    event?.event === "process_completed" ||
-    stage === "complete" ||
-    stage === "completed"
-  ) {
-    const url = extractVideoUrl(data);
-
-    if (url) {
-      return {
-        done: true,
-        success: true,
-        status: "COMPLETED",
-        videoUrl: providerFileUrl(url)
-      };
-    }
-  }
-
-  return null;
-}
-
-/*
- * Gradio versions differ in whether the convenient GET
- * /gradio_api/call/{endpoint}/{event_id} route is exposed.
- *
- * Try that route first. If the Space returns 404, fall back to the queue SSE
- * endpoint using the exact session_hash created by @gradio/client.
- */
-async function pollCallEndpoint(task, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const endpoint = String(task.endpoint || LIGHTNING_ENDPOINT).replace(
-      /^\//,
-      ""
-    );
-
     const response = await fetch(
-      task.space +
-        "/gradio_api/call/" +
-        endpoint +
-        "/" +
-        encodeURIComponent(task.eventId),
+      callUrl + "/" + encodeURIComponent(String(task.eventId)),
       {
         headers: {
           ...authHeaders(),
-          Accept: "text/event-stream"
+          Accept: "text/event-stream",
+          "Cache-Control": "no-cache"
         },
         signal: controller.signal
       }
     );
 
-    const text = await response.text();
-
-    if (response.status === 404) {
-      return { fallback: true };
-    }
-
-    if (!response.ok) {
-      throw new Error(
-        "Wan Lightning polling HTTP " +
-          response.status +
-          ": " +
-          text.slice(0, 500)
-      );
-    }
-
-    const events = parseSseEvents(text);
-
-    for (const event of events) {
-      const result = resultFromGradioEvent(event);
-      if (result) return result;
-    }
-
-    return {
-      done: false,
-      status: "RUNNING"
-    };
-  } catch (error) {
-    if (error?.name === "AbortError") {
-      return {
-        done: false,
-        status: "RUNNING"
-      };
-    }
-
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function pollQueueEndpoint(task, timeoutMs) {
-  if (!task.sessionHash) {
-    return {
-      done: false,
-      status: "RUNNING"
-    };
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    /*
-     * This is the same route used by the current @gradio/client internals:
-     *   GET {config.root}{api_prefix}/queue/data?session_hash=...
-     *
-     * The previous implementation hard-coded /gradio_api and therefore
-     * could hit a 404 even though the Space itself was healthy.
-     */
-    const prefix = String(task.apiPrefix ?? "")
-      .replace(/^\/+/, "")
-      .replace(/\/+$/, "");
-
-    const root = String(task.root || task.space).replace(/\/$/, "");
-    const url = new URL(
-      root + (prefix ? "/" + prefix : "") + "/queue/data"
-    );
-
-    if (String(task.protocol) === "sse") {
-      if (
-        task.fnIndex === null ||
-        task.fnIndex === undefined ||
-        Number.isNaN(Number(task.fnIndex))
-      ) {
-        throw new Error("Wan Lightning: Gradio did not expose fn_index for the endpoint.");
-      }
-      url.searchParams.set("fn_index", String(task.fnIndex));
-    }
-
-    url.searchParams.set("session_hash", task.sessionHash);
-
-    const response = await fetch(url, {
-      headers: {
-        ...authHeaders(),
-        Accept: "text/event-stream",
-        "x-gradio-user": "api"
-      },
-      signal: controller.signal
-    });
-
     if (!response.ok) {
       const text = await response.text();
+
       throw new Error(
-        "Wan Lightning queue HTTP " +
+        "Wan Lightning: " +
           response.status +
           ": " +
-          text.slice(0, 500)
+          (text || response.statusText || "Not Found").slice(0, 700)
       );
     }
 
@@ -505,57 +463,69 @@ async function pollQueueEndpoint(task, timeoutMs) {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+
     let buffer = "";
 
     try {
       while (true) {
         const { value, done } = await reader.read();
+
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
 
-        const chunks = buffer.split(/\r?\n\r?\n/);
+        const chunks = buffer.split(/\\r?\\n\\r?\\n/);
         buffer = chunks.pop() || "";
 
         for (const chunk of chunks) {
-          for (const event of parseSseEvents(chunk)) {
-            const raw = event?.data;
+          const events = parseSseEvents(chunk);
 
-            if (raw && typeof raw === "object") {
-              if (
-                raw.event_id &&
-                String(raw.event_id) !== String(task.eventId)
-              ) {
-                continue;
-              }
+          for (const event of events) {
+            const eventName = String(event.event || "").toLowerCase();
+            const data = event.data;
 
-              const normalized = {
-                event: raw.msg || raw.type || event.event,
-                data:
-                  raw.output ||
-                  raw.data ||
-                  raw
+            if (eventName === "heartbeat") {
+              continue;
+            }
+
+            if (
+              eventName === "error" ||
+              eventName === "unexpected_error"
+            ) {
+              return {
+                done: true,
+                success: false,
+                status: "ERROR",
+                error: "Wan Lightning: " + getErrorMessage(data)
               };
+            }
 
-              const result = resultFromGradioEvent(normalized);
-              if (result) {
-                try {
-                  await reader.cancel();
-                } catch {}
-                return result;
+            if (eventName === "complete") {
+              const url = extractVideoUrl(data);
+
+              if (!url) {
+                return {
+                  done: true,
+                  success: false,
+                  status: "ERROR",
+                  error:
+                    "Wan Lightning завершил генерацию, но MP4 не был найден в ответе."
+                };
               }
 
-              /*
-               * Modern Gradio sends status messages such as
-               * pending / estimating / generating. Keep the connection open.
-               */
-              if (
-                raw.msg === "estimation" ||
-                raw.msg === "process_starts" ||
-                raw.msg === "process_generating"
-              ) {
-                continue;
-              }
+              return {
+                done: true,
+                success: true,
+                status: "COMPLETED",
+                videoUrl: providerFileUrl(url)
+              };
+            }
+
+            if (
+              eventName === "generating" ||
+              eventName === "streaming"
+            ) {
+              continue;
             }
           }
         }
@@ -582,18 +552,6 @@ async function pollQueueEndpoint(task, timeoutMs) {
   } finally {
     clearTimeout(timer);
   }
-}
-
-async function pollLightningTask(task, timeoutMs = 12000) {
-  /*
-   * Do NOT use /gradio_api/call/{endpoint}/{event_id} first.
-   * That route is not the queue protocol used by current Gradio Spaces and
-   * was the source of the repeated 404 responses.
-   *
-   * Reconnect directly to the same SSE queue namespace resolved by the
-   * official @gradio/client.
-   */
-  return pollQueueEndpoint(task, timeoutMs);
 }
 
 async function pixelsterVideo({
@@ -685,8 +643,8 @@ export default async function handler(req, res) {
 
       if (health === "wan" || health === "1") {
         try {
-          const app = await connectLightning();
-          const info = await app.view_api();
+          const api = await getLightningApi();
+          const info = api.info;
 
           const endpointNames = Object.keys(
             info?.named_endpoints || {}
@@ -697,13 +655,11 @@ export default async function handler(req, res) {
             provider: "Hugging Face ZeroGPU",
             model: "Wan 2.2 I2V Fast · Lightning LoRA · 4 steps",
             space: LIGHTNING_SPACE,
-            endpoint: endpointNames.find((name) =>
-              /generate_video/i.test(name)
-            ) || LIGHTNING_ENDPOINT,
+            endpoint: api.endpoint,
             endpoints: endpointNames,
             authenticated: Boolean(process.env.HF_TOKEN),
             free: true,
-            client: "@gradio/client"
+            client: "Gradio 6 REST API"
           });
         } catch (error) {
           return res.status(502).json({
@@ -731,11 +687,11 @@ export default async function handler(req, res) {
       const task = taskFromId(taskId);
 
       if (
-        task.v !== 7 ||
+        task.v !== 8 ||
         task.provider !== "huggingface" ||
         !task.eventId ||
         !task.space ||
-        !task.sessionHash
+        !task.callUrl
       ) {
         return res.status(400).json({
           success: false,
