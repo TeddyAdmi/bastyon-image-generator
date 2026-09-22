@@ -1,23 +1,25 @@
-const LTX_SPACES = [
-  {
-    name: "LTX-2.5 Workflow",
-    base: "https://akhaliq-ltx-2-5-workflow.hf.space",
-    endpoint: "generate_video",
-    mode: "ltx25"
-  },
-  {
-    name: "LTX-2.3 Fast",
-    base: "https://shaundeeooo-ltx-2-3-fast.hf.space",
-    endpoint: "generate",
-    mode: "fal"
-  },
-  {
-    name: "LTX-2.3 Official",
-    base: "https://lightricks-ltx-2-3.hf.space",
-    endpoint: "generate_video",
-    mode: "official"
-  }
-];
+const LTX25_SPACE = {
+  name: "LTX-2.5 Workflow",
+  base: "https://akhaliq-ltx-2-5-workflow.hf.space",
+  endpoint: "generate_video",
+  mode: "ltx25"
+};
+
+const LTX23_FAST_SPACE = {
+  name: "LTX-2.3 Fast",
+  base: "https://shaundeeooo-ltx-2-3-fast.hf.space",
+  endpoint: "generate",
+  mode: "fal"
+};
+
+const LTX23_OFFICIAL_SPACE = {
+  name: "LTX-2.3 Official",
+  base: "https://lightricks-ltx-2-3.hf.space",
+  endpoint: "generate_video",
+  mode: "official"
+};
+
+const LTX_SPACES = [LTX25_SPACE, LTX23_FAST_SPACE, LTX23_OFFICIAL_SPACE];
 const PIXELSTER = "https://ahm7xmakki.com/api";
 
 function authHeaders() {
@@ -170,31 +172,51 @@ async function resolveLtxEndpoint(space, preferred) {
 async function uploadToGradio(spaceBase, imageDataUri) {
   const comma = imageDataUri.indexOf(",");
   if (comma < 0) throw new Error("Некорректное изображение.");
+
   const header = imageDataUri.slice(0, comma);
   const mime = (header.match(/^data:([^;]+)/i) || [])[1] || "image/jpeg";
   const bytes = Buffer.from(imageDataUri.slice(comma + 1), "base64");
+
   const form = new FormData();
-  form.append("files", new Blob([bytes], { type: mime }), "miya-input." + (mime.includes("png") ? "png" : "jpg"));
+  form.append(
+    "files",
+    new Blob([bytes], { type: mime }),
+    "miya-input." + (mime.includes("png") ? "png" : "jpg")
+  );
+
   const response = await fetch(spaceBase + "/gradio_api/upload", {
     method: "POST",
     headers: authHeaders(),
     body: form
   });
+
   const text = await response.text();
-  if (!response.ok) throw new Error("LTX upload HTTP " + response.status + ": " + text.slice(0, 700));
+  if (!response.ok) {
+    throw new Error("LTX upload HTTP " + response.status + ": " + text.slice(0, 700));
+  }
+
   let data;
-  try { data = JSON.parse(text); } catch { throw new Error("LTX upload вернул некорректный JSON."); }
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("LTX upload вернул некорректный JSON.");
+  }
+
   const path = Array.isArray(data) ? data[0] : data?.files?.[0] || data?.path;
   if (!path) throw new Error("LTX upload не вернул путь файла.");
-  const cleanPath = String(path);
-  const base = spaceBase.replace(/\\/+$/, "");
-  let fileUrl;
-  if (/^https?:\\/\\//i.test(cleanPath)) fileUrl = cleanPath;
-  else if (cleanPath.startsWith("/file=")) fileUrl = base + cleanPath;
-  else fileUrl = base + "/file=" + (cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath);
 
-  // Gradio 6 expects a FileData object with BOTH path and url for file inputs.
-  // Sending only path can make the queued function fail during preprocessing.
+  const cleanPath = String(path).trim();
+  const base = spaceBase.replace(/\/+$/, "");
+
+  let fileUrl;
+  if (/^https?:\/\//i.test(cleanPath)) {
+    fileUrl = cleanPath;
+  } else if (cleanPath.startsWith("/file=")) {
+    fileUrl = base + cleanPath;
+  } else {
+    fileUrl = base + "/file=" + (cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath);
+  }
+
   return {
     path: cleanPath,
     url: fileUrl,
@@ -214,15 +236,12 @@ async function submitLtx25({ image, prompt, duration, aspect }) {
     "1:1": [1024, 1024],
     "4:3": [960, 1280]
   };
-  const [width, height] = dims[aspect] || dims["16:9"];
-  const frames = Math.max(25, Math.round(seconds * 24 / 8) * 8 + 1);
+  const [height, width] = dims[aspect] || dims["16:9"];
   const seed = Math.floor(Math.random() * 2147483647);
 
-  const space = LTX_SPACES[0];
+  const space = LTX25_SPACE;
   const imageFile = await uploadToGradio(space.base, image);
 
-  // LTX-2.5 Workflow exposes the bound generate_video fn:
-  // (prompt, image_path, height, width, duration_s, seed, decoder, auto_len, randomize_seed)
   const data = [
     buildPrompt(prompt),
     imageFile,
@@ -252,15 +271,17 @@ async function submitLtx25({ image, prompt, duration, aspect }) {
         },
         body: JSON.stringify({ data })
       });
-      const text = await response.text();
 
+      const text = await response.text();
       if (!response.ok) {
         lastError = new Error("LTX-2.5 submit HTTP " + response.status + ": " + text.slice(0, 900));
         continue;
       }
 
       let payload = null;
-      try { payload = text ? JSON.parse(text) : null; } catch {
+      try {
+        payload = text ? JSON.parse(text) : null;
+      } catch {
         lastError = new Error("LTX-2.5 submit вернул некорректный JSON: " + text.slice(0, 600));
         continue;
       }
@@ -281,8 +302,7 @@ async function submitLtx25({ image, prompt, duration, aspect }) {
           eventId,
           prompt: String(prompt || "").trim(),
           duration: seconds,
-          aspect,
-          frames
+          aspect
         }),
         endpoint: "/" + space.endpoint,
         eventId
@@ -335,21 +355,27 @@ async function submitOfficialLtx({ space, image, prompt, duration, aspect }) {
         },
         body: JSON.stringify({ data })
       });
+
       const text = await response.text();
       if (!response.ok) {
         lastError = new Error("LTX Official submit HTTP " + response.status + ": " + text.slice(0, 700));
         continue;
       }
+
       let payload;
-      try { payload = text ? JSON.parse(text) : null; } catch {
+      try {
+        payload = text ? JSON.parse(text) : null;
+      } catch {
         lastError = new Error("LTX Official submit вернул некорректный JSON.");
         continue;
       }
+
       const eventId = String(payload?.event_id || "").trim();
       if (!eventId) {
         lastError = new Error("LTX Official не вернул event_id: " + text.slice(0, 500));
         continue;
       }
+
       return {
         taskId: taskIdFor({
           v: 13,
@@ -369,16 +395,14 @@ async function submitOfficialLtx({ space, image, prompt, duration, aspect }) {
       lastError = error;
     }
   }
+
   throw lastError || new Error("LTX Official не принял запрос.");
 }
 
 async function submitLtx({ image, prompt, duration, aspect }) {
   const seconds = Math.min(10, Math.max(5, Math.round(Number(duration) || 5)));
-  const resolution = aspect === "9:16" || aspect === "1:1" ? "720p" : "720p";
+  const resolution = "720p";
 
-  // LTX-2.3 Fast exposes a Gradio 6 API endpoint named /generate.
-  // The API accepts the image directly as a Base64 data URI, so no
-  // separate /upload call is needed.
   const data = [
     image,
     buildPrompt(prompt),
@@ -391,7 +415,7 @@ async function submitLtx({ image, prompt, duration, aspect }) {
     true
   ];
 
-  const fastSpace = LTX_SPACES[0];
+  const fastSpace = LTX23_FAST_SPACE;
   const resolvedEndpoint = await resolveLtxEndpoint(fastSpace, fastSpace.endpoint);
   const candidates = [
     fastSpace.base + "/gradio_api/call/" + resolvedEndpoint,
@@ -410,15 +434,17 @@ async function submitLtx({ image, prompt, duration, aspect }) {
         },
         body: JSON.stringify({ data })
       });
-      const text = await response.text();
 
+      const text = await response.text();
       if (!response.ok) {
         lastError = new Error("LTX-2.3 Fast submit HTTP " + response.status + ": " + text.slice(0, 800));
         continue;
       }
 
       let payload = null;
-      try { payload = text ? JSON.parse(text) : null; } catch {
+      try {
+        payload = text ? JSON.parse(text) : null;
+      } catch {
         lastError = new Error("LTX-2.3 Fast submit вернул некорректный JSON: " + text.slice(0, 600));
         continue;
       }
@@ -454,7 +480,7 @@ async function submitLtx({ image, prompt, duration, aspect }) {
 
 async function pollLtxTask(task, timeoutMs = 12000) {
   const callUrl = String(task.callUrl || "").replace(/\/+$/, "");
-  if (!callUrl || !task.eventId) throw new Error("LTX-2.3: отсутствует callUrl или event_id.");
+  if (!callUrl || !task.eventId) throw new Error("LTX: отсутствует callUrl или event_id.");
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -471,7 +497,7 @@ async function pollLtxTask(task, timeoutMs = 12000) {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error("LTX-2.3 SSE HTTP " + response.status + ": " + text.slice(0, 900));
+      throw new Error("LTX SSE HTTP " + response.status + ": " + text.slice(0, 900));
     }
 
     if (!response.body) return { done: false, status: "RUNNING" };
@@ -479,8 +505,6 @@ async function pollLtxTask(task, timeoutMs = 12000) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-    let lastRawChunk = "";
-    let lastEvent = "";
 
     try {
       while (true) {
@@ -488,7 +512,6 @@ async function pollLtxTask(task, timeoutMs = 12000) {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        lastRawChunk = buffer.slice(-4000);
         const chunks = buffer.split(/\r?\n\r?\n/);
         buffer = chunks.pop() || "";
 
@@ -498,7 +521,6 @@ async function pollLtxTask(task, timeoutMs = 12000) {
 
           const event = String(parsed.event || "").toLowerCase();
           const data = parsed.data;
-          lastEvent = event || lastEvent;
 
           if (event === "heartbeat" || event === "generating" || event === "progress") continue;
 
@@ -511,38 +533,35 @@ async function pollLtxTask(task, timeoutMs = 12000) {
               data?.status?.message ||
               (typeof data?.status === "string" ? data.status : "") ||
               raw;
-            const diagnostic = [
-              "event=" + (event || "unknown"),
-              "data=" + (raw || "<empty>"),
-              "chunk=" + (lastRawChunk || "<empty>")
-            ].join(" | ").slice(0, 5000);
+
             return {
               done: true,
               success: false,
               status: "ERROR",
-              error: "LTX-2.3 provider error: " + (detail && detail !== "{}" ? detail : "пустая ошибка") + " | " + diagnostic
+              error: "LTX provider error: " + (detail && detail !== "{}" ? detail : "пустая ошибка")
             };
           }
 
           if (event === "complete") {
             const videoUrl = findVideo(data, task.space);
-            if (!videoUrl && typeof data === "string" && data.trim()) {
-              const raw = data.trim();
-              if (/^https?:\/\//i.test(raw)) return {
+            if (!videoUrl && typeof data === "string" && data.trim() && /^https?:\/\//i.test(data.trim())) {
+              return {
                 done: true,
                 success: true,
                 status: "COMPLETED",
-                videoUrl: raw
+                videoUrl: data.trim()
               };
             }
+
             if (!videoUrl) {
               return {
                 done: true,
                 success: false,
                 status: "ERROR",
-                error: "LTX-2.3 завершил генерацию, но MP4 не найден в ответе."
+                error: "LTX завершил генерацию, но MP4 не найден в ответе."
               };
             }
+
             return {
               done: true,
               success: true,
@@ -635,8 +654,8 @@ export default async function handler(req, res) {
           return res.status(502).json({
             success: false,
             provider: "Hugging Face ZeroGPU",
-            model: "LTX-2.3 Fast · native audio",
-            space: fastSpace.base,
+            model: "LTX-2.5 · native audio",
+            space: LTX25_SPACE.base,
             error: errorMessage(error)
           });
         }
@@ -655,7 +674,7 @@ export default async function handler(req, res) {
         !task.eventId ||
         !task.callUrl
       ) {
-        return res.status(400).json({ success: false, error: "Некорректная задача LTX-2.3." });
+        return res.status(400).json({ success: false, error: "Некорректная задача LTX." });
       }
 
       const status = await pollLtxTask(task, 12000);
@@ -678,9 +697,11 @@ export default async function handler(req, res) {
           success: false,
           done: true,
           status: "ERROR",
-          error: status.error || "LTX-2.3 не создал видео.",
+          error: status.error || "LTX не создал видео.",
           provider: "Hugging Face ZeroGPU",
-          model: task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
+          model: task.model === "ltx25-audio"
+            ? "LTX-2.5 · Audio"
+            : task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
           taskId
         });
       }
@@ -693,7 +714,7 @@ export default async function handler(req, res) {
           const bytes = Buffer.from(status.videoUrl.slice(comma + 1), "base64");
           res.statusCode = 200;
           res.setHeader("Content-Type", mime);
-          res.setHeader("Content-Disposition", 'inline; filename="miya-ai-ltx23.mp4"');
+          res.setHeader("Content-Disposition", 'inline; filename="miya-ai-ltx25.mp4"');
           res.setHeader("Cache-Control", "no-store");
           res.setHeader("Content-Length", String(bytes.length));
           return res.end(bytes);
@@ -707,14 +728,14 @@ export default async function handler(req, res) {
           return res.status(502).json({
             success: false,
             done: true,
-            error: "Не удалось получить MP4 от LTX-2.3: HTTP " + upstream.status,
+            error: "Не удалось получить MP4 от LTX: HTTP " + upstream.status,
             taskId
           });
         }
 
         res.statusCode = 200;
         res.setHeader("Content-Type", "video/mp4");
-        res.setHeader("Content-Disposition", 'inline; filename="miya-ai-ltx23.mp4"');
+        res.setHeader("Content-Disposition", 'inline; filename="miya-ai-ltx25.mp4"');
         res.setHeader("Cache-Control", "no-store");
         res.setHeader("X-Content-Type-Options", "nosniff");
 
@@ -751,8 +772,11 @@ export default async function handler(req, res) {
 
     let body = req.body || {};
     if (typeof body === "string") {
-      try { body = JSON.parse(body); }
-      catch { return res.status(400).json({ success: false, error: "Некорректный JSON запроса." }); }
+      try {
+        body = JSON.parse(body);
+      } catch {
+        return res.status(400).json({ success: false, error: "Некорректный JSON запроса." });
+      }
     }
 
     const prompt = String(body.prompt || "").trim();
@@ -761,9 +785,6 @@ export default async function handler(req, res) {
     const image = await normalizeImage(body.imageBase64, body.imageUrl);
     const model = String(body.model || "ltx25").trim();
 
-    // During the LTX verification phase, legacy UI model IDs are routed to LTX too.
-    // This lets the existing Miya editor test LTX immediately without requiring
-    // a frontend deployment just to change the default selector.
     if (model === "ltx25") {
       const task = await submitLtx25({
         image,
@@ -787,7 +808,7 @@ export default async function handler(req, res) {
 
     if (model === "ltx23official") {
       const task = await submitOfficialLtx({
-        space: LTX_SPACES[1],
+        space: LTX23_OFFICIAL_SPACE,
         image,
         prompt,
         duration: Number(body.duration) || 3,
@@ -810,10 +831,8 @@ export default async function handler(req, res) {
     if (model === "ltx23" || model === "wan22" || model === "wan5b" || model === "hunyuan") {
       let task;
       try {
-        // LTX-2.3 Fast is currently reporting a runtime error on its public Space,
-        // so use the official Lightricks ZeroGPU Space as the primary route.
         task = await submitOfficialLtx({
-          space: LTX_SPACES[1],
+          space: LTX23_OFFICIAL_SPACE,
           image,
           prompt,
           duration: Number(body.duration) || 3,
@@ -835,7 +854,9 @@ export default async function handler(req, res) {
         taskId: task.taskId,
         status: "QUEUED",
         provider: "Hugging Face ZeroGPU",
-        model: task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
+        model: task.model === "ltx23official-audio"
+          ? "LTX-2.3 Official · Audio"
+          : "LTX-2.3 Fast · Audio",
         audioAttached: true,
         endpoint: task.endpoint,
         message: task.model === "ltx23official-audio"
@@ -852,6 +873,7 @@ export default async function handler(req, res) {
           duration: Math.max(5, Number(body.duration) || 5),
           imageBase64: image
         });
+
         return res.status(200).json({
           success: true,
           done: true,
