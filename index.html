@@ -353,14 +353,15 @@ async function runVideo(){
       const v=$('videoResult');
       const a=$('videoAudio');
       if(v){
+        // Setting src starts the media load; calling load() again can abort
+        // the active fetch/play promise in Firefox and Chromium.
+        v.pause();
         v.src=d.videoUrl;
         v.classList.remove('hidden');
-        v.load();
       }
       if(a){
         a.pause();
         a.removeAttribute('src');
-        a.load();
       }
 
       if($('videoStatus'))$('videoStatus').textContent='Видео готово · создаём звук…';
@@ -398,7 +399,7 @@ async function runVideo(){
       if($('videoStatus'))$('videoStatus').textContent='Статус: '+(s.status||'RUNNING')+' · '+(s.provider||'AHM7 PixelSter');
       if(s.done){
         if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
-        const v=$('videoResult');if(v){v.src=s.videoUrl;v.classList.remove('hidden');v.load()}
+        const v=$('videoResult');if(v){v.pause();v.src=s.videoUrl;v.classList.remove('hidden')}
         setBusy(false,'Видео готово',(s.model||'Motion synthesis')+' · '+(s.provider||'AHM7 PixelSter'));
         return;
       }
@@ -431,16 +432,49 @@ function renderHistory(){
 
 const videoResultEl=$('videoResult');
 const videoAudioEl=$('videoAudio');
-if(videoResultEl && videoAudioEl){
-  videoResultEl.addEventListener('play',async()=>{
-    if(videoAudioEl.src){
-      try{
-        videoAudioEl.currentTime=Math.min(videoResultEl.currentTime||0, videoAudioEl.duration||999999);
-        await videoAudioEl.play();
-      }catch{}
+let audioSyncGeneration=0;
+
+function isAbortError(error){
+  return error?.name==='AbortError' || /aborted by the user agent/i.test(String(error?.message||''));
+}
+
+async function syncAudioToVideo(){
+  if(!videoResultEl || !videoAudioEl || !videoAudioEl.src || videoResultEl.paused)return;
+  const generation=audioSyncGeneration;
+  try{
+    if(videoAudioEl.readyState<2){
+      await new Promise((resolve,reject)=>{
+        const done=()=>{cleanup();resolve()};
+        const fail=()=>{cleanup();reject(videoAudioEl.error||new Error('Audio unavailable'))};
+        const cleanup=()=>{
+          videoAudioEl.removeEventListener('canplay',done);
+          videoAudioEl.removeEventListener('error',fail);
+        };
+        videoAudioEl.addEventListener('canplay',done,{once:true});
+        videoAudioEl.addEventListener('error',fail,{once:true});
+      });
     }
+    if(generation!==audioSyncGeneration || videoResultEl.paused || !videoAudioEl.src)return;
+    const target=Number(videoResultEl.currentTime)||0;
+    if(Number.isFinite(videoAudioEl.duration)){
+      videoAudioEl.currentTime=Math.min(target,videoAudioEl.duration);
+    }else{
+      videoAudioEl.currentTime=target;
+    }
+    await videoAudioEl.play();
+  }catch(error){
+    // Firefox can reject play() with AbortError when media loading changes.
+    // This is a normal media lifecycle race, not an application failure.
+    if(!isAbortError(error))console.warn('Miya audio playback:',error);
+  }
+}
+
+if(videoResultEl && videoAudioEl){
+  videoResultEl.addEventListener('play',()=>{ syncAudioToVideo(); });
+  videoResultEl.addEventListener('pause',()=>{
+    audioSyncGeneration++;
+    videoAudioEl.pause();
   });
-  videoResultEl.addEventListener('pause',()=>videoAudioEl.pause());
   videoResultEl.addEventListener('seeking',()=>{
     if(Number.isFinite(videoAudioEl.duration)){
       videoAudioEl.currentTime=Math.min(videoResultEl.currentTime||0,videoAudioEl.duration);
@@ -453,7 +487,16 @@ if(videoResultEl && videoAudioEl){
       videoAudioEl.currentTime=Math.min(videoResultEl.currentTime,videoAudioEl.duration);
     }
   });
-  videoResultEl.addEventListener('ended',()=>videoAudioEl.pause());
+  videoResultEl.addEventListener('ended',()=>{
+    audioSyncGeneration++;
+    videoAudioEl.pause();
+  });
+  videoResultEl.addEventListener('error',()=>{
+    console.warn('Miya video media error:',videoResultEl.error?.code,videoResultEl.error?.message||'unknown');
+  });
+  videoAudioEl.addEventListener('error',()=>{
+    console.warn('Miya audio media error:',videoAudioEl.error?.code,videoAudioEl.error?.message||'unknown');
+  });
 }
 
 document.addEventListener('click',e=>{
