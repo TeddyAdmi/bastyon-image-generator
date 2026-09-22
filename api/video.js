@@ -485,7 +485,9 @@ async function attachAutomaticSfx(videoUrl, prompt, duration) {
   try {
     const response = await fetch(videoUrl, { headers: authHeaders() });
     if (!response.ok) throw new Error("Не удалось скачать готовое видео для FFmpeg: HTTP " + response.status);
-    await fs.writeFile(input, Buffer.from(await response.arrayBuffer()));
+    const videoBytes = Buffer.from(await response.arrayBuffer());
+    if (videoBytes.length < 1000) throw new Error("Wan вернул пустой или повреждённый MP4.");
+    await fs.writeFile(input, videoBytes);
     await fs.writeFile(audio, createAutomaticSfxWav(prompt, duration));
 
     await runFfmpeg([
@@ -650,12 +652,16 @@ export default async function handler(req, res) {
         );
       } catch (audioError) {
         console.error("Miya SFX/FFmpeg:", audioError);
-        finalVideo = {
-          videoUrl: status.videoUrl,
-          audioAttached: false,
-          audioPending: false,
-          audioError: audioError?.message || "Не удалось добавить автоматические SFX."
-        };
+        return res.status(502).json({
+          success: false,
+          done: true,
+          status: "ERROR",
+          error: audioError?.message || "Не удалось скачать/обработать видео Wan.",
+          code: "VIDEO_FINALIZE_FAILED",
+          provider: "Hugging Face ZeroGPU",
+          model: task.model === "wan5b" ? "Wan 2.2 TI2V-5B" : "Wan 2.2 I2V 14B Fast",
+          taskId
+        });
       }
 
       return res.status(200).json({
