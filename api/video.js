@@ -1,7 +1,7 @@
-const LIGHTNING_SPACE = "https://saravutw-wan2-2-i2v-lightning-4-8step-custom.hf.space";
+const LIGHTNING_SPACE = "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space";
 const LIGHTNING_API_PREFIX = "/gradio_api";
 const LIGHTNING_INFO = LIGHTNING_SPACE + "/gradio_api/info";
-const LIGHTNING_API_NAMES = ["/generate_video", "generate_video"];
+const LIGHTNING_API_NAMES = ["generate_video"];
 const PIXELSTER = "https://ahm7xmakki.com/api";
 
 function isUrl(value) {
@@ -134,20 +134,16 @@ function extractVideoUrl(output) {
 }
 
 async function startLightningTask({ prompt, duration, image }) {
-  const info = await jsonFetch(LIGHTNING_INFO, { headers: { Accept: "application/json" } });
-  const endpoint = findGenerateEndpoint(info);
+  // This is the official fast ZeroGPU Space currently published by Hugging Face:
+  // Wan 2.2 I2V 14B + Lightx2v Lightning LoRA, 4–8 steps.
+  // Unlike the custom Space that was returning 404, this Space exposes the
+  // simple generate_video API used below.
   const imagePath = await uploadImage(image);
-
   const seconds = Math.min(5, Math.max(3, Number(duration) || 3));
   const wanPrompt = buildWanPrompt(prompt);
 
-  // Current public Lightning Space input order:
-  // image, last_image, prompt, steps, negative, duration,
-  // guidance1, guidance2, seed, randomize, quality, scheduler,
-  // flow_shift, fps/flow-multiplier, safe-mode, display-result.
   const data = [
     { path: imagePath, meta: { _type: "gradio.FileData" }, orig_name: "miya-video.jpg" },
-    null,
     wanPrompt,
     4,
     "static, frozen, blurry, low quality, distorted, deformed, extra limbs, identity change, scene change, camera teleportation, text, watermark",
@@ -155,71 +151,53 @@ async function startLightningTask({ prompt, duration, image }) {
     1,
     1,
     Math.floor(Math.random() * 2147483647),
-    true,
-    5,
-    "UniPCMultistep",
-    3,
-    16,
-    false,
     true
   ];
 
-  // ZeroGPU Spaces can report the web page as available while the Gradio
-  // worker/API is still waking up. Give it time and retry the POST itself.
-  // This also avoids treating a transient 404 as a permanently missing endpoint.
   let payload = null;
-  let last404 = "";
-  const endpointNames = Array.from(new Set([
-    String(endpoint || "").replace(/^\//, ""),
-    "generate_video"
-  ].filter(Boolean)));
+  let lastText = "";
 
-  for (let attempt = 0; attempt < 6 && !payload?.event_id; attempt++) {
+  for (let attempt = 0; attempt < 5 && !payload?.event_id; attempt++) {
+    if (attempt > 0) {
+      await new Promise(resolve => setTimeout(resolve, Math.min(8000, 1800 * attempt)));
+    }
+
     try {
       await fetch(LIGHTNING_SPACE + "/", {
         method: "GET",
         headers: authHeaders(),
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(8000)
       });
     } catch {}
 
-    if (attempt > 0) {
-      await new Promise(resolve => setTimeout(resolve, Math.min(12000, 2500 * attempt)));
-    }
-
-    for (const apiName of endpointNames) {
-      const response = await fetch(
-        LIGHTNING_SPACE + "/gradio_api/call/" + apiName,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
-          body: JSON.stringify({ data }),
-          signal: AbortSignal.timeout(30000)
-        }
-      );
-
-      const text = await response.text();
-      try { payload = text ? JSON.parse(text) : null; } catch { payload = null; }
-
-      if (response.ok && payload?.event_id) break;
-
-      if (response.status === 404) {
-        last404 = text || "404 Not Found";
-        continue;
+    const response = await fetch(
+      LIGHTNING_SPACE + "/gradio_api/call/generate_video",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ data }),
+        signal: AbortSignal.timeout(30000)
       }
+    );
 
-      const error = new Error(
-        "Wan Lightning call HTTP " + response.status + ": " + (payload?.error || text || "")
-      );
-      error.statusCode = response.status;
-      throw error;
-    }
+    lastText = await response.text();
+    try { payload = lastText ? JSON.parse(lastText) : null; } catch { payload = null; }
+
+    if (response.ok && payload?.event_id) break;
+
+    if (response.status === 404) continue;
+
+    const error = new Error(
+      "Wan Lightning call HTTP " + response.status + ": " + (payload?.error || lastText || "")
+    );
+    error.statusCode = response.status;
+    throw error;
   }
 
   if (!payload?.event_id) {
     const error = new Error(
-      "Wan Lightning: Gradio API не проснулся после 6 попыток. Последний ответ: " +
-      String(last404).slice(0, 400)
+      "Wan Lightning: generate_video API недоступен после 5 попыток. Ответ: " +
+      String(lastText).slice(0, 400)
     );
     error.statusCode = 503;
     throw error;
@@ -227,16 +205,16 @@ async function startLightningTask({ prompt, duration, image }) {
 
   return {
     taskId: taskIdFor({
-      v: 3,
+      v: 4,
       provider: "huggingface",
       model: "wan22-lightning",
       space: LIGHTNING_SPACE,
-      endpoint,
+      endpoint: "generate_video",
       eventId: payload.event_id,
       prompt: wanPrompt,
       duration: seconds
     }),
-    endpoint,
+    endpoint: "generate_video",
     eventId: payload.event_id
   };
 }
@@ -375,7 +353,7 @@ export default async function handler(req, res) {
           return res.status(200).json({
             success: true,
             provider: "Hugging Face ZeroGPU",
-            model: "Wan 2.2 I2V Lightning · 4 steps",
+            model: "Wan 2.2 I2V Fast · Lightning LoRA · 4 steps",
             space: LIGHTNING_SPACE,
             endpoint: findGenerateEndpoint(info),
             authenticated: Boolean(process.env.HF_TOKEN),
@@ -404,7 +382,7 @@ export default async function handler(req, res) {
       // Proxy the finished MP4 through our own Vercel endpoint instead.
       const raw = String(req.query?.raw || "") === "1";
       if (raw) {
-        if (task.v !== 3 || task.provider !== "huggingface" || !task.eventId || !task.endpoint || !task.space) {
+        if (task.v !== 4 || task.provider !== "huggingface" || !task.eventId || !task.endpoint || !task.space) {
           return res.status(400).json({ success: false, error: "Некорректная задача видео." });
         }
 
