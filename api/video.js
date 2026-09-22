@@ -1,4 +1,3 @@
-import ffmpegPath from "ffmpeg-static";
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -319,6 +318,9 @@ async function stableAudio({ prompt, duration }) {
 }
 
 async function muxVideoAudio(videoBytes, audioBytes) {
+  const ffmpegModule = await import("ffmpeg-static");
+  const ffmpegPath = ffmpegModule.default || ffmpegModule;
+  if (!ffmpegPath) throw new Error("FFmpeg binary не найден в Vercel runtime.");
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "miya-av-"));
   const videoPath = path.join(dir, "video.mp4");
   const audioPath = path.join(dir, "audio.wav");
