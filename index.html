@@ -409,15 +409,33 @@ async function runVideo(){
         if(!s.success||!s.videoUrl){
           if((state.videoModel==='ltx25' || state.videoModel==='ltx23' || state.videoModel==='wan22' || state.videoModel==='wan5b' || state.videoModel==='hunyuan') && !ltxFallbackTried){
             ltxFallbackTried=true;
-            if($('videoStatus'))$('videoStatus').textContent='LTX Fast недоступен · переключаемся на LTX-2.3 Official…';
-            setBusy(true,'Miya AI переключает видеосервер','LTX-2.3 Fast завершился с ошибкой · пробуем Official');
-            const fallbackBody={...body,model:(s.model||'').includes('Official')?'ltx25':'ltx23official'};
+            const officialAlreadyFailed=(s.model||'').includes('Official');
+            if($('videoStatus'))$('videoStatus').textContent=officialAlreadyFailed
+              ? 'LTX-2.3 недоступен · переключаемся на резервный Motion…'
+              : 'LTX Fast недоступен · переключаемся на LTX-2.3 Official…';
+            setBusy(true,'Miya AI переключает видеосервер',officialAlreadyFailed
+              ? 'LTX-2.3 завершился с ошибкой · пробуем резервный Motion'
+              : 'LTX Fast завершился с ошибкой · пробуем Official');
+            const fallbackBody=officialAlreadyFailed
+              ? {...body,model:'pixelster-motion'}
+              : {...body,model:'ltx23official'};
             const fallback=await api('/api/video',{
               method:'POST',
               headers:{'Content-Type':'application/json'},
               body:JSON.stringify(fallbackBody)
             });
-            if(!fallback.taskId)throw new Error(fallback.error||'LTX-2.3 Official не вернул taskId.');
+            if(fallback.done && fallback.videoUrl){
+              const v=$('videoResult');
+              if(v){
+                v.pause();
+                v.src=fallback.videoUrl;
+                v.classList.remove('hidden');
+                try{v.load()}catch{}
+              }
+              setBusy(false,'Видео готово',(fallback.model||'Motion synthesis')+' · '+(fallback.provider||'AHM7 PixelSter'));
+              return;
+            }
+            if(!fallback.taskId)throw new Error(fallback.error||'Резервный видеосервер не вернул результат.');
             currentTaskId=fallback.taskId;
             continue;
           }
