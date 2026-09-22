@@ -396,22 +396,19 @@ async function runVideo(){
     // one starts. This prevents multiple SSE connections from reusing the same
     // Gradio event_id and avoids the 404 race seen with the public Space.
     let currentTaskId=d.taskId;
-    let ltxFallbackTried=false;
+    let fallbackTried=false;
     for(let i=0;i<180;i++){
       await new Promise(r=>setTimeout(r,1500));
       let s;
       try{
         s=await api('/api/video?taskId='+encodeURIComponent(currentTaskId));
       }catch(pollError){
-        // A Netlify/Vercel adapter can surface the SSE failure as HTTP 502.
-        // Convert it into the same terminal state so the existing LTX fallback
-        // chain still runs instead of escaping straight to the UI error box.
         s={
           done:true,
           success:false,
           status:'ERROR',
-          model:currentTaskId && state.videoModel==='ltx25' ? 'LTX-2.5 · Native Audio' : 'LTX-2.5 · Native Audio',
-          error:String(pollError?.message||pollError||'Ошибка опроса LTX-2.3')
+          model:videoModelLabel(state.videoModel),
+          error:String(pollError?.message||pollError||'Ошибка опроса видеогенератора')
         };
       }
       if(s.taskId) currentTaskId=s.taskId;
@@ -420,10 +417,27 @@ async function runVideo(){
       }
       if(s.done){
         if(!s.success||!s.videoUrl){
-          if((state.videoModel==='ltx25' || state.videoModel==='ltx23' || state.videoModel==='wan22' || state.videoModel==='wan5b' || state.videoModel==='hunyuan') && !ltxFallbackTried){
-            ltxFallbackTried=true;
-            if($('videoStatus'))$('videoStatus').textContent='LTX недоступен · автоматический Motion fallback отключён';
-            throw new Error(s.error||'LTX не создал видео.');
+          if(state.videoModel==='h3' && !fallbackTried){
+            fallbackTried=true;
+            if($('videoStatus'))$('videoStatus').textContent='H3 временно недоступен · запускаем Wan 2.2 fallback…';
+            const fallbackBody={prompt,aspect:state.videoRatio,duration:Number($('videoDuration')?.value||3),model:'wan22'};
+            if(source.startsWith('data:image/')){
+              fallbackBody.imageBase64=await optimizeVideoImage(source);
+            }else{
+              fallbackBody.imageUrl=source;
+            }
+            const fb=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(fallbackBody)});
+            if(fb.done&&fb.videoUrl){
+              const v=$('videoResult');
+              if(v){v.pause();v.src=fb.videoUrl;v.classList.remove('hidden');try{v.load()}catch{}}
+              setBusy(false,'Видео готово · fallback',videoModelLabel('wan22'));
+              return;
+            }
+            if(fb.taskId){
+              currentTaskId=fb.taskId;
+              if($('videoStatus'))$('videoStatus').textContent='Wan 2.2 fallback · очередь…';
+              continue;
+            }
           }
           throw new Error(s.error||'Видео не создано.');
         }
@@ -434,7 +448,7 @@ async function runVideo(){
           v.classList.remove('hidden');
           try{v.load()}catch{}
         }
-        setBusy(false,'Видео готово',(s.model||'LTX-2.3 Fast · Audio')+' · '+(s.provider||'Hugging Face ZeroGPU'));
+        setBusy(false,'Видео готово',(s.model||videoModelLabel(state.videoModel))+' · '+(s.provider||'Hugging Face ZeroGPU'));
         return;
       }
     }
