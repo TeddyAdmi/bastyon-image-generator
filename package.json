@@ -2,6 +2,7 @@
   "name": "bastyon-image-generator",
   "private": true,
   "dependencies": {
-    "@vercel/blob": "^2.4.0"
+    "@vercel/blob": "^2.4.0",
+    "ffmpeg-static": "^5.2.0"
   }
 }
