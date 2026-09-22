@@ -248,21 +248,38 @@ async function startLightningTask({ prompt, duration, image }) {
 
   const sessionHash = String(app.session_hash || "");
 
+  /*
+   * IMPORTANT:
+   * Gradio's current client does not hard-code "/gradio_api". It resolves
+   * api_prefix from the Space config and then opens queue/data as an SSE
+   * stream. Persist those resolved values in the task so a later Vercel
+   * request can reconnect to the exact same queue namespace.
+   */
+  const apiPrefix = String(app.api_prefix || "/gradio_api")
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "");
+
+  const protocol = String(app.protocol || "");
+
   return {
     taskId: taskIdFor({
-      v: 6,
+      v: 7,
       provider: "huggingface",
       model: "wan22-lightning",
       space: LIGHTNING_SPACE,
       endpoint: LIGHTNING_ENDPOINT,
       eventId,
       sessionHash,
+      apiPrefix,
+      protocol,
       prompt: wanPrompt,
       duration: seconds
     }),
     endpoint: LIGHTNING_ENDPOINT,
     eventId,
-    sessionHash
+    sessionHash,
+    apiPrefix,
+    protocol
   };
 }
 
@@ -423,13 +440,31 @@ async function pollQueueEndpoint(task, timeoutMs) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const url = new URL(task.space + "/gradio_api/queue/data");
+    /*
+     * This is the same route used by the current @gradio/client internals:
+     *   GET {config.root}{api_prefix}/queue/data?session_hash=...
+     *
+     * The previous implementation hard-coded /gradio_api and therefore
+     * could hit a 404 even though the Space itself was healthy.
+     */
+    const prefix = String(task.apiPrefix || "gradio_api")
+      .replace(/^\/+/, "")
+      .replace(/\/+$/, "");
+
+    const url = new URL(
+      task.space.replace(/\/$/, "") +
+        "/" +
+        prefix +
+        "/queue/data"
+    );
+
     url.searchParams.set("session_hash", task.sessionHash);
 
     const response = await fetch(url, {
       headers: {
         ...authHeaders(),
-        Accept: "text/event-stream"
+        Accept: "text/event-stream",
+        "x-gradio-user": "api"
       },
       signal: controller.signal
     });
@@ -466,33 +501,44 @@ async function pollQueueEndpoint(task, timeoutMs) {
         buffer = chunks.pop() || "";
 
         for (const chunk of chunks) {
-          const parsed = parseSseEvents(chunk).map((event) => {
-            if (event.data && typeof event.data === "object") {
-              return event.data;
-            }
-            return null;
-          });
+          for (const event of parseSseEvents(chunk)) {
+            const raw = event?.data;
 
-          for (const payload of parsed) {
-            if (!payload) continue;
+            if (raw && typeof raw === "object") {
+              if (
+                raw.event_id &&
+                String(raw.event_id) !== String(task.eventId)
+              ) {
+                continue;
+              }
 
-            if (
-              payload.event_id &&
-              String(payload.event_id) !== String(task.eventId)
-            ) {
-              continue;
-            }
+              const normalized = {
+                event: raw.msg || raw.type || event.event,
+                data:
+                  raw.output ||
+                  raw.data ||
+                  raw
+              };
 
-            const result = resultFromGradioEvent({
-              event: payload.msg,
-              data: payload.output || payload.data || payload
-            });
+              const result = resultFromGradioEvent(normalized);
+              if (result) {
+                try {
+                  await reader.cancel();
+                } catch {}
+                return result;
+              }
 
-            if (result) {
-              try {
-                await reader.cancel();
-              } catch {}
-              return result;
+              /*
+               * Modern Gradio sends status messages such as
+               * pending / estimating / generating. Keep the connection open.
+               */
+              if (
+                raw.msg === "estimation" ||
+                raw.msg === "process_starts" ||
+                raw.msg === "process_generating"
+              ) {
+                continue;
+              }
             }
           }
         }
@@ -522,12 +568,14 @@ async function pollQueueEndpoint(task, timeoutMs) {
 }
 
 async function pollLightningTask(task, timeoutMs = 12000) {
-  const direct = await pollCallEndpoint(task, timeoutMs);
-
-  if (!direct.fallback) {
-    return direct;
-  }
-
+  /*
+   * Do NOT use /gradio_api/call/{endpoint}/{event_id} first.
+   * That route is not the queue protocol used by current Gradio Spaces and
+   * was the source of the repeated 404 responses.
+   *
+   * Reconnect directly to the same SSE queue namespace resolved by the
+   * official @gradio/client.
+   */
   return pollQueueEndpoint(task, timeoutMs);
 }
 
@@ -666,7 +714,7 @@ export default async function handler(req, res) {
       const task = taskFromId(taskId);
 
       if (
-        task.v !== 6 ||
+        task.v !== 7 ||
         task.provider !== "huggingface" ||
         !task.eventId ||
         !task.space
