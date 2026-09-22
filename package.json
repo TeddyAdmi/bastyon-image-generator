@@ -1,6 +1,7 @@
 {
   "name": "bastyon-image-generator",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@vercel/blob": "^2.4.0",
     "@gradio/client": "^2.7.0",
