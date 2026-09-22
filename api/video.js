@@ -478,13 +478,93 @@ export default async function handler(req, res) {
     }
 
     if (model === "pixelster-motion") {
-      const data = await pixelsterVideo({
-        prompt,
-        ratio: body.aspect || body.ratio || "9:16",
-        duration: Math.max(5, duration),
-        imageBase64: image
-      });
-      return res.status(200).json({ success:true, done:true, videoUrl:data.videoUrl, provider:"AHM7 PixelSter", model:"Motion synthesis", fallbackUsed:false });
+      try {
+        const data = await pixelsterVideo({
+          prompt,
+          ratio: body.aspect || body.ratio || "9:16",
+          duration: Math.max(5, duration),
+          imageBase64: image
+        });
+        return res.status(200).json({
+          success: true,
+          done: true,
+          videoUrl: data.videoUrl,
+          provider: "AHM7 PixelSter",
+          model: "Motion synthesis",
+          fallbackUsed: false
+        });
+      } catch (pixelsterError) {
+        const isTimeout =
+          Number(pixelsterError?.statusCode) === 504 ||
+          pixelsterError?.code === "UPSTREAM_TIMEOUT";
+
+        if (!isTimeout) {
+          console.error("Miya PixelSter video failed without fallback:", pixelsterError);
+          return res.status(502).json({
+            success: false,
+            done: false,
+            error: "Motion synthesis не смог создать видео: " +
+              (pixelsterError?.message || "неизвестная ошибка"),
+            code: pixelsterError?.code || "PIXELSTER_FAILED",
+            provider: "AHM7 PixelSter",
+            model: "Motion synthesis",
+            fallbackUsed: false
+          });
+        }
+
+        console.warn(
+          "Miya PixelSter timed out; falling back to Wan 2.2 TI2V-5B:",
+          pixelsterError?.message
+        );
+
+        try {
+          const wan = await wan5bVideo({ prompt, duration, image });
+          const videoResponse = await fetch(wan.sourceUrl, {
+            headers: authHeaders()
+          });
+          if (!videoResponse.ok) {
+            throw new Error("Wan 5B MP4 download HTTP " + videoResponse.status);
+          }
+
+          const videoBytes = Buffer.from(await videoResponse.arrayBuffer());
+          if (videoBytes.length < 10000) {
+            throw new Error("Wan 5B вернул слишком маленький MP4: " + videoBytes.length + " bytes");
+          }
+
+          return res.status(200).json({
+            success: true,
+            done: true,
+            videoUrl: "data:video/mp4;base64," + videoBytes.toString("base64"),
+            videoSourceUrl: wan.sourceUrl,
+            provider: "Hugging Face ZeroGPU",
+            model: "Wan 2.2 TI2V-5B",
+            audioAttached: false,
+            endpoint: wan.endpoint,
+            frames: wan.frames,
+            fps: 24,
+            promptUsed: prompt,
+            fallbackUsed: true,
+            fallbackFrom: "Motion synthesis",
+            fallbackReason: "PixelSter HTTP 504"
+          });
+        } catch (fallbackError) {
+          console.error("Miya PixelSter -> Wan 5B fallback failed:", fallbackError);
+          return res.status(502).json({
+            success: false,
+            done: false,
+            error:
+              "Motion synthesis не успел завершить генерацию (HTTP 504), " +
+              "а резервный Wan 2.2 TI2V-5B также не смог создать видео: " +
+              (fallbackError?.message || "неизвестная ошибка"),
+            code: "VIDEO_FALLBACK_FAILED",
+            provider: "AHM7 PixelSter → Hugging Face ZeroGPU",
+            model: "Motion synthesis → Wan 2.2 TI2V-5B",
+            fallbackUsed: true,
+            fallbackFrom: "Motion synthesis",
+            fallbackError: fallbackError?.message || "unknown"
+          });
+        }
+      }
     }
 
     if (model === "wan5b") {
