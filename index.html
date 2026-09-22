@@ -414,8 +414,9 @@ async function runVideo(){
           error:String(pollError?.message||pollError||'Ошибка опроса LTX-2.3')
         };
       }
+      if(s.taskId) currentTaskId=s.taskId;
       if($('videoStatus')){
-        $('videoStatus').textContent='Статус: '+(s.status||'RUNNING')+' · '+(s.model||'LTX-2.3 Fast · Audio');
+        $('videoStatus').textContent='Статус: '+(s.status||'RUNNING')+' · '+(s.model||videoModelLabel(state.videoModel));
       }
       if(s.done){
         if(!s.success||!s.videoUrl){
