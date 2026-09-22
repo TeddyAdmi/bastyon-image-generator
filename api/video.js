@@ -471,7 +471,10 @@ export default async function handler(req, res) {
     const image = await normalizeImage(body.imageBase64, body.imageUrl);
     const model = String(body.model || "ltx25").trim();
 
-    if (model === "ltx25" || model === "ltx23") {
+    // During the LTX verification phase, legacy UI model IDs are routed to LTX too.
+    // This lets the existing Miya editor test LTX immediately without requiring
+    // a frontend deployment just to change the default selector.
+    if (model === "ltx25" || model === "ltx23" || model === "wan22" || model === "wan5b" || model === "hunyuan") {
       const task = await submitLtx({
         image,
         prompt,
@@ -516,15 +519,6 @@ export default async function handler(req, res) {
           code: "PIXELSTER_TIMEOUT"
         });
       }
-    }
-
-    if (model === "wan22" || model === "wan5b" || model === "hunyuan") {
-      return res.status(503).json({
-        success: false,
-        done: true,
-        code: "VIDEO_PROVIDER_WAITING",
-        error: "Wan/Hunyuan подключим следующим этапом после проверки LTX-2.3."
-      });
     }
 
     return res.status(400).json({
