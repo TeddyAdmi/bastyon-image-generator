@@ -384,6 +384,8 @@ async function pollLtxTask(task, timeoutMs = 12000) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let lastRawChunk = "";
+    let lastEvent = "";
 
     try {
       while (true) {
@@ -391,6 +393,7 @@ async function pollLtxTask(task, timeoutMs = 12000) {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
+        lastRawChunk = buffer.slice(-4000);
         const chunks = buffer.split(/\r?\n\r?\n/);
         buffer = chunks.pop() || "";
 
@@ -422,7 +425,7 @@ async function pollLtxTask(task, timeoutMs = 12000) {
               done: true,
               success: false,
               status: "ERROR",
-              error: "LTX-2.3 provider error: " + (detail && detail !== "{}" ? detail : diagnostic)
+              error: "LTX-2.3 provider error: " + (detail && detail !== "{}" ? detail : "пустая ошибка") + " | " + diagnostic
             };
           }
 
