@@ -1,5 +1,11 @@
 const LTX_SPACES = [
   {
+    name: "LTX-2.5 Workflow",
+    base: "https://akhaliq-ltx-2-5-workflow.hf.space",
+    endpoint: "generate_video",
+    mode: "ltx25"
+  },
+  {
     name: "LTX-2.3 Fast",
     base: "https://shaundeeooo-ltx-2-3-fast.hf.space",
     endpoint: "generate",
@@ -198,6 +204,95 @@ async function uploadToGradio(spaceBase, imageDataUri) {
     is_stream: false,
     meta: { _type: "gradio.FileData" }
   };
+}
+
+async function submitLtx25({ image, prompt, duration, aspect }) {
+  const seconds = Math.min(5, Math.max(1, Number(duration) || 2));
+  const dims = {
+    "16:9": [832, 1472],
+    "9:16": [832, 1472],
+    "1:1": [1024, 1024],
+    "4:3": [960, 1280]
+  };
+  const [width, height] = dims[aspect] || dims["16:9"];
+  const frames = Math.max(25, Math.round(seconds * 24 / 8) * 8 + 1);
+  const seed = Math.floor(Math.random() * 2147483647);
+
+  const space = LTX_SPACES[0];
+  const imageFile = await uploadToGradio(space.base, image);
+
+  // LTX-2.5 Workflow exposes the bound generate_video fn:
+  // (prompt, image_path, height, width, duration_s, seed, decoder, auto_len, randomize_seed)
+  const data = [
+    buildPrompt(prompt),
+    imageFile,
+    height,
+    width,
+    seconds,
+    seed,
+    "conv",
+    false,
+    false
+  ];
+
+  const candidates = [
+    space.base + "/gradio_api/call/" + space.endpoint,
+    space.base + "/gradio_api/call/v2/" + space.endpoint
+  ];
+
+  let lastError = null;
+  for (const url of candidates) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...authHeaders(),
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify({ data })
+      });
+      const text = await response.text();
+
+      if (!response.ok) {
+        lastError = new Error("LTX-2.5 submit HTTP " + response.status + ": " + text.slice(0, 900));
+        continue;
+      }
+
+      let payload = null;
+      try { payload = text ? JSON.parse(text) : null; } catch {
+        lastError = new Error("LTX-2.5 submit вернул некорректный JSON: " + text.slice(0, 600));
+        continue;
+      }
+
+      const eventId = String(payload?.event_id || "").trim();
+      if (!eventId) {
+        lastError = new Error("LTX-2.5 не вернул event_id: " + text.slice(0, 700));
+        continue;
+      }
+
+      return {
+        taskId: taskIdFor({
+          v: 25,
+          provider: "huggingface",
+          model: "ltx25-audio",
+          space: space.base,
+          callUrl: url,
+          eventId,
+          prompt: String(prompt || "").trim(),
+          duration: seconds,
+          aspect,
+          frames
+        }),
+        endpoint: "/" + space.endpoint,
+        eventId
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("LTX-2.5 не принял запрос.");
 }
 
 async function submitOfficialLtx({ space, image, prompt, duration, aspect }) {
@@ -521,7 +616,7 @@ export default async function handler(req, res) {
           return res.status(200).json({
             success: true,
             provider: "Hugging Face ZeroGPU",
-            model: "LTX-2.3 Fast · 22B · native audio",
+            model: "LTX-2.5 · 22B · native audio",
             spaces: info.map((item) => ({
               name: item.name,
               base: item.base,
@@ -533,7 +628,7 @@ export default async function handler(req, res) {
             free: true,
             audio: true,
             imageToVideo: true,
-            duration: "5-10s",
+            duration: "1-5s",
             resolution: "720p"
           });
         } catch (error) {
@@ -554,9 +649,9 @@ export default async function handler(req, res) {
 
       const task = taskFromId(taskId);
       if (
-        (task.v !== 12 && task.v !== 13) ||
+        (task.v !== 12 && task.v !== 13 && task.v !== 25) ||
         task.provider !== "huggingface" ||
-        task.model !== "ltx23fast-audio" && task.model !== "ltx23official-audio" ||
+        !["ltx23fast-audio", "ltx23official-audio", "ltx25-audio"].includes(task.model) ||
         !task.eventId ||
         !task.callUrl
       ) {
@@ -571,7 +666,9 @@ export default async function handler(req, res) {
           done: false,
           status: status.status || "RUNNING",
           provider: "Hugging Face ZeroGPU",
-          model: task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
+          model: task.model === "ltx25-audio"
+            ? "LTX-2.5 · Audio"
+            : task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
           taskId
         });
       }
@@ -640,7 +737,9 @@ export default async function handler(req, res) {
         status: "COMPLETED",
         videoUrl: "/api/video?taskId=" + encodeURIComponent(taskId) + "&raw=1",
         provider: "Hugging Face ZeroGPU",
-        model: task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
+        model: task.model === "ltx25-audio"
+          ? "LTX-2.5 · Audio"
+          : task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
         audioAttached: true,
         taskId
       });
@@ -665,6 +764,27 @@ export default async function handler(req, res) {
     // During the LTX verification phase, legacy UI model IDs are routed to LTX too.
     // This lets the existing Miya editor test LTX immediately without requiring
     // a frontend deployment just to change the default selector.
+    if (model === "ltx25") {
+      const task = await submitLtx25({
+        image,
+        prompt,
+        duration: Number(body.duration) || 2,
+        aspect: body.aspect || body.ratio || "9:16"
+      });
+
+      return res.status(202).json({
+        success: true,
+        done: false,
+        taskId: task.taskId,
+        status: "QUEUED",
+        provider: "Hugging Face ZeroGPU",
+        model: "LTX-2.5 · Audio",
+        audioAttached: true,
+        endpoint: task.endpoint,
+        message: "LTX-2.5: Image → Video + synchronized native audio."
+      });
+    }
+
     if (model === "ltx23official") {
       const task = await submitOfficialLtx({
         space: LTX_SPACES[1],
@@ -687,7 +807,7 @@ export default async function handler(req, res) {
       });
     }
 
-    if (model === "ltx25" || model === "ltx23" || model === "wan22" || model === "wan5b" || model === "hunyuan") {
+    if (model === "ltx23" || model === "wan22" || model === "wan5b" || model === "hunyuan") {
       let task;
       try {
         // LTX-2.3 Fast is currently reporting a runtime error on its public Space,
