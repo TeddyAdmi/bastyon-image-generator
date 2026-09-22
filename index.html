@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded',function(){
  <div class="side">
   <div class="model-card"><div class="model-label">Выбранная модель · Видео</div><div id="videoModelName" class="model-name">Motion synthesis</div><div id="videoModelProvider" class="model-provider">Провайдер: AHM7 PixelSter</div><div id="videoModelStatus" class="model-status">● Готова · Image → Video</div></div>
   <div class="card control"><h3>📷 Исходное изображение</h3><div class="hint" style="margin-bottom:9px">Загрузите фото для анимации. Можно выбрать файл, перетащить его на холст или открыть результат из генератора.</div><div class="row"><button id="videoChooseSide" class="btn primary">📷 Выбрать фото</button><button id="videoUseEditor" class="btn">🖼️ Из фото-редактора</button></div></div><div class="card control"><h3>Сценарий движения</h3><textarea id="videoPrompt" placeholder="Например: животные начинают двигаться, смотрят друг на друга, камера плавно приближается, естественная физика..."></textarea><div id="videoError" class="error"></div><div id="videoStatus" class="status"></div><button id="videoGenerate" class="btn primary full" style="margin-top:10px">🎬 Создать видео</button></div>
-  <div class="card control"><h3>Модель видео</h3><div id="videoModels" class="ratios"><button class="ratio active" data-video-model="pixelster-motion">Motion synthesis</button><button class="ratio" data-video-model="ltx25">LTX 2.5 Free</button><button class="ratio" data-video-model="wan22">Wan 2.2 I2V 14B</button><button class="ratio" data-video-model="wan5b">Wan 2.2 TI2V-5B · 24fps</button><button class="ratio" data-video-model="hunyuan">HunyuanVideo</button></div><div id="videoModelHint" class="hint" style="margin-top:8px">Нажмите на модель — выбор сразу станет активным. Сейчас реально подключены Motion synthesis и Wan I2V.</div></div>
+  <div class="card control"><h3>Модель видео</h3><div id="videoModels" class="ratios"><button class="ratio active" data-video-model="pixelster-motion">Motion synthesis</button><button class="ratio" data-video-model="ltx25">LTX 2.5 Free</button><button class="ratio" data-video-model="wan22">Wan 2.2 I2V Lightning · 4 steps</button><button class="ratio" data-video-model="wan5b">Wan 2.2 TI2V-5B · 24fps</button><button class="ratio" data-video-model="hunyuan">HunyuanVideo</button></div><div id="videoModelHint" class="hint" style="margin-top:8px">Нажмите на модель — выбор сразу станет активным. Сейчас реально подключены Motion synthesis и Wan I2V.</div></div>
   <div class="card control"><h3>Формат видео</h3><div id="videoRatios" class="ratios"><button class="ratio active" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="4:3">4:3</button></div><h3 style="margin-top:16px">Длительность</h3><select id="videoDuration" style="width:100%;border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff"><option value="2">2 секунды</option><option value="3">3 секунды</option><option value="4">4 секунды</option><option value="5" selected>5 секунд</option><option value="6">6 секунд</option><option value="8">8 секунд</option><option value="10">10 секунд</option></select><div class="hint" style="margin-top:7px">Длительность ограничивается возможностями подключённого GPU.</div></div>
   <div class="card control"><h3>Видеосервер</h3><div id="videoBackend" class="backend">Проверяем подключение…</div><button id="videoReplace" class="btn full" style="margin-top:8px">Заменить изображение</button></div>
  </div>
@@ -255,7 +255,7 @@ function selectVideoModel(button){
   try{localStorage.setItem('miyaVideoModel',id)}catch{}
   const map={
     'pixelster-motion':{name:'Motion synthesis',provider:'AHM7 PixelSter',status:'● Готова · Image → Video',hint:'Motion synthesis от AHM7 PixelSter. Надёжный fallback.'},
-    'wan22':{name:'Wan 2.2 I2V Fast · 14B',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video',hint:'Wan 2.2 I2V 14B Fast. Кинематографичное качество, но ZeroGPU может быть перегружен.'},
+    'wan22':{name:'Wan 2.2 I2V Lightning · 4 steps',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video',hint:'Wan 2.2 I2V Lightning · 4 шага. Быстрый режим; публичный ZeroGPU всё равно может иметь очередь.'},
     'wan5b':{name:'Wan 2.2 TI2V-5B · 24fps',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video',hint:'TI2V-5B: 720p, 24 fps, 35 steps, guidance 5.0. Быстрый тест физики и движения.'},
     'ltx25':{name:'LTX 2.5 Free',provider:'Hugging Face ZeroGPU',status:'● Тестовый маршрут · требуется доступ к модели',hint:'LTX 2.5 поддерживает image-to-video и синхронизированный звук, но публичный Space требует HF-доступ к лицензии. Кнопка теперь выбирается и сообщает это явно.'},
     'hunyuan':{name:'HunyuanVideo',provider:'Hugging Face / ZeroGPU',status:'● Тестовый маршрут · I2V',hint:'HunyuanVideo I2V — отдельный GPU-маршрут. Кнопка выбора работает; backend сообщит, если публичный Space недоступен.'}
@@ -350,9 +350,9 @@ async function runVideo(){
   if(!source)return showError('videoError','Сначала загрузите изображение.');
   if(!prompt)return showError('videoError','Введите сценарий движения.');
   const b=$('videoGenerate');if(b)b.disabled=true;
-  showError('videoError','');setBusy(true,'Miya AI создаёт видео',videoModelLabel(state.videoModel)+' · запуск…');
+  showError('videoError','');setBusy(true,'Miya AI создаёт видео',videoModelLabel(state.videoModel)+' · 4 шага · запуск…');
   try{
-    const body={prompt,aspect:state.videoRatio,duration:Number($('videoDuration')?.value||5),model:state.videoModel};
+    const body={prompt,aspect:state.videoRatio,duration:Number($('videoDuration')?.value||3),model:state.videoModel};
     if(source.startsWith('data:image/')){
       const optimized=await optimizeVideoImage(source);
       body.imageBase64=optimized;
@@ -375,7 +375,7 @@ async function runVideo(){
 
       if($('videoStatus'))$('videoStatus').textContent =
         d.audioAttached ? 'Готово · Wan 2.2 + звук внутри MP4' : 'Готово · '+(d.model||'Motion synthesis')+' · '+(d.provider||'AHM7 PixelSter');
-      setBusy(false,'Видео готово · MP4 содержит звук',(d.model||'Motion synthesis')+' · '+(d.provider||'Hugging Face'));
+      setBusy(false,'Видео готово · MP4',(d.model||'Motion synthesis')+' · '+(d.provider||'Hugging Face'));
 
       // The Wan route now returns a self-contained MP4 with AAC audio.
       // Do not create a second browser-side audio stream.
@@ -387,18 +387,29 @@ async function runVideo(){
     }
     if(!d.taskId)throw new Error(d.error||'Видеосервер не вернул taskId или готовое видео.');
 
-    for(let i=0;i<540;i++){
-      await new Promise(r=>setTimeout(r,4000));
+    // Poll sequentially: the previous request must finish before the next
+    // one starts. This prevents multiple SSE connections from reusing the same
+    // Gradio event_id and avoids the 404 race seen with the public Space.
+    for(let i=0;i<180;i++){
+      await new Promise(r=>setTimeout(r,1500));
       const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId));
-      if($('videoStatus'))$('videoStatus').textContent='Статус: '+(s.status||'RUNNING')+' · '+(s.provider||'AHM7 PixelSter');
+      if($('videoStatus')){
+        $('videoStatus').textContent='Статус: '+(s.status||'RUNNING')+' · '+(s.model||'Wan 2.2 I2V Lightning · 4 steps');
+      }
       if(s.done){
         if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
-        const v=$('videoResult');if(v){v.pause();v.src=s.videoUrl;v.classList.remove('hidden')}
-        setBusy(false,'Видео готово',(s.model||'Motion synthesis')+' · '+(s.provider||'AHM7 PixelSter'));
+        const v=$('videoResult');
+        if(v){
+          v.pause();
+          v.src=s.videoUrl;
+          v.classList.remove('hidden');
+          try{v.load()}catch{}
+        }
+        setBusy(false,'Видео готово',(s.model||'Wan 2.2 I2V Lightning · 4 steps')+' · '+(s.provider||'Hugging Face ZeroGPU'));
         return;
       }
     }
-    throw new Error('Видеогенерация превысила время ожидания.');
+    throw new Error('Видеогенерация превысила 4 минуты. Публичный ZeroGPU может быть перегружен.');
   }catch(e){showError('videoError',e);setBusy(false)}
   finally{if(b)b.disabled=false}
 }
