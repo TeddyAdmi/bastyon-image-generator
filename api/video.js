@@ -1,3 +1,4 @@
+import { Client } from "@gradio/client";
 
 const PIXELSTER = "https://ahm7xmakki.com/api";
 const WAN_SPACE = "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space";
@@ -131,6 +132,7 @@ async function callWan(endpoint, imagePath, prompt, duration) {
 }
 
 async function waitWan(endpoint, eventId, timeoutMs = 220000) {
+  // Kept as a raw-SSE fallback for compatibility/debugging.
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -155,8 +157,8 @@ async function waitWan(endpoint, eventId, timeoutMs = 220000) {
         events.push(event);
         continue;
       }
-
       if (!line.startsWith("data:")) continue;
+
       const raw = line.slice(5).trim();
       if (!raw || raw === "null") continue;
 
@@ -168,11 +170,10 @@ async function waitWan(endpoint, eventId, timeoutMs = 220000) {
         const message =
           typeof data === "string"
             ? data
-            : data?.error ||
-              data?.message ||
-              data?.detail ||
-              data?.msg ||
-              (Array.isArray(data) ? data.map(x => x?.error || x?.message || x).join(" | ") : JSON.stringify(data));
+            : data?.error || data?.message || data?.detail || data?.msg ||
+              (Array.isArray(data)
+                ? data.map(x => x?.error || x?.message || x).join(" | ")
+                : JSON.stringify(data));
         const e = new Error("Wan Gradio error: " + message);
         e.code = "WAN_GRADIO_ERROR";
         e.gradioEvent = event;
@@ -180,56 +181,100 @@ async function waitWan(endpoint, eventId, timeoutMs = 220000) {
         throw e;
       }
 
-      // Gradio versions use both "complete" and "process_completed".
       if (event === "complete" || event === "process_completed") {
         const output = Array.isArray(data) ? data[0] : data;
         const url =
-          output?.url ||
-          output?.path ||
-          output?.video?.url ||
-          output?.videoUrl ||
-          output?.data?.url ||
-          output?.data?.path;
-
+          output?.url || output?.path || output?.video?.url ||
+          output?.videoUrl || output?.data?.url || output?.data?.path;
         if (url) return { output, url };
       }
 
-      // Some Space/Gradio revisions send the final file in a data event
-      // immediately before closing the SSE stream.
       if (event === "data" || event === "generating" || event === "streaming") {
         const output = Array.isArray(data) ? data[0] : data;
         const url =
-          output?.url ||
-          output?.path ||
-          output?.video?.url ||
-          output?.videoUrl ||
-          output?.data?.url ||
-          output?.data?.path;
-
-        if (url && /\.mp4(?:$|\?)/i.test(String(url))) {
-          return { output, url };
-        }
+          output?.url || output?.path || output?.video?.url ||
+          output?.videoUrl || output?.data?.url || output?.data?.path;
+        if (url && /\.mp4(?:$|\?)/i.test(String(url))) return { output, url };
       }
     }
 
-    const diagnostic = events.length ? "События: " + events.join(", ") : "SSE-события не получены";
-    throw new Error("Wan завершил HTTP-запрос без финального события. " + diagnostic + (lastData ? " Последние данные: " + JSON.stringify(lastData).slice(0, 700) : ""));
+    const tail = lastData ? " Последние данные: " + JSON.stringify(lastData).slice(0, 1200) : "";
+    throw new Error(
+      "Wan завершил HTTP-запрос без финального события. " +
+      (events.length ? "События: " + events.join(", ") : "SSE-события не получены") +
+      tail
+    );
   } finally {
     clearTimeout(timer);
   }
 }
+
 async function wanVideo({ prompt, duration, image }) {
   const info = await getWanInfo();
   const endpoint = findWanEndpoint(info);
   const imagePath = await uploadWanImage(image);
-  const eventId = await callWan(endpoint, imagePath, prompt, duration);
-  const result = await waitWan(endpoint, eventId);
-  if (!result?.url) throw new Error("Wan не вернул URL готового MP4.");
-  const sourceUrl = /^https?:\/\//i.test(String(result.url))
-    ? String(result.url)
-    : WAN_SPACE + "/gradio_api/file=" + String(result.url).replace(/^\//, "");
-  return { ...result, endpoint, sourceUrl };
+
+  const client = await Client.connect(WAN_SPACE, {
+    ...(process.env.HF_TOKEN ? { token: process.env.HF_TOKEN } : {}),
+    events: ["data", "status"]
+  });
+
+  const data = [
+    { path: imagePath, meta: { _type: "gradio.FileData" }, orig_name: "miya-video.jpg" },
+    String(prompt || "").trim(),
+    6,
+    "blurry, low quality, distorted, static, frozen frame, no motion, deformed, extra limbs",
+    Math.min(5, Math.max(1, Number(duration) || 5)),
+    1,
+    1,
+    Math.floor(Math.random() * 2147483647),
+    true
+  ];
+
+  const job = client.submit(endpoint, data);
+  const deadline = Date.now() + 220000;
+  let finalOutput = null;
+  let lastStatus = null;
+
+  for await (const msg of job) {
+    if (Date.now() > deadline) {
+      try { job.cancel(); } catch {}
+      throw new Error("Wan 2.2 превысил лимит ожидания 220 секунд.");
+    }
+
+    if (msg?.type === "status") {
+      lastStatus = msg;
+      console.log("Miya Wan status:", JSON.stringify(msg));
+      if (msg.stage === "error") {
+        throw new Error(
+          "Wan Gradio error: " +
+          (msg.message || msg.code || JSON.stringify(msg))
+        );
+      }
+    }
+
+    if (msg?.type === "data") {
+      finalOutput = msg.data;
+      const output = Array.isArray(msg.data) ? msg.data[0] : msg.data;
+      const url =
+        output?.url || output?.path || output?.video?.url ||
+        output?.videoUrl || output?.data?.url || output?.data?.path;
+
+      if (url && /\.mp4(?:$|\?)/i.test(String(url))) {
+        const sourceUrl = /^https?:\/\//i.test(String(url))
+          ? String(url)
+          : WAN_SPACE + "/gradio_api/file=" + String(url).replace(/^\//, "");
+        return { endpoint, sourceUrl, output };
+      }
+    }
+  }
+
+  throw new Error(
+    "Wan не вернул готовый MP4. " +
+    (lastStatus?.message || lastStatus?.stage || "пустой ответ Gradio")
+  );
 }
+
 
 async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
   const response = await fetch(PIXELSTER + "/ptv", {
