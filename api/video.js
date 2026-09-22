@@ -180,10 +180,20 @@ async function uploadToGradio(spaceBase, imageDataUri) {
   try { data = JSON.parse(text); } catch { throw new Error("LTX upload вернул некорректный JSON."); }
   const path = Array.isArray(data) ? data[0] : data?.files?.[0] || data?.path;
   if (!path) throw new Error("LTX upload не вернул путь файла.");
+  const cleanPath = String(path);
+  const fileUrl = /^https?:\\/\\//i.test(cleanPath)
+    ? cleanPath
+    : spaceBase.replace(/\\/+$/, "") + (cleanPath.startsWith("/") ? "/file=" + cleanPath : "/file=" + cleanPath);
+
+  // Gradio 6 expects a FileData object with BOTH path and url for file inputs.
+  // Sending only path can make the queued function fail during preprocessing.
   return {
-    path: String(path),
+    path: cleanPath,
+    url: fileUrl,
     orig_name: "miya-input." + (mime.includes("png") ? "png" : "jpg"),
+    size: bytes.length,
     mime_type: mime,
+    is_stream: false,
     meta: { _type: "gradio.FileData" }
   };
 }
