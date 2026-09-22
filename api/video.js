@@ -1,7 +1,12 @@
-const LIGHTNING_SPACE =
-  "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space";
-const LIGHTNING_ENDPOINT = "/generate_video";
+const LTX_SPACE =
+  "https://shaundeeooo-ltx-2-3-fast.hf.space";
+const LTX_ENDPOINT = "generate";
 const PIXELSTER = "https://ahm7xmakki.com/api";
+
+function authHeaders() {
+  const token = String(process.env.HF_TOKEN || "").trim();
+  return token ? { Authorization: "Bearer " + token } : {};
+}
 
 function isUrl(value) {
   try {
@@ -12,33 +17,354 @@ function isUrl(value) {
   }
 }
 
-function authHeaders() {
-  const token = String(process.env.HF_TOKEN || "").trim();
-  return token ? { Authorization: "Bearer " + token } : {};
+function taskIdFor(task) {
+  return Buffer.from(JSON.stringify(task), "utf8").toString("base64url");
 }
 
-function dataUrlToBlob(dataUrl) {
-  const value = String(dataUrl || "");
-  const comma = value.indexOf(",");
-  if (comma < 0) throw new Error("Некорректный image data URL.");
+function taskFromId(id) {
+  try {
+    return JSON.parse(Buffer.from(String(id), "base64url").toString("utf8"));
+  } catch {
+    throw new Error("Некорректный taskId.");
+  }
+}
 
-  const header = value.slice(0, comma);
-  const mime =
-    (header.match(/^data:([^;]+);base64$/i)?.[1] || "image/jpeg").trim();
-  const bytes = Buffer.from(value.slice(comma + 1), "base64");
+function getErrorMessage(error) {
+  if (!error) return "Неизвестная ошибка.";
+  if (typeof error === "string") return error;
+  return (
+    error.message ||
+    error.error ||
+    error.detail ||
+    error?.data?.error ||
+    JSON.stringify(error)
+  );
+}
 
-  if (!bytes.length) throw new Error("Пустое исходное изображение.");
-  if (bytes.length > 8_000_000) {
-    throw new Error("Изображение слишком большое для видео.");
+function buildLtxPrompt(prompt) {
+  const text = String(prompt || "").replace(/\s+/g, " ").trim();
+  if (!text) return text;
+
+  return [
+    "Preserve the identity, appearance, clothing, proportions and main objects from the input image.",
+    "Scene and action: " + text + ".",
+    "Motion must be continuous, physically natural and clearly visible.",
+    "Use subtle cinematic camera movement while keeping the subject stable and recognizable.",
+    "Start the action immediately and reach the described final beat by the end.",
+    "Generate synchronized natural audio matching the visible action and environment.",
+    "Cinematic realism, coherent lighting, realistic materials, stable anatomy, no text or watermark."
+  ].join(" ");
+}
+
+async function fetchJson(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...authHeaders(),
+      ...(options.headers || {})
+    }
+  });
+
+  const text = await response.text();
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {}
+
+  if (!response.ok) {
+    throw new Error(
+      "HTTP " +
+        response.status +
+        ": " +
+        (text || response.statusText || "Unknown error").slice(0, 900)
+    );
   }
 
-  return new Blob([bytes], { type: mime });
+  return data;
+}
+
+async function getLtxInfo() {
+  return fetchJson(LTX_SPACE + "/gradio_api/info");
+}
+
+function parseSseChunk(chunk) {
+  const lines = String(chunk || "").split(/\r?\n/);
+  let event = "";
+  const dataLines = [];
+
+  for (const line of lines) {
+    if (line.startsWith("event:")) {
+      event = line.slice(6).trim();
+    } else if (line.startsWith("data:")) {
+      dataLines.push(line.slice(5).trimStart());
+    }
+  }
+
+  if (!dataLines.length) return null;
+
+  const raw = dataLines.join("\n");
+
+  let data = raw;
+  try {
+    data = JSON.parse(raw);
+  } catch {}
+
+  return { event, data };
+}
+
+function findVideo(value) {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    if (value.startsWith("data:video/")) return value;
+    if (/\.mp4(?:$|\?)/i.test(value)) return value;
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findVideo(item);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const candidates = [
+      value.video,
+      value.url,
+      value.path,
+      value.videoUrl,
+      value.data,
+      value.output,
+      value.result
+    ];
+
+    for (const candidate of candidates) {
+      const found = findVideo(candidate);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
+async function submitLtx({
+  image,
+  prompt,
+  duration,
+  aspect = "9:16",
+  resolution = "720p"
+}) {
+  const info = await getLtxInfo();
+
+  const named = info?.named_endpoints || {};
+  const endpointNames = Object.keys(named);
+  const endpointName =
+    endpointNames.find((name) => name.replace(/^\//, "") === LTX_ENDPOINT) ||
+    endpointNames.find((name) => /generate/i.test(name)) ||
+    LTX_ENDPOINT;
+
+  const seconds = Math.min(10, Math.max(5, Math.round(Number(duration) || 5)));
+
+  // The public LTX-2.3 Fast Space accepts a URL, base64 data URI or uploaded file
+  // directly as its first API argument, so no Gradio upload/session protocol is
+  // required here.
+  const data = [
+    image,
+    buildLtxPrompt(prompt),
+    "static, frozen, blurry, low quality, distorted, deformed, extra limbs, identity change, scene change, camera teleportation, text, watermark",
+    resolution === "1080p" ? "1080p" : "720p",
+    seconds,
+    -1,
+    "video/h264-mp4",
+    true,
+    true
+  ];
+
+  const url =
+    LTX_SPACE +
+    "/gradio_api/call/" +
+    String(endpointName).replace(/^\/+/, "");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    },
+    body: JSON.stringify({ data })
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      "LTX-2.3 submit HTTP " +
+        response.status +
+        ": " +
+        text.slice(0, 900)
+    );
+  }
+
+  let payload;
+
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error(
+      "LTX-2.3 submit вернул некорректный JSON: " + text.slice(0, 700)
+    );
+  }
+
+  const eventId = String(payload?.event_id || "").trim();
+
+  if (!eventId) {
+    throw new Error(
+      "LTX-2.3 не вернул event_id: " + text.slice(0, 700)
+    );
+  }
+
+  return {
+    taskId: taskIdFor({
+      v: 10,
+      provider: "huggingface",
+      model: "ltx23",
+      space: LTX_SPACE,
+      callUrl: url,
+      eventId,
+      prompt: String(prompt || "").trim(),
+      duration: seconds,
+      aspect,
+      resolution
+    }),
+    endpoint: "/" + String(endpointName).replace(/^\/+/, ""),
+    eventId
+  };
+}
+
+async function pollLtxTask(task, timeoutMs = 12000) {
+  const callUrl = String(task.callUrl || "").replace(/\/+$/, "");
+
+  if (!callUrl || !task.eventId) {
+    throw new Error("LTX-2.3: отсутствует callUrl или event_id.");
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(
+      callUrl + "/" + encodeURIComponent(String(task.eventId)),
+      {
+        headers: {
+          ...authHeaders(),
+          Accept: "text/event-stream",
+          "Cache-Control": "no-cache"
+        },
+        signal: controller.signal
+      }
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(
+        "LTX-2.3 SSE HTTP " +
+          response.status +
+          ": " +
+          (text || response.statusText || "Not Found").slice(0, 900)
+      );
+    }
+
+    if (!response.body) {
+      return { done: false, status: "RUNNING" };
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const chunks = buffer.split(/\r?\n\r?\n/);
+        buffer = chunks.pop() || "";
+
+        for (const chunk of chunks) {
+          const parsed = parseSseChunk(chunk);
+          if (!parsed) continue;
+
+          const eventName = String(parsed.event || "").toLowerCase();
+          const data = parsed.data;
+
+          if (eventName === "heartbeat" || eventName === "generating") {
+            continue;
+          }
+
+          if (
+            eventName === "error" ||
+            eventName === "unexpected_error"
+          ) {
+            return {
+              done: true,
+              success: false,
+              status: "ERROR",
+              error: "LTX-2.3: " + getErrorMessage(data)
+            };
+          }
+
+          if (eventName === "complete") {
+            const videoUrl = findVideo(data);
+
+            if (!videoUrl) {
+              return {
+                done: true,
+                success: false,
+                status: "ERROR",
+                error:
+                  "LTX-2.3 завершил генерацию, но MP4 не найден в ответе."
+              };
+            }
+
+            return {
+              done: true,
+              success: true,
+              status: "COMPLETED",
+              videoUrl
+            };
+          }
+        }
+      }
+    } finally {
+      try {
+        reader.releaseLock();
+      } catch {}
+    }
+
+    return { done: false, status: "RUNNING" };
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      return { done: false, status: "RUNNING" };
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function normalizeImage(imageBase64, imageUrl) {
   const value = String(imageBase64 || "").trim();
 
   if (value.startsWith("data:image/")) {
+    if (value.length > 11_000_000) {
+      throw new Error("Изображение слишком большое для LTX-2.3.");
+    }
     return value;
   }
 
@@ -49,7 +375,8 @@ async function normalizeImage(imageBase64, imageUrl) {
 
     if (!response.ok) {
       throw new Error(
-        "Не удалось получить исходное изображение: HTTP " + response.status
+        "Не удалось получить исходное изображение: HTTP " +
+          response.status
       );
     }
 
@@ -73,499 +400,7 @@ async function normalizeImage(imageBase64, imageUrl) {
   throw new Error("Исходное изображение не найдено.");
 }
 
-function taskIdFor(task) {
-  return Buffer.from(JSON.stringify(task), "utf8").toString("base64url");
-}
-
-function taskFromId(id) {
-  try {
-    return JSON.parse(
-      Buffer.from(String(id), "base64url").toString("utf8")
-    );
-  } catch {
-    throw new Error("Некорректный taskId.");
-  }
-}
-
-function buildWanPrompt(prompt) {
-  const text = String(prompt || "").replace(/\s+/g, " ").trim();
-
-  if (!text) return text;
-
-  return [
-    "Preserve the identity, appearance, clothing, proportions, and main objects from the input image.",
-    "Subject and scene: " + text + ".",
-    "Motion: make the described physical action clearly visible, continuous, and physically natural.",
-    "Camera: subtle cinematic movement that supports the action while keeping the subject coherent.",
-    "Timing: start the action immediately, develop it continuously, and reach the described final beat by the end.",
-    "Realistic motion, stable composition, consistent lighting, natural body mechanics."
-  ].join(" ");
-}
-
-function providerFileUrl(url) {
-  const value = String(url || "");
-
-  if (/^https?:\/\//i.test(value)) return value;
-
-  if (value.startsWith("/gradio_api/file=")) {
-    return LIGHTNING_SPACE + value;
-  }
-
-  return (
-    LIGHTNING_SPACE +
-    "/gradio_api/file=" +
-    (value.startsWith("/") ? value : "/" + value)
-  );
-}
-
-function extractCandidate(value) {
-  if (!value) return null;
-
-  if (typeof value === "string") {
-    if (/\.mp4(?:$|\?)/i.test(value)) return value;
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = extractCandidate(item);
-      if (found) return found;
-    }
-    return null;
-  }
-
-  const candidates = [
-    value.url,
-    value.path,
-    value.videoUrl,
-    value.video?.url,
-    value.video?.path,
-    value.data?.url,
-    value.data?.path
-  ];
-
-  for (const candidate of candidates) {
-    if (candidate && /\.mp4(?:$|\?)/i.test(String(candidate))) {
-      return String(candidate);
-    }
-  }
-
-  return null;
-}
-
-function extractVideoUrl(data) {
-  return extractCandidate(data);
-}
-
-function getErrorMessage(error) {
-  if (!error) return "Неизвестная ошибка.";
-
-  if (typeof error === "string") return error;
-
-  return (
-    error.message ||
-    error.error ||
-    error.detail ||
-    error?.data?.error ||
-    JSON.stringify(error)
-  );
-}
-
-/*
- * IMPORTANT:
- * The previous implementation manually constructed the Gradio upload/call
- * protocol. That was returning 404 from the public Wan Space.
- *
- * We use Gradio 6 REST directly: upload -> POST call -> SSE GET.
- * This avoids the queue/session mismatch that produced the 404 response.
- */
-async function gradioJson(url, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...authHeaders(),
-      ...(options.headers || {})
-    }
-  });
-
-  const text = await response.text();
-  let data = null;
-
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {}
-
-  if (!response.ok) {
-    throw new Error(
-      "HTTP " + response.status + ": " + (text || response.statusText || "Not Found").slice(0, 700)
-    );
-  }
-
-  return data;
-}
-
-async function getLightningApi() {
-  const info = await gradioJson(
-    LIGHTNING_SPACE + "/gradio_api/info"
-  );
-
-  const named = info?.named_endpoints || {};
-  const names = Object.keys(named);
-
-  const endpoint =
-    names.find((name) => /generate_video/i.test(name)) ||
-    LIGHTNING_ENDPOINT;
-
-  const endpointName = String(endpoint).replace(/^\/+/, "");
-
-  return {
-    info,
-    endpoint: "/" + endpointName,
-    endpointInfo: named[endpoint] || named["/" + endpointName] || null
-  };
-}
-
-async function uploadLightningImage(image) {
-  const comma = image.indexOf(",");
-  if (comma < 0) {
-    throw new Error("Некорректный image data URL.");
-  }
-
-  const header = image.slice(0, comma);
-  const mime =
-    (header.match(/^data:([^;]+);base64$/i)?.[1] || "image/jpeg").trim();
-
-  const bytes = Buffer.from(image.slice(comma + 1), "base64");
-
-  if (!bytes.length) {
-    throw new Error("Пустое исходное изображение.");
-  }
-
-  const extension =
-    mime === "image/png"
-      ? "png"
-      : mime === "image/webp"
-        ? "webp"
-        : "jpg";
-
-  const form = new FormData();
-
-  form.append(
-    "files",
-    new Blob([bytes], { type: mime }),
-    "miya-input." + extension
-  );
-
-  const response = await fetch(
-    LIGHTNING_SPACE + "/gradio_api/upload",
-    {
-      method: "POST",
-      headers: authHeaders(),
-      body: form
-    }
-  );
-
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(
-      "Wan Lightning upload HTTP " +
-        response.status +
-        ": " +
-        text.slice(0, 500)
-    );
-  }
-
-  let result;
-
-  try {
-    result = JSON.parse(text);
-  } catch {
-    throw new Error("Wan Lightning upload вернул некорректный JSON.");
-  }
-
-  const path = Array.isArray(result) ? result[0] : result?.path;
-
-  if (!path) {
-    throw new Error("Wan Lightning upload не вернул путь к изображению.");
-  }
-
-  return {
-    path: String(path),
-    meta: { _type: "gradio.FileData" },
-    orig_name: "miya-input." + extension
-  };
-}
-
-async function startLightningTask({ prompt, duration, image }) {
-  const api = await getLightningApi();
-
-  const inputImage = await uploadLightningImage(image);
-
-  const seconds = Math.min(
-    5,
-    Math.max(0.5, Number(duration) || 3)
-  );
-
-  const wanPrompt = buildWanPrompt(prompt);
-  const seed = Math.floor(Math.random() * 2147483647);
-
-  /*
-   * The current public Space is Gradio 6.x and exposes the following
-   * generate_video inputs in this exact order:
-   *
-   * image, prompt, steps, negative_prompt, duration_seconds,
-   * guidance_scale, guidance_scale_2, seed, randomize_seed
-   */
-  const data = [
-    inputImage,
-    wanPrompt,
-    4,
-    "static, frozen, blurry, low quality, distorted, deformed, extra limbs, identity change, scene change, camera teleportation, text, watermark",
-    seconds,
-    1,
-    1,
-    seed,
-    false
-  ];
-
-  const endpointName = api.endpoint.replace(/^\/+/, "");
-
-  /*
-   * Gradio 6 REST API:
-   * POST /gradio_api/call/<endpoint> -> { event_id }
-   * GET  /gradio_api/call/<endpoint>/<event_id> -> SSE
-   *
-   * Some Spaces expose the versioned v2 route. Try the normal route first,
-   * then v2 only if the server explicitly returns 404.
-   */
-  const candidates = [
-    LIGHTNING_SPACE + "/gradio_api/call/" + endpointName,
-    LIGHTNING_SPACE + "/gradio_api/call/v2/" + endpointName
-  ];
-
-  let response = null;
-  let responseText = "";
-  let callUrl = "";
-
-  for (const candidate of candidates) {
-    const r = await fetch(candidate, {
-      method: "POST",
-      headers: {
-        ...authHeaders(),
-        "Content-Type": "application/json",
-        Accept: "application/json"
-      },
-      body: JSON.stringify({ data })
-    });
-
-    const text = await r.text();
-
-    if (r.ok) {
-      response = r;
-      responseText = text;
-      callUrl = candidate;
-      break;
-    }
-
-    if (r.status !== 404) {
-      throw new Error(
-        "Wan Lightning submit HTTP " +
-          r.status +
-          ": " +
-          text.slice(0, 700)
-      );
-    }
-  }
-
-  if (!response) {
-    throw new Error(
-      "Wan Lightning: 404: Not Found. " +
-        "Не найден REST endpoint generate_video в Gradio Space."
-    );
-  }
-
-  let payload;
-
-  try {
-    payload = responseText ? JSON.parse(responseText) : null;
-  } catch {
-    throw new Error(
-      "Wan Lightning submit вернул некорректный JSON: " +
-        responseText.slice(0, 500)
-    );
-  }
-
-  const eventId = String(payload?.event_id || "").trim();
-
-  if (!eventId) {
-    throw new Error(
-      "Wan Lightning submit не вернул event_id: " +
-        responseText.slice(0, 500)
-    );
-  }
-
-  const task = {
-    v: 8,
-    provider: "huggingface",
-    model: "wan22-lightning",
-    space: LIGHTNING_SPACE,
-    endpoint: api.endpoint,
-    callUrl,
-    eventId,
-    prompt: wanPrompt,
-    duration: seconds
-  };
-
-  return {
-    taskId: taskIdFor(task),
-    endpoint: api.endpoint,
-    callUrl,
-    eventId
-  };
-}
-
-async function pollLightningTask(task, timeoutMs = 15000) {
-  const callUrl =
-    String(task.callUrl || "").replace(/\/+$/, "");
-
-  if (!callUrl || !task.eventId) {
-    throw new Error("Wan Lightning: отсутствует callUrl или event_id.");
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(
-      callUrl + "/" + encodeURIComponent(String(task.eventId)),
-      {
-        headers: {
-          ...authHeaders(),
-          Accept: "text/event-stream",
-          "Cache-Control": "no-cache"
-        },
-        signal: controller.signal
-      }
-    );
-
-    if (!response.ok) {
-      const text = await response.text();
-
-      throw new Error(
-        "Wan Lightning: " +
-          response.status +
-          ": " +
-          (text || response.statusText || "Not Found").slice(0, 700)
-      );
-    }
-
-    if (!response.body) {
-      return {
-        done: false,
-        status: "RUNNING"
-      };
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    let buffer = "";
-
-    try {
-      while (true) {
-        const { value, done } = await reader.read();
-
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        const chunks = buffer.split(/\\r?\\n\\r?\\n/);
-        buffer = chunks.pop() || "";
-
-        for (const chunk of chunks) {
-          const events = parseSseEvents(chunk);
-
-          for (const event of events) {
-            const eventName = String(event.event || "").toLowerCase();
-            const data = event.data;
-
-            if (eventName === "heartbeat") {
-              continue;
-            }
-
-            if (
-              eventName === "error" ||
-              eventName === "unexpected_error"
-            ) {
-              return {
-                done: true,
-                success: false,
-                status: "ERROR",
-                error: "Wan Lightning: " + getErrorMessage(data)
-              };
-            }
-
-            if (eventName === "complete") {
-              const url = extractVideoUrl(data);
-
-              if (!url) {
-                return {
-                  done: true,
-                  success: false,
-                  status: "ERROR",
-                  error:
-                    "Wan Lightning завершил генерацию, но MP4 не был найден в ответе."
-                };
-              }
-
-              return {
-                done: true,
-                success: true,
-                status: "COMPLETED",
-                videoUrl: providerFileUrl(url)
-              };
-            }
-
-            if (
-              eventName === "generating" ||
-              eventName === "streaming"
-            ) {
-              continue;
-            }
-          }
-        }
-      }
-    } finally {
-      try {
-        reader.releaseLock();
-      } catch {}
-    }
-
-    return {
-      done: false,
-      status: "RUNNING"
-    };
-  } catch (error) {
-    if (error?.name === "AbortError") {
-      return {
-        done: false,
-        status: "RUNNING"
-      };
-    }
-
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function pixelsterVideo({
-  prompt,
-  ratio,
-  duration,
-  imageBase64
-}) {
+async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000);
 
@@ -579,10 +414,7 @@ async function pixelsterVideo({
       body: JSON.stringify({
         prompt: String(prompt || "").trim(),
         ratio: ratio || "9:16",
-        duration: Math.min(
-          20,
-          Math.max(5, Number(duration) || 5)
-        ),
+        duration: Math.min(20, Math.max(5, Number(duration) || 5)),
         imageBase64
       }),
       signal: controller.signal
@@ -594,12 +426,6 @@ async function pixelsterVideo({
     try {
       data = text ? JSON.parse(text) : {};
     } catch {}
-
-    if (response.status === 504) {
-      throw new Error(
-        "Motion synthesis сейчас занят и не успел ответить за 25 секунд."
-      );
-    }
 
     if (!response.ok) {
       throw new Error(
@@ -617,11 +443,8 @@ async function pixelsterVideo({
     return data;
   } catch (error) {
     if (error?.name === "AbortError") {
-      throw new Error(
-        "Motion synthesis не успел ответить за 25 секунд."
-      );
+      throw new Error("Motion synthesis не успел ответить за 25 секунд.");
     }
-
     throw error;
   } finally {
     clearTimeout(timer);
@@ -637,46 +460,38 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    "Content-Type",
-    "application/json; charset=utf-8"
-  );
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
 
   try {
     if (req.method === "GET") {
       const health = String(req.query?.health || "");
 
-      if (health === "wan" || health === "1") {
+      if (health === "ltx" || health === "1") {
         try {
-          const api = await getLightningApi();
-          const info = api.info;
-
-          const endpointNames = Object.keys(
-            info?.named_endpoints || {}
-          );
+          const info = await getLtxInfo();
+          const endpoints = Object.keys(info?.named_endpoints || {});
 
           return res.status(200).json({
             success: true,
             provider: "Hugging Face ZeroGPU",
-            model: "Wan 2.2 I2V Fast · Lightning LoRA · 4 steps",
-            space: LIGHTNING_SPACE,
-            endpoint: api.endpoint,
-            endpoints: endpointNames,
-            authenticated: Boolean(process.env.HF_TOKEN),
+            model: "LTX-2.3 Fast · 22B · audio-video",
+            space: LTX_SPACE,
+            endpoint: "/generate",
+            endpoints,
             free: true,
-            client: "Gradio 6 REST API"
+            audio: true,
+            imageToVideo: true,
+            resolutions: ["720p", "1080p"],
+            duration: "5-10s"
           });
         } catch (error) {
           return res.status(502).json({
             success: false,
             provider: "Hugging Face ZeroGPU",
-            model: "Wan 2.2 I2V Lightning · 4 steps",
-            space: LIGHTNING_SPACE,
-            authenticated: Boolean(process.env.HF_TOKEN),
-            error:
-              "Не удалось подключиться к Wan Lightning через Gradio Client: " +
-              getErrorMessage(error)
+            model: "LTX-2.3 Fast",
+            space: LTX_SPACE,
+            error: getErrorMessage(error)
           });
         }
       }
@@ -686,51 +501,72 @@ export default async function handler(req, res) {
       if (!taskId) {
         return res.status(400).json({
           success: false,
-          error: "Нужен taskId или health=1."
+          error: "Нужен taskId или health=ltx."
         });
       }
 
       const task = taskFromId(taskId);
 
       if (
-        task.v !== 8 ||
+        task.v !== 10 ||
         task.provider !== "huggingface" ||
+        task.model !== "ltx23" ||
         !task.eventId ||
-        !task.space ||
         !task.callUrl
       ) {
         return res.status(400).json({
           success: false,
-          error: "Некорректная задача видео."
+          error: "Некорректная задача LTX-2.3."
         });
       }
 
-      /*
-       * raw=1 streams the finished MP4 through Vercel instead of exposing
-       * the temporary Hugging Face file URL to the browser.
-       */
       const raw = String(req.query?.raw || "") === "1";
+      const status = await pollLtxTask(task, raw ? 12000 : 12000);
+
+      if (!status.done) {
+        return res.status(200).json({
+          success: true,
+          done: false,
+          status: status.status || "RUNNING",
+          provider: "Hugging Face ZeroGPU",
+          model: "LTX-2.3 Fast · Audio",
+          taskId
+        });
+      }
+
+      if (!status.success || !status.videoUrl) {
+        return res.status(200).json({
+          success: false,
+          done: true,
+          status: "ERROR",
+          error: status.error || "LTX-2.3 не создал видео.",
+          provider: "Hugging Face ZeroGPU",
+          model: "LTX-2.3 Fast · Audio",
+          taskId
+        });
+      }
 
       if (raw) {
-        const status = await pollLightningTask(task, 12000);
+        if (String(status.videoUrl).startsWith("data:video/")) {
+          const comma = status.videoUrl.indexOf(",");
+          const header = status.videoUrl.slice(0, comma);
+          const mime =
+            header.match(/^data:([^;]+);base64$/i)?.[1] ||
+            "video/mp4";
+          const bytes = Buffer.from(
+            status.videoUrl.slice(comma + 1),
+            "base64"
+          );
 
-        if (!status.done) {
-          return res.status(202).json({
-            success: true,
-            done: false,
-            status: status.status || "RUNNING",
-            taskId
-          });
-        }
-
-        if (!status.success || !status.videoUrl) {
-          return res.status(502).json({
-            success: false,
-            done: true,
-            status: "ERROR",
-            error: status.error || "Видео не готово.",
-            taskId
-          });
+          res.statusCode = 200;
+          res.setHeader("Content-Type", mime);
+          res.setHeader(
+            "Content-Disposition",
+            'inline; filename="miya-ai-ltx23.mp4"'
+          );
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("Content-Length", String(bytes.length));
+          return res.end(bytes);
         }
 
         const upstream = await fetch(status.videoUrl, {
@@ -745,7 +581,7 @@ export default async function handler(req, res) {
             success: false,
             done: true,
             error:
-              "Не удалось получить MP4 от Hugging Face: HTTP " +
+              "Не удалось получить MP4 от LTX-2.3: HTTP " +
               upstream.status,
             taskId
           });
@@ -755,12 +591,9 @@ export default async function handler(req, res) {
         res.setHeader("Content-Type", "video/mp4");
         res.setHeader(
           "Content-Disposition",
-          'inline; filename="miya-ai-video.mp4"'
+          'inline; filename="miya-ai-ltx23.mp4"'
         );
-        res.setHeader(
-          "Cache-Control",
-          "no-store, no-cache, must-revalidate"
-        );
+        res.setHeader("Cache-Control", "no-store");
         res.setHeader("X-Content-Type-Options", "nosniff");
 
         const reader = upstream.body.getReader();
@@ -780,33 +613,6 @@ export default async function handler(req, res) {
         return res.end();
       }
 
-      const status = await pollLightningTask(task, 12000);
-
-      if (!status.done) {
-        return res.status(200).json({
-          success: true,
-          done: false,
-          status: status.status || "RUNNING",
-          provider: "Hugging Face ZeroGPU",
-          model: "Wan 2.2 I2V Lightning · 4 steps",
-          taskId
-        });
-      }
-
-      if (!status.success || !status.videoUrl) {
-        return res.status(200).json({
-          success: false,
-          done: true,
-          status: "ERROR",
-          error:
-            status.error ||
-            "Wan Lightning завершил задачу без готового MP4.",
-          provider: "Hugging Face ZeroGPU",
-          model: "Wan 2.2 I2V Lightning · 4 steps",
-          taskId
-        });
-      }
-
       return res.status(200).json({
         success: true,
         done: true,
@@ -816,8 +622,8 @@ export default async function handler(req, res) {
           encodeURIComponent(taskId) +
           "&raw=1",
         provider: "Hugging Face ZeroGPU",
-        model: "Wan 2.2 I2V Lightning · 4 steps",
-        audioAttached: false,
+        model: "LTX-2.3 Fast · Audio",
+        audioAttached: true,
         taskId
       });
     }
@@ -851,29 +657,36 @@ export default async function handler(req, res) {
       });
     }
 
-    const image = await normalizeImage(
-      body.imageBase64,
-      body.imageUrl
-    );
+    const image = await normalizeImage(body.imageBase64, body.imageUrl);
+    const model = String(body.model || "ltx25").trim();
 
-    const duration = Math.min(
-      5,
-      Math.max(0.5, Number(body.duration) || 3)
-    );
+    // New primary route. Keep old model IDs accepted so the current UI does
+    // not break while it is being migrated to the new label.
+    if (model === "ltx25" || model === "ltx23") {
+      const duration = Math.min(
+        10,
+        Math.max(5, Math.round(Number(body.duration) || 5))
+      );
 
-    const model = String(body.model || "wan22").trim();
+      const task = await submitLtx({
+        prompt,
+        duration,
+        aspect: body.aspect || body.ratio || "9:16",
+        resolution: body.resolution === "1080p" ? "1080p" : "720p",
+        image
+      });
 
-    if (
-      model === "ltx25" ||
-      model === "hunyuan" ||
-      model === "wan5b"
-    ) {
-      return res.status(501).json({
-        success: false,
-        error:
-          "Сейчас для быстрого видео используется только Wan 2.2 I2V Lightning.",
-        code: "VIDEO_MODEL_DISABLED",
-        model
+      return res.status(202).json({
+        success: true,
+        done: false,
+        taskId: task.taskId,
+        status: "QUEUED",
+        provider: "Hugging Face ZeroGPU",
+        model: "LTX-2.3 Fast · Audio",
+        audioAttached: true,
+        endpoint: task.endpoint,
+        message:
+          "LTX-2.3 Fast: Image → Video + synchronized audio. Публичный ZeroGPU может иметь очередь."
       });
     }
 
@@ -882,7 +695,7 @@ export default async function handler(req, res) {
         const data = await pixelsterVideo({
           prompt,
           ratio: body.aspect || body.ratio || "9:16",
-          duration: Math.max(5, duration),
+          duration: Math.max(5, Number(body.duration) || 5),
           imageBase64: image
         });
 
@@ -898,9 +711,7 @@ export default async function handler(req, res) {
         return res.status(504).json({
           success: false,
           done: true,
-          error:
-            error?.message ||
-            "Motion synthesis не успел ответить.",
+          error: error?.message || "Motion synthesis не успел ответить.",
           code: "PIXELSTER_TIMEOUT",
           provider: "AHM7 PixelSter",
           model: "Motion synthesis"
@@ -908,48 +719,30 @@ export default async function handler(req, res) {
       }
     }
 
-    if (model !== "wan22") {
-      return res.status(400).json({
+    // Preserve the old Wan route as a clear fallback instead of silently
+    // pretending it is LTX. The current UI can still select it.
+    if (model === "wan22" || model === "wan5b" || model === "hunyuan") {
+      return res.status(503).json({
         success: false,
-        error: "Неизвестная модель видео: " + model,
-        code: "UNKNOWN_VIDEO_MODEL"
+        done: true,
+        code: "LEGACY_VIDEO_PROVIDER_DISABLED",
+        error:
+          "Старый видео-провайдер временно отключён. Для теста выберите LTX-2.3 Fast + Audio."
       });
     }
 
-    const task = await startLightningTask({
-      prompt,
-      duration,
-      image
-    });
-
-    return res.status(202).json({
-      success: true,
-      done: false,
-      taskId: task.taskId,
-      status: "QUEUED",
-      provider: "Hugging Face ZeroGPU",
-      model: "Wan 2.2 I2V Lightning · 4 steps",
-      endpoint: task.endpoint,
-      message:
-        "Wan Lightning: 4 шага, 16 fps, 0.5–5 секунд. Публичный ZeroGPU может иметь очередь."
+    return res.status(400).json({
+      success: false,
+      error: "Неизвестная модель видео: " + model,
+      code: "UNKNOWN_VIDEO_MODEL"
     });
   } catch (error) {
-    console.error("Miya video API:", error);
+    console.error("Miya LTX video API:", error);
 
-    const status =
-      Number(error?.statusCode) >= 400 &&
-      Number(error?.statusCode) < 500
-        ? Number(error.statusCode)
-        : 502;
-
-    return res.status(status).json({
+    return res.status(502).json({
       success: false,
-      error:
-        error?.message ||
-        "Ошибка видео API.",
-      code:
-        error?.code ||
-        "VIDEO_PROVIDER_ERROR"
+      error: getErrorMessage(error),
+      code: "VIDEO_PROVIDER_ERROR"
     });
   }
 }
