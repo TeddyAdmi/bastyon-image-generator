@@ -255,6 +255,28 @@ export default async function handler(req, res) {
 
     const image = await normalizeImage(body.imageBase64, body.imageUrl);
     const duration = Math.min(5, Math.max(1, Number(body.duration) || 5));
+    const model = String(body.model || "pixelster-motion").trim();
+
+    if (model === "ltx25") {
+      return res.status(501).json({ success:false, error:"LTX 2.5 выбран, но публичный маршрут требует принятия лицензии Lightricks и HF_TOKEN. Для Miya AI он пока не подключён без токена.", code:"LTX25_REQUIRES_HF_ACCESS", model:"LTX 2.5 Free", provider:"Hugging Face" });
+    }
+    if (model === "hunyuan") {
+      return res.status(501).json({ success:false, error:"HunyuanVideo выбран, но подходящий публичный Image→Video ZeroGPU маршрут сейчас не подключён к Miya AI. Выберите Wan I2V Free или Motion synthesis.", code:"HUNYUAN_ROUTE_UNAVAILABLE", model:"HunyuanVideo", provider:"Hugging Face" });
+    }
+
+    if (model === "pixelster-motion") {
+      const data = await pixelsterVideo({
+        prompt,
+        ratio: body.aspect || body.ratio || "9:16",
+        duration: Math.max(5, duration),
+        imageBase64: image
+      });
+      return res.status(200).json({ success:true, done:true, videoUrl:data.videoUrl, provider:"AHM7 PixelSter", model:"Motion synthesis", fallbackUsed:false });
+    }
+
+    if (model !== "wan22") {
+      return res.status(400).json({ success:false, error:"Неизвестная модель видео: "+model, code:"UNKNOWN_VIDEO_MODEL" });
+    }
 
     try {
       const wan = await wanVideo({
