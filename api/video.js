@@ -164,52 +164,64 @@ async function startLightningTask({ prompt, duration, image }) {
     true
   ];
 
-  // Wake the public Space before submitting. Public ZeroGPU Spaces can sleep;
-  // the first request may otherwise hit a transient 404 while the runtime starts.
-  try {
-    await fetch(LIGHTNING_SPACE + "/", {
-      method: "GET",
-      headers: authHeaders(),
-      signal: AbortSignal.timeout(15000)
-    });
-  } catch {}
-
+  // ZeroGPU Spaces can report the web page as available while the Gradio
+  // worker/API is still waking up. Give it time and retry the POST itself.
+  // This also avoids treating a transient 404 as a permanently missing endpoint.
   let payload = null;
-  let last404 = null;
+  let last404 = "";
+  const endpointNames = Array.from(new Set([
+    String(endpoint || "").replace(/^\//, ""),
+    "generate_video"
+  ].filter(Boolean)));
 
-  // Gradio 5/6 normally exposes /gradio_api/call/<endpoint>.
-  // Try the discovered endpoint first, then the canonical name once more.
-  for (const apiName of ["/" + String(endpoint).replace(/^\//, ""), ...LIGHTNING_API_NAMES]) {
-    const response = await fetch(
-      LIGHTNING_SPACE + "/gradio_api/call/" + encodeURIComponent(apiName.replace(/^\//, "")),
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ data })
-      }
-    );
-    const text = await response.text();
-    try { payload = text ? JSON.parse(text) : null; } catch { payload = null; }
+  for (let attempt = 0; attempt < 6 && !payload?.event_id; attempt++) {
+    try {
+      await fetch(LIGHTNING_SPACE + "/", {
+        method: "GET",
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(10000)
+      });
+    } catch {}
 
-    if (response.ok && payload?.event_id) break;
-    if (response.status === 404) {
-      last404 = text;
-      continue;
+    if (attempt > 0) {
+      await new Promise(resolve => setTimeout(resolve, Math.min(12000, 2500 * attempt)));
     }
 
-    const error = new Error(
-      "Wan Lightning call HTTP " + response.status + ": " + (payload?.error || text || "")
-    );
-    error.statusCode = response.status;
-    throw error;
+    for (const apiName of endpointNames) {
+      const response = await fetch(
+        LIGHTNING_SPACE + "/gradio_api/call/" + apiName,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({ data }),
+          signal: AbortSignal.timeout(30000)
+        }
+      );
+
+      const text = await response.text();
+      try { payload = text ? JSON.parse(text) : null; } catch { payload = null; }
+
+      if (response.ok && payload?.event_id) break;
+
+      if (response.status === 404) {
+        last404 = text || "404 Not Found";
+        continue;
+      }
+
+      const error = new Error(
+        "Wan Lightning call HTTP " + response.status + ": " + (payload?.error || text || "")
+      );
+      error.statusCode = response.status;
+      throw error;
+    }
   }
 
   if (!payload?.event_id) {
     const error = new Error(
-      "Wan Lightning: endpoint не найден (404). Space доступен, но его Gradio API сейчас не публикует generate_video. " +
-      (last404 ? String(last404).slice(0, 300) : "")
+      "Wan Lightning: Gradio API не проснулся после 6 попыток. Последний ответ: " +
+      String(last404).slice(0, 400)
     );
-    error.statusCode = 502;
+    error.statusCode = 503;
     throw error;
   }
 
