@@ -185,7 +185,7 @@ function makeProviderFileUrl(space, url) {
   return space + "/gradio_api/file=" + url.replace(/^\//, "");
 }
 
-async function pollWanTask(task, timeoutMs = 7000) {
+async function pollWanTask(task, timeoutMs = 45000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -218,8 +218,9 @@ async function pollWanTask(task, timeoutMs = 7000) {
         const message =
           typeof data === "string"
             ? data
-            : data?.error || data?.message || data?.detail || JSON.stringify(data);
-        sawError = "Wan Gradio error: " + message;
+            : data?.error || data?.message || data?.detail ||
+              (data == null ? "" : JSON.stringify(data));
+        if (message) sawError = "Wan Gradio error: " + message;
         return null;
       }
 
@@ -360,7 +361,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: "Некорректная задача видео." });
       }
 
-      const status = await pollWanTask(task, 7000);
+      const status = await pollWanTask(task, 45000);
       if (!status.done) {
         return res.status(200).json({
           success: true,
@@ -377,7 +378,7 @@ export default async function handler(req, res) {
           success: false,
           done: true,
           status: "ERROR",
-          error: status.error || "Провайдер не создал видео.",
+          error: status.error || "Wan Gradio завершил задачу без готового MP4. Возможно, ZeroGPU остановил задачу или очередь была прервана.",
           provider: "Hugging Face ZeroGPU",
           model: task.model === "wan5b" ? "Wan 2.2 TI2V-5B" : "Wan 2.2 I2V 14B Fast",
           taskId
