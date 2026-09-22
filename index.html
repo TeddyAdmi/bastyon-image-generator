@@ -108,9 +108,9 @@ document.addEventListener('DOMContentLoaded',function(){
   <div class="history card"><div class="history-head"><b>История картинок Miya AI</b><button class="btn small" data-history-clear="images">Очистить</button></div><div class="history-grid" id="videoHistory"></div></div>
  </div>
  <div class="side">
-  <div class="model-card"><div class="model-label">Текущая модель · Видео</div><div class="model-name">Motion synthesis</div><div class="model-provider">Провайдер: <a href="https://ahm7xmakki.com/" target="_blank" rel="noopener">AHM7 PixelSter</a></div><div class="model-status">● Активна · Image → Video</div></div>
+  <div class="model-card"><div class="model-label">Выбранная модель · Видео</div><div id="videoModelName" class="model-name">Motion synthesis</div><div id="videoModelProvider" class="model-provider">Провайдер: AHM7 PixelSter</div><div id="videoModelStatus" class="model-status">● Готова · Image → Video</div></div>
   <div class="card control"><h3>📷 Исходное изображение</h3><div class="hint" style="margin-bottom:9px">Загрузите фото для анимации. Можно выбрать файл, перетащить его на холст или открыть результат из генератора.</div><div class="row"><button id="videoChooseSide" class="btn primary">📷 Выбрать фото</button><button id="videoUseEditor" class="btn">🖼️ Из фото-редактора</button></div></div><div class="card control"><h3>Сценарий движения</h3><textarea id="videoPrompt" placeholder="Например: животные начинают двигаться, смотрят друг на друга, камера плавно приближается, естественная физика..."></textarea><div id="videoError" class="error"></div><div id="videoStatus" class="status"></div><button id="videoGenerate" class="btn primary full" style="margin-top:10px">🎬 Создать видео</button></div>
-  <div class="card control"><h3>Модель видео</h3><div id="videoModels" class="ratios"><button class="ratio active" data-video-model="pixelster-motion">Motion synthesis</button><button class="ratio" disabled title="Будет подключено позже">LTX 2.5 Free</button><button class="ratio" disabled title="Будет подключено позже">Wan I2V Free</button><button class="ratio" disabled title="Будет подключено позже">HunyuanVideo</button></div><div class="hint" style="margin-top:8px">Сейчас работает Motion synthesis · AHM7 PixelSter. Остальные варианты оставлены в списке для будущего подключения.</div></div>
+  <div class="card control"><h3>Модель видео</h3><div id="videoModels" class="ratios"><button class="ratio active" data-video-model="pixelster-motion">Motion synthesis</button><button class="ratio" data-video-model="ltx25">LTX 2.5 Free</button><button class="ratio" data-video-model="wan22">Wan I2V Free</button><button class="ratio" data-video-model="hunyuan">HunyuanVideo</button></div><div id="videoModelHint" class="hint" style="margin-top:8px">Нажмите на модель — выбор сразу станет активным. Сейчас реально подключены Motion synthesis и Wan I2V.</div></div>
   <div class="card control"><h3>Формат видео</h3><div id="videoRatios" class="ratios"><button class="ratio active" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="4:3">4:3</button></div><h3 style="margin-top:16px">Длительность</h3><select id="videoDuration" style="width:100%;border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff"><option value="2">2 секунды</option><option value="3">3 секунды</option><option value="4">4 секунды</option><option value="5" selected>5 секунд</option><option value="6">6 секунд</option><option value="8">8 секунд</option><option value="10">10 секунд</option></select><div class="hint" style="margin-top:7px">Длительность ограничивается возможностями подключённого GPU.</div></div>
   <div class="card control"><h3>Видеосервер</h3><div id="videoBackend" class="backend">Проверяем подключение…</div><button id="videoReplace" class="btn full" style="margin-top:8px">Заменить изображение</button></div>
  </div>
@@ -132,7 +132,8 @@ const state = {
   videoRatio:'16:9',
   genImage:'',
   editorImage:'',
-  videoImage:''
+  videoImage:'',
+  videoModel:'pixelster-motion'
 };
 
 const ideas = [
@@ -234,6 +235,29 @@ function setRatio(group,key,button){
   button.classList.add('active');state[key]=button.dataset.ratio||state[key];
 }
 
+function videoModelLabel(id){
+  return ({'pixelster-motion':'Motion synthesis','wan22':'Wan I2V Free','ltx25':'LTX 2.5 Free','hunyuan':'HunyuanVideo'})[id]||'Видео';
+}
+function selectVideoModel(button){
+  const id=button.dataset.videoModel;
+  if(!id)return;
+  document.querySelectorAll('#videoModels .ratio').forEach(x=>x.classList.remove('active'));
+  button.classList.add('active');
+  state.videoModel=id;
+  try{localStorage.setItem('miyaVideoModel',id)}catch{}
+  const map={
+    'pixelster-motion':{name:'Motion synthesis',provider:'AHM7 PixelSter',status:'● Готова · Image → Video',hint:'Motion synthesis от AHM7 PixelSter. Надёжный fallback.'},
+    'wan22':{name:'Wan 2.2 I2V Fast',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video',hint:'Wan 2.2 Fast: до 5 секунд. При сбое автоматически используем PixelSter.'},
+    'ltx25':{name:'LTX 2.5 Free',provider:'Hugging Face ZeroGPU',status:'● Тестовый маршрут · требуется доступ к модели',hint:'LTX 2.5 поддерживает image-to-video и синхронизированный звук, но публичный Space требует HF-доступ к лицензии. Кнопка теперь выбирается и сообщает это явно.'},
+    'hunyuan':{name:'HunyuanVideo',provider:'Hugging Face / ZeroGPU',status:'● Тестовый маршрут · I2V',hint:'HunyuanVideo I2V — отдельный GPU-маршрут. Кнопка выбора работает; backend сообщит, если публичный Space недоступен.'}
+  }[id];
+  if(!map)return;
+  $('videoModelName').textContent=map.name;
+  $('videoModelProvider').textContent='Провайдер: '+map.provider;
+  $('videoModelStatus').textContent=map.status;
+  $('videoModelHint').textContent=map.hint;
+}
+
 async function runGenerate(){
   const prompt=$('genPrompt')?.value.trim();
   if(!prompt)return showError('genError','Введите промпт или нажмите «Идеи».');
@@ -317,9 +341,9 @@ async function runVideo(){
   if(!source)return showError('videoError','Сначала загрузите изображение.');
   if(!prompt)return showError('videoError','Введите сценарий движения.');
   const b=$('videoGenerate');if(b)b.disabled=true;
-  showError('videoError','');setBusy(true,'Miya AI создаёт видео','Motion synthesis · запуск…');
+  showError('videoError','');setBusy(true,'Miya AI создаёт видео',videoModelLabel(state.videoModel)+' · запуск…');
   try{
-    const body={prompt,aspect:state.videoRatio,duration:Number($('videoDuration')?.value||5)};
+    const body={prompt,aspect:state.videoRatio,duration:Number($('videoDuration')?.value||5),model:state.videoModel};
     if(source.startsWith('data:image/')){
       const optimized=await optimizeVideoImage(source);
       body.imageBase64=optimized;
@@ -373,6 +397,7 @@ function renderHistory(){
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.view){showView(b.dataset.view);return}
+  if(b.dataset.videoModel){selectVideoModel(b);return;}
   if(b.classList.contains('ratio')){
     const p=b.closest('.ratios');if(!p)return;
     if(p.id==='genRatios')setRatio('genRatios','genRatio',b);
@@ -435,6 +460,14 @@ document.addEventListener('drop',async e=>{
 try{
   const e=sessionStorage.getItem('miyaEditorImage');if(e){state.editorImage=e;setImage('editorSource','editEmpty',e)}
   const v=sessionStorage.getItem('miyaVideoImage');if(v){state.videoImage=v;setImage('videoImage','videoEmpty',v)}
+}catch{}
+try{
+  const savedModel=localStorage.getItem('miyaVideoModel');
+  if(savedModel && ['pixelster-motion','wan22','ltx25','hunyuan'].includes(savedModel)){
+    state.videoModel=savedModel;
+    const btn=document.querySelector('#videoModels [data-video-model="'+savedModel+'"]');
+    if(btn)selectVideoModel(btn);
+  }
 }catch{}
 renderHistory();
 console.log('Miya AI ready');
