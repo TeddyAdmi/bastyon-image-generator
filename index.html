@@ -264,7 +264,7 @@ function selectVideoModel(button){
     'pixelster-motion':{name:'Motion synthesis',provider:'AHM7 PixelSter',status:'● Готова · Image → Video',hint:'Motion synthesis от AHM7 PixelSter. Надёжный fallback.'},
     'wan22':{name:'Wan 2.2 I2V Lightning · 4 steps',provider:'Hugging Face ZeroGPU',status:'● Legacy fallback',hint:'Старый Wan-маршрут сохранён как fallback, но основной видео-провайдер Miya теперь LTX-2.3.'},
     'wan5b':{name:'Wan 2.2 TI2V-5B · 24fps',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video',hint:'TI2V-5B: 720p, 24 fps, 35 steps, guidance 5.0. Быстрый тест физики и движения.'},
-    'ltx25':{name:'LTX 2.3 Fast + Audio',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video + Audio',hint:'LTX-2.5 · Image → Video с синхронизированным native audio через Hugging Face ZeroGPU. 1–5 сек.'},
+    'ltx25':{name:'LTX 2.5 + Native Audio',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video + Audio',hint:'LTX-2.5 · Image → Video с синхронизированным native audio через Hugging Face ZeroGPU. При недоступности автоматически используется официальный LTX-2.3.'},
     'hunyuan':{name:'HunyuanVideo',provider:'Hugging Face / ZeroGPU',status:'● Тестовый маршрут · I2V',hint:'HunyuanVideo I2V — отдельный GPU-маршрут. Кнопка выбора работает; backend сообщит, если публичный Space недоступен.'}
   }[id];
   if(!map)return;
@@ -423,33 +423,8 @@ async function runVideo(){
         if(!s.success||!s.videoUrl){
           if((state.videoModel==='ltx25' || state.videoModel==='ltx23' || state.videoModel==='wan22' || state.videoModel==='wan5b' || state.videoModel==='hunyuan') && !ltxFallbackTried){
             ltxFallbackTried=true;
-            const officialAlreadyFailed=true;
-            if($('videoStatus'))$('videoStatus').textContent=officialAlreadyFailed
-              ? 'LTX-2.3 недоступен · переключаемся на резервный Motion…'
-              : 'LTX-2.5 недоступен · переключаемся на резервный Motion…';
-            setBusy(true,'Miya AI переключает видеосервер',officialAlreadyFailed
-              ? 'LTX-2.5 завершился с ошибкой · пробуем резервный Motion'
-              : 'LTX Fast завершился с ошибкой · пробуем Official');
-            const fallbackBody={...body,model:'pixelster-motion'};
-            const fallback=await api('/api/video',{
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body:JSON.stringify(fallbackBody)
-            });
-            if(fallback.done && fallback.videoUrl){
-              const v=$('videoResult');
-              if(v){
-                v.pause();
-                v.src=fallback.videoUrl;
-                v.classList.remove('hidden');
-                try{v.load()}catch{}
-              }
-              setBusy(false,'Видео готово',(fallback.model||'Motion synthesis')+' · '+(fallback.provider||'AHM7 PixelSter'));
-              return;
-            }
-            if(!fallback.taskId)throw new Error(fallback.error||'Резервный видеосервер не вернул результат.');
-            currentTaskId=fallback.taskId;
-            continue;
+            if($('videoStatus'))$('videoStatus').textContent='LTX недоступен · автоматический Motion fallback отключён';
+            throw new Error(s.error||'LTX не создал видео.');
           }
           throw new Error(s.error||'Видео не создано.');
         }
