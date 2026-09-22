@@ -261,12 +261,9 @@ function selectVideoModel(button){
   state.videoModel=id;
   try{localStorage.setItem('miyaVideoModel',id)}catch{}
   const map={
-    'ltx-fast':{name:'LTX Video Fast · 13B distilled',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video',hint:'LTX Video 0.9.8 distilled от Lightricks. Быстрый не-китайский маршрут без Meta/Grok/Wan.'},
-    'pixelster-motion':{name:'Motion synthesis',provider:'AHM7 PixelSter',status:'● Готова · Image → Video',hint:'Motion synthesis от AHM7 PixelSter. Надёжный fallback.'},
-    'wan22':{name:'Wan 2.2 I2V Lightning · 4 steps',provider:'Hugging Face ZeroGPU',status:'● Fallback',hint:'Wan оставлен только как резервный маршрут. Основной видеопровайдер Miya AI теперь LTX Video Fast.'},
-    'wan5b':{name:'Wan 2.2 TI2V-5B · 24fps',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video',hint:'TI2V-5B: 720p, 24 fps, 35 steps, guidance 5.0. Быстрый тест физики и движения.'},
-    'ltx25':{name:'LTX 2.5',provider:'Hugging Face ZeroGPU',status:'● Требуется HF access',● Подключена · Image → Video + Audio',hint:'LTX-2.5 · Image → Video с синхронизированным native audio через Hugging Face ZeroGPU. При недоступности автоматически используется официальный LTX-2.3.'},
-    'hunyuan':{name:'HunyuanVideo',provider:'Hugging Face / ZeroGPU',status:'● Тестовый маршрут · I2V',hint:'HunyuanVideo I2V — отдельный GPU-маршрут. Кнопка выбора работает; backend сообщит, если публичный Space недоступен.'}
+    'h3':{name:'MiniMax H3 · I2V + Audio',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video + Audio',hint:'Основной бесплатный маршрут Miya: MiniMax H3 I2V. Публичный ZeroGPU Space принимает исходный кадр и сценарий движения и возвращает видео с синхронизированным аудио.'},
+    'wan22':{name:'Wan 2.2 I2V Lightning · 4 steps',provider:'Hugging Face ZeroGPU',status:'● Fallback · Image → Video',hint:'Резервный маршрут Wan 2.2 I2V Lightning. Используйте его, если H3 временно перегружен.'},
+    'pixelster-motion':{name:'Motion synthesis',provider:'AHM7 PixelSter',status:'● Дополнительный маршрут · Image → Video',hint:'Дополнительный motion endpoint. Используется только при ручном выборе.'}
   }[id];
   if(!map)return;
   $('videoModelName').textContent=map.name;
@@ -604,14 +601,13 @@ try{
 }catch{}
 try{
   let savedModel=localStorage.getItem('miyaVideoModel');
-  // Migrate the old default so existing users see the new LTX route.
-  if(savedModel==='pixelster-motion' || savedModel==='wan5b' || savedModel==='ltx25' || savedModel==='hunyuan') savedModel='wan22';
-  if(savedModel && ['pixelster-motion','wan22','wan5b','ltx25','hunyuan'].includes(savedModel)){
+  if(savedModel==='ltx-fast' || savedModel==='ltx25' || savedModel==='wan5b' || savedModel==='hunyuan') savedModel='h3';
+  if(savedModel && ['h3','wan22','pixelster-motion'].includes(savedModel)){
     state.videoModel=savedModel;
     const btn=document.querySelector('#videoModels [data-video-model="'+savedModel+'"]');
     if(btn)selectVideoModel(btn);
   } else {
-    const btn=document.querySelector('#videoModels [data-video-model="ltx25"]');
+    const btn=document.querySelector('#videoModels [data-video-model="h3"]');
     if(btn)selectVideoModel(btn);
   }
 }catch{}
