@@ -126,7 +126,8 @@ function buildWanPrompt(prompt) {
     "Realistic motion, natural body mechanics, stable composition, consistent lighting."
   ].join(" ");
 }
-\nasync function startWanTask({ model, prompt, duration, image }) {
+
+async function startWanTask({ model, prompt, duration, image }) {
   const space = model === "wan5b" ? WAN5B_SPACE : WAN_SPACE;
   const infoUrl = model === "wan5b" ? WAN5B_INFO : WAN_INFO;
   const info = await hfJson(infoUrl, { headers: { Accept: "application/json" } });
