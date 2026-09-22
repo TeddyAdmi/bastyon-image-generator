@@ -1,5 +1,17 @@
-const LTX_SPACE = "https://shaundeeooo-ltx-2-3-fast.hf.space";
-const LTX_ENDPOINT = "generate";
+const LTX_SPACES = [
+  {
+    name: "LTX-2.3 Fast",
+    base: "https://shaundeeooo-ltx-2-3-fast.hf.space",
+    endpoint: "generate",
+    mode: "fal"
+  },
+  {
+    name: "LTX-2.3 Official",
+    base: "https://lightricks-ltx-2-3.hf.space",
+    endpoint: "generate_video",
+    mode: "official"
+  }
+];
 const PIXELSTER = "https://ahm7xmakki.com/api";
 
 function authHeaders() {
@@ -61,11 +73,13 @@ function buildPrompt(prompt) {
   ].join(" ");
 }
 
-function findVideo(value) {
+function findVideo(value, baseUrl = "") {
   if (!value) return null;
   if (typeof value === "string") {
     if (/^data:video\//i.test(value)) return value;
-    if (/\.mp4(?:$|\?)/i.test(value)) return value;
+    if (/^https?:\/\//i.test(value) && /(?:\.mp4|file=|video)/i.test(value)) return value;
+    if (/^\/(?:gradio_api\/)?file=/i.test(value) && baseUrl) return baseUrl.replace(/\/+$/, "") + value;
+    if (/\.mp4(?:$|\?)/i.test(value) && baseUrl && value.startsWith("/")) return baseUrl.replace(/\/+$/, "") + value;
     return null;
   }
   if (Array.isArray(value)) {
@@ -121,7 +135,119 @@ async function normalizeImage(imageBase64, imageUrl) {
 }
 
 async function getLtxInfo() {
-  return fetchJson(LTX_SPACE + "/gradio_api/info");
+  const results = [];
+  for (const space of LTX_SPACES) {
+    try {
+      const info = await fetchJson(space.base + "/gradio_api/info");
+      results.push({ ...space, online: true, info });
+    } catch (error) {
+      results.push({ ...space, online: false, error: errorMessage(error) });
+    }
+  }
+  return results;
+}
+
+async function uploadToGradio(spaceBase, imageDataUri) {
+  const comma = imageDataUri.indexOf(",");
+  if (comma < 0) throw new Error("Некорректное изображение.");
+  const header = imageDataUri.slice(0, comma);
+  const mime = (header.match(/^data:([^;]+)/i) || [])[1] || "image/jpeg";
+  const bytes = Buffer.from(imageDataUri.slice(comma + 1), "base64");
+  const form = new FormData();
+  form.append("files", new Blob([bytes], { type: mime }), "miya-input." + (mime.includes("png") ? "png" : "jpg"));
+  const response = await fetch(spaceBase + "/gradio_api/upload", {
+    method: "POST",
+    headers: authHeaders(),
+    body: form
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error("LTX upload HTTP " + response.status + ": " + text.slice(0, 700));
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error("LTX upload вернул некорректный JSON."); }
+  const path = Array.isArray(data) ? data[0] : data?.files?.[0] || data?.path;
+  if (!path) throw new Error("LTX upload не вернул путь файла.");
+  return {
+    path: String(path),
+    orig_name: "miya-input." + (mime.includes("png") ? "png" : "jpg"),
+    mime_type: mime,
+    meta: { _type: "gradio.FileData" }
+  };
+}
+
+async function submitOfficialLtx({ space, image, prompt, duration, aspect }) {
+  const seconds = Math.min(5, Math.max(1, Number(duration) || 3));
+  const dims = {
+    "16:9": [1024, 576],
+    "9:16": [576, 1024],
+    "1:1": [768, 768],
+    "4:3": [768, 576]
+  };
+  const [width, height] = dims[aspect] || dims["16:9"];
+  const imageFile = await uploadToGradio(space.base, image);
+
+  const data = [
+    imageFile,
+    buildPrompt(prompt),
+    seconds,
+    false,
+    -1,
+    true,
+    height,
+    width
+  ];
+
+  const candidates = [
+    space.base + "/gradio_api/call/v2/" + space.endpoint,
+    space.base + "/gradio_api/call/" + space.endpoint
+  ];
+
+  let lastError = null;
+  for (const url of candidates) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...authHeaders(),
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify({ data })
+      });
+      const text = await response.text();
+      if (!response.ok) {
+        lastError = new Error("LTX Official submit HTTP " + response.status + ": " + text.slice(0, 700));
+        continue;
+      }
+      let payload;
+      try { payload = text ? JSON.parse(text) : null; } catch {
+        lastError = new Error("LTX Official submit вернул некорректный JSON.");
+        continue;
+      }
+      const eventId = String(payload?.event_id || "").trim();
+      if (!eventId) {
+        lastError = new Error("LTX Official не вернул event_id: " + text.slice(0, 500));
+        continue;
+      }
+      return {
+        taskId: taskIdFor({
+          v: 13,
+          provider: "huggingface",
+          model: "ltx23official-audio",
+          space: space.base,
+          callUrl: url,
+          eventId,
+          prompt: String(prompt || "").trim(),
+          duration: seconds,
+          aspect
+        }),
+        endpoint: "/" + space.endpoint,
+        eventId
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("LTX Official не принял запрос.");
 }
 
 async function submitLtx({ image, prompt, duration, aspect }) {
@@ -143,9 +269,10 @@ async function submitLtx({ image, prompt, duration, aspect }) {
     true
   ];
 
+  const fastSpace = LTX_SPACES[0];
   const candidates = [
-    LTX_SPACE + "/gradio_api/call/" + LTX_ENDPOINT,
-    LTX_SPACE + "/gradio_api/call/v2/" + LTX_ENDPOINT
+    fastSpace.base + "/gradio_api/call/v2/" + fastSpace.endpoint,
+    fastSpace.base + "/gradio_api/call/" + fastSpace.endpoint
   ];
 
   let lastError = null;
@@ -184,7 +311,7 @@ async function submitLtx({ image, prompt, duration, aspect }) {
           v: 12,
           provider: "huggingface",
           model: "ltx23fast-audio",
-          space: LTX_SPACE,
+          space: fastSpace.base,
           callUrl: url,
           eventId,
           prompt: String(prompt || "").trim(),
@@ -253,7 +380,7 @@ async function pollLtxTask(task, timeoutMs = 12000) {
           }
 
           if (event === "complete") {
-            const videoUrl = findVideo(data);
+            const videoUrl = findVideo(data, task.space);
             if (!videoUrl) {
               return {
                 done: true,
@@ -336,7 +463,7 @@ export default async function handler(req, res) {
             success: true,
             provider: "Hugging Face ZeroGPU",
             model: "LTX-2.3 Fast · 22B · native audio",
-            space: LTX_SPACE,
+            space: fastSpace.base,
             endpoint: "/generate",
             endpoints: Object.keys(info?.named_endpoints || {}),
             free: true,
@@ -350,7 +477,7 @@ export default async function handler(req, res) {
             success: false,
             provider: "Hugging Face ZeroGPU",
             model: "LTX-2.3 Fast · native audio",
-            space: LTX_SPACE,
+            space: fastSpace.base,
             error: errorMessage(error)
           });
         }
@@ -363,9 +490,9 @@ export default async function handler(req, res) {
 
       const task = taskFromId(taskId);
       if (
-        task.v !== 12 ||
+        (task.v !== 12 && task.v !== 13) ||
         task.provider !== "huggingface" ||
-        task.model !== "ltx23fast-audio" ||
+        task.model !== "ltx23fast-audio" && task.model !== "ltx23official-audio" ||
         !task.eventId ||
         !task.callUrl
       ) {
@@ -380,7 +507,7 @@ export default async function handler(req, res) {
           done: false,
           status: status.status || "RUNNING",
           provider: "Hugging Face ZeroGPU",
-          model: "LTX-2.3 Fast · Audio",
+          model: task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
           taskId
         });
       }
@@ -449,7 +576,7 @@ export default async function handler(req, res) {
         status: "COMPLETED",
         videoUrl: "/api/video?taskId=" + encodeURIComponent(taskId) + "&raw=1",
         provider: "Hugging Face ZeroGPU",
-        model: "LTX-2.3 Fast · Audio",
+        model: task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
         audioAttached: true,
         taskId
       });
@@ -475,12 +602,24 @@ export default async function handler(req, res) {
     // This lets the existing Miya editor test LTX immediately without requiring
     // a frontend deployment just to change the default selector.
     if (model === "ltx25" || model === "ltx23" || model === "wan22" || model === "wan5b" || model === "hunyuan") {
-      const task = await submitLtx({
-        image,
-        prompt,
-        duration: Number(body.duration) || 5,
-        aspect: body.aspect || body.ratio || "9:16"
-      });
+      let task;
+      try {
+        task = await submitLtx({
+          image,
+          prompt,
+          duration: Number(body.duration) || 5,
+          aspect: body.aspect || body.ratio || "9:16"
+        });
+      } catch (fastError) {
+        console.warn("LTX Fast unavailable, trying official LTX-2.3:", errorMessage(fastError));
+        task = await submitOfficialLtx({
+          space: LTX_SPACES[1],
+          image,
+          prompt,
+          duration: Number(body.duration) || 3,
+          aspect: body.aspect || body.ratio || "9:16"
+        });
+      }
 
       return res.status(202).json({
         success: true,
