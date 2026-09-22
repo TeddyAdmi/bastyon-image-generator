@@ -407,11 +407,11 @@ async function runVideo(){
       }
       if(s.done){
         if(!s.success||!s.videoUrl){
-          if(state.videoModel==='ltx25' && !ltxFallbackTried){
+          if((state.videoModel==='ltx25' || state.videoModel==='ltx23' || state.videoModel==='wan22' || state.videoModel==='wan5b' || state.videoModel==='hunyuan') && !ltxFallbackTried){
             ltxFallbackTried=true;
             if($('videoStatus'))$('videoStatus').textContent='LTX Fast недоступен · переключаемся на LTX-2.3 Official…';
             setBusy(true,'Miya AI переключает видеосервер','LTX-2.3 Fast завершился с ошибкой · пробуем Official');
-            const fallbackBody={...body,model:'ltx23official'};
+            const fallbackBody={...body,model:(s.model||'').includes('Official')?'ltx25':'ltx23official'};
             const fallback=await api('/api/video',{
               method:'POST',
               headers:{'Content-Type':'application/json'},
