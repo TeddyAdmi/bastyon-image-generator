@@ -387,7 +387,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         success: true,
         done: true,
-        videoUrl: wan.sourceUrl,
+        videoUrl: "/api/video-proxy?url=" + encodeURIComponent(wan.sourceUrl),
         provider: "Hugging Face ZeroGPU",
         model: "Wan 2.2 I2V 14B Fast",
         audioAttached: false,
