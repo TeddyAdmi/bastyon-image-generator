@@ -669,19 +669,21 @@ export default async function handler(req, res) {
     if (model === "ltx25" || model === "ltx23" || model === "wan22" || model === "wan5b" || model === "hunyuan") {
       let task;
       try {
-        task = await submitLtx({
-          image,
-          prompt,
-          duration: Number(body.duration) || 5,
-          aspect: body.aspect || body.ratio || "9:16"
-        });
-      } catch (fastError) {
-        console.warn("LTX Fast unavailable, trying official LTX-2.3:", errorMessage(fastError));
+        // LTX-2.3 Fast is currently reporting a runtime error on its public Space,
+        // so use the official Lightricks ZeroGPU Space as the primary route.
         task = await submitOfficialLtx({
           space: LTX_SPACES[1],
           image,
           prompt,
           duration: Number(body.duration) || 3,
+          aspect: body.aspect || body.ratio || "9:16"
+        });
+      } catch (officialError) {
+        console.warn("LTX Official unavailable, trying Fast:", errorMessage(officialError));
+        task = await submitLtx({
+          image,
+          prompt,
+          duration: Number(body.duration) || 5,
           aspect: body.aspect || body.ratio || "9:16"
         });
       }
