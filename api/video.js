@@ -185,7 +185,7 @@ function makeProviderFileUrl(space, url) {
   return space + "/gradio_api/file=" + url.replace(/^\//, "");
 }
 
-async function pollWanTask(task, timeoutMs = 45000) {
+async function pollWanTask(task, timeoutMs = 240000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -361,7 +361,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: "Некорректная задача видео." });
       }
 
-      const status = await pollWanTask(task, 45000);
+      const status = await pollWanTask(task, 240000);
       if (!status.done) {
         return res.status(200).json({
           success: true,
