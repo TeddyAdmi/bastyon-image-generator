@@ -81,6 +81,7 @@
   }
 
   function bind() {
+    if (window.__MIYA_MAIN_READY) { ready(); return; }
     document.querySelectorAll('.tab[data-view]').forEach(b => b.onclick = () => showView(b.dataset.view));
     document.querySelectorAll('#videoModels [data-video-model]').forEach(b => b.onclick = () => selectModel(b));
 
