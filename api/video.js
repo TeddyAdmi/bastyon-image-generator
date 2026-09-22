@@ -376,11 +376,26 @@ async function pollLtxTask(task, timeoutMs = 12000) {
           if (event === "heartbeat" || event === "generating" || event === "progress") continue;
 
           if (event === "error" || event === "unexpected_error") {
-            return { done: true, success: false, status: "ERROR", error: "LTX-2.3: " + errorMessage(data) };
+            const raw = typeof data === "string" ? data : JSON.stringify(data ?? {});
+            return {
+              done: true,
+              success: false,
+              status: "ERROR",
+              error: "LTX-2.3 provider error: " + (raw || "empty SSE error event")
+            };
           }
 
           if (event === "complete") {
             const videoUrl = findVideo(data, task.space);
+            if (!videoUrl && typeof data === "string" && data.trim()) {
+              const raw = data.trim();
+              if (/^https?:\/\//i.test(raw)) return {
+                done: true,
+                success: true,
+                status: "COMPLETED",
+                videoUrl: raw
+              };
+            }
             if (!videoUrl) {
               return {
                 done: true,
