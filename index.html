@@ -150,11 +150,19 @@ const ideas = [
 ];
 
 function errorText(e){
-  if(!e) return '';
-  if(typeof e==='string') return e;
-  if(e.message) return e.message;
-  if(e.error) return typeof e.error==='string'?e.error:JSON.stringify(e.error);
-  try{return JSON.stringify(e)}catch{return String(e)}
+  if(e == null) return '';
+  if(typeof e === 'string') return e;
+  if(e instanceof Error && e.message) return e.message;
+  if(typeof e.message === 'string' && e.message.trim()) return e.message;
+  if(typeof e.error === 'string' && e.error.trim()) return e.error;
+  if(e.error && typeof e.error === 'object') return errorText(e.error);
+  if(typeof e.detail === 'string' && e.detail.trim()) return e.detail;
+  if(typeof e.statusText === 'string' && e.statusText.trim()) return e.statusText;
+  try{
+    const s=JSON.stringify(e);
+    if(s && s !== '{}' && s !== '[]') return s;
+  }catch{}
+  return String(e);
 }
 
 function showError(id,e){
