@@ -91,7 +91,7 @@ function findVideo(value, baseUrl = "") {
   }
   if (typeof value === "object") {
     for (const key of ["video", "url", "path", "videoUrl", "data", "output", "result"]) {
-      const found = findVideo(value[key]);
+      const found = findVideo(value[key], baseUrl);
       if (found) return found;
     }
   }
@@ -147,6 +147,20 @@ async function getLtxInfo() {
   return results;
 }
 
+async function resolveLtxEndpoint(space, preferred) {
+  try {
+    const info = await fetchJson(space.base + "/gradio_api/info");
+    const named = info?.named_endpoints || {};
+    const keys = Object.keys(named);
+    const preferredKey = preferred.startsWith("/") ? preferred : "/" + preferred;
+    if (keys.includes(preferredKey)) return preferred;
+    const generated = keys.find((key) => /generate|video/i.test(key));
+    return generated ? generated.replace(/^\//, "") : preferred;
+  } catch {
+    return preferred;
+  }
+}
+
 async function uploadToGradio(spaceBase, imageDataUri) {
   const comma = imageDataUri.indexOf(",");
   if (comma < 0) throw new Error("Некорректное изображение.");
@@ -196,9 +210,10 @@ async function submitOfficialLtx({ space, image, prompt, duration, aspect }) {
     width
   ];
 
+  const resolvedEndpoint = await resolveLtxEndpoint(space, space.endpoint);
   const candidates = [
-    space.base + "/gradio_api/call/v2/" + space.endpoint,
-    space.base + "/gradio_api/call/" + space.endpoint
+    space.base + "/gradio_api/call/" + resolvedEndpoint,
+    space.base + "/gradio_api/call/v2/" + resolvedEndpoint
   ];
 
   let lastError = null;
@@ -240,7 +255,7 @@ async function submitOfficialLtx({ space, image, prompt, duration, aspect }) {
           duration: seconds,
           aspect
         }),
-        endpoint: "/" + space.endpoint,
+        endpoint: "/" + resolvedEndpoint,
         eventId
       };
     } catch (error) {
@@ -270,9 +285,10 @@ async function submitLtx({ image, prompt, duration, aspect }) {
   ];
 
   const fastSpace = LTX_SPACES[0];
+  const resolvedEndpoint = await resolveLtxEndpoint(fastSpace, fastSpace.endpoint);
   const candidates = [
-    fastSpace.base + "/gradio_api/call/v2/" + fastSpace.endpoint,
-    fastSpace.base + "/gradio_api/call/" + fastSpace.endpoint
+    fastSpace.base + "/gradio_api/call/" + resolvedEndpoint,
+    fastSpace.base + "/gradio_api/call/v2/" + resolvedEndpoint
   ];
 
   let lastError = null;
@@ -318,7 +334,7 @@ async function submitLtx({ image, prompt, duration, aspect }) {
           duration: seconds,
           aspect
         }),
-        endpoint: "/" + LTX_ENDPOINT,
+        endpoint: "/" + resolvedEndpoint,
         eventId
       };
     } catch (error) {
@@ -478,9 +494,14 @@ export default async function handler(req, res) {
             success: true,
             provider: "Hugging Face ZeroGPU",
             model: "LTX-2.3 Fast · 22B · native audio",
-            space: fastSpace.base,
-            endpoint: "/generate",
-            endpoints: Object.keys(info?.named_endpoints || {}),
+            spaces: info.map((item) => ({
+              name: item.name,
+              base: item.base,
+              online: item.online,
+              endpoint: item.endpoint,
+              endpoints: item.online ? Object.keys(item.info?.named_endpoints || {}) : [],
+              error: item.online ? null : item.error
+            })),
             free: true,
             audio: true,
             imageToVideo: true,
