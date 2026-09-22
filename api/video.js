@@ -469,22 +469,28 @@ async function submitOfficialLtx({ space, image, prompt, duration, aspect }) {
 }
 
 async function submitLtx({ image, prompt, duration, aspect }) {
-  const seconds = Math.min(10, Math.max(5, Math.round(Number(duration) || 5)));
-  const resolution = "720p";
+  const seconds = Math.min(10, Math.max(1, Number(duration) || 3));
+  const fastSpace = LTX23_FAST_SPACE;
+  const imageFile = await uploadToGradio(fastSpace.base, image);
+
+  const dims = {
+    "16:9": [1024, 1536],
+    "9:16": [1536, 1024],
+    "1:1": [1024, 1024],
+    "4:3": [1152, 1536]
+  };
+  const [height, width] = dims[aspect] || dims["16:9"];
 
   const data = [
-    image,
+    imageFile,
     buildPrompt(prompt),
-    "",
-    resolution,
     seconds,
+    false,
     -1,
-    "video/h264-mp4",
     true,
-    true
+    height,
+    width
   ];
-
-  const fastSpace = LTX23_FAST_SPACE;
   const resolvedEndpoint = await resolveLtxEndpoint(fastSpace, fastSpace.endpoint);
   const candidates = [
     fastSpace.base + "/gradio_api/call/" + resolvedEndpoint,
@@ -855,24 +861,54 @@ export default async function handler(req, res) {
     const model = String(body.model || "ltx25").trim();
 
     if (model === "ltx25") {
-      const task = await submitLtx25({
-        image,
-        prompt,
-        duration: Number(body.duration) || 2,
-        aspect: body.aspect || body.ratio || "9:16"
-      });
+      try {
+        const task = await submitLtx25({
+          image,
+          prompt,
+          duration: Number(body.duration) || 2,
+          aspect: body.aspect || body.ratio || "9:16"
+        });
 
-      return res.status(202).json({
-        success: true,
-        done: false,
-        taskId: task.taskId,
-        status: "QUEUED",
-        provider: "Hugging Face ZeroGPU",
-        model: "LTX-2.5 · Audio",
-        audioAttached: true,
-        endpoint: task.endpoint,
-        message: "LTX-2.5: Image → Video + synchronized native audio."
-      });
+        return res.status(202).json({
+          success: true,
+          done: false,
+          taskId: task.taskId,
+          status: "QUEUED",
+          provider: "Hugging Face ZeroGPU",
+          model: "LTX-2.5 · Audio",
+          audioAttached: true,
+          endpoint: task.endpoint,
+          message: "LTX-2.5: Image → Video + synchronized native audio."
+        });
+      } catch (ltx25Error) {
+        console.warn("LTX-2.5 unavailable, falling back to LTX-2.3 Distilled:", errorMessage(ltx25Error));
+        try {
+          const task = await submitLtx({
+            image,
+            prompt,
+            duration: Number(body.duration) || 3,
+            aspect: body.aspect || body.ratio || "9:16"
+          });
+
+          return res.status(202).json({
+            success: true,
+            done: false,
+            taskId: task.taskId,
+            status: "QUEUED",
+            provider: "Hugging Face ZeroGPU",
+            model: "LTX-2.3 Distilled · Audio (fallback)",
+            audioAttached: true,
+            endpoint: task.endpoint,
+            message: "LTX-2.5 временно недоступен · запущен LTX-2.3 Distilled с синхронным аудио."
+          });
+        } catch (fallbackError) {
+          throw new Error(
+            "LTX-2.5 недоступен, LTX-2.3 fallback тоже не запустился. " +
+            "LTX-2.5: " + errorMessage(ltx25Error) +
+            " | LTX-2.3: " + errorMessage(fallbackError)
+          );
+        }
+      }
     }
 
     if (model === "ltx23official") {
