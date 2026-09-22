@@ -6,10 +6,10 @@ const LTX25_SPACE = {
 };
 
 const LTX23_FAST_SPACE = {
-  name: "LTX-2.3 Fast",
-  base: "https://shaundeeooo-ltx-2-3-fast.hf.space",
-  endpoint: "generate",
-  mode: "fal"
+  name: "LTX-2.3 Distilled Official",
+  base: "https://lightricks-ltx-2-3.hf.space",
+  endpoint: "generate_video",
+  mode: "official-23"
 };
 
 const LTX23_OFFICIAL_SPACE = {
@@ -469,7 +469,7 @@ async function submitOfficialLtx({ space, image, prompt, duration, aspect }) {
 }
 
 async function submitLtx({ image, prompt, duration, aspect }) {
-  const seconds = Math.min(10, Math.max(1, Number(duration) || 3));
+  const seconds = Math.min(5, Math.max(1, Number(duration) || 3));
   const fastSpace = LTX23_FAST_SPACE;
   const imageFile = await uploadToGradio(fastSpace.base, image);
 
@@ -881,7 +881,7 @@ export default async function handler(req, res) {
           message: "LTX-2.5: Image → Video + synchronized native audio."
         });
       } catch (ltx25Error) {
-        console.warn("LTX-2.5 unavailable, falling back to LTX-2.3 Distilled:", errorMessage(ltx25Error));
+        console.warn("LTX-2.5 unavailable, falling back to official LTX-2.3:", errorMessage(ltx25Error));
         try {
           const task = await submitLtx({
             image,
@@ -896,10 +896,10 @@ export default async function handler(req, res) {
             taskId: task.taskId,
             status: "QUEUED",
             provider: "Hugging Face ZeroGPU",
-            model: "LTX-2.3 Distilled · Audio (fallback)",
+            model: "LTX-2.3 Official · Audio (fallback)",
             audioAttached: true,
             endpoint: task.endpoint,
-            message: "LTX-2.5 временно недоступен · запущен LTX-2.3 Distilled с синхронным аудио."
+            message: "LTX-2.5 временно недоступен · запущен официальный LTX-2.3 с синхронным аудио."
           });
         } catch (fallbackError) {
           throw new Error(
