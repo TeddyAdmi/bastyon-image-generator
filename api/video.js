@@ -2,6 +2,7 @@ import { Client } from "@gradio/client";
 
 const PIXELSTER = "https://ahm7xmakki.com/api";
 const WAN_SPACE = "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space";
+const WAN5B_SPACE = "https://openking-wan2-video-generation.hf.space";
 const WAN_INFO = WAN_SPACE + "/gradio_api/info";
 const WAN_AGENTS = "https://huggingface.co/spaces/zerogpu-aoti/wan2-2-fp8da-aoti-faster/agents.md";
 const AUDIO_SPACE = "https://stabilityai-stable-audio-3.hf.space";
@@ -209,6 +210,82 @@ async function waitWan(endpoint, eventId, timeoutMs = 220000) {
   }
 }
 
+async function wan5bVideo({ prompt, duration, image }) {
+  const info = await hfJson(WAN5B_SPACE + "/gradio_api/info", { headers: { Accept: "application/json" } });
+  const endpoint = findWanEndpoint(info);
+  const imagePath = await uploadWan5bImage(image);
+
+  // Wan2.2-TI2V-5B public Space:
+  // prompt, image, width, height, frames, steps, guidance, seed
+  const seconds = Math.min(5, Math.max(3, Number(duration) || 3));
+  const frames = Math.min(145, Math.max(73, 1 + Math.round(seconds * 24 / 24) * 24);
+  const data = [
+    String(prompt || "").trim(),
+    { path: imagePath, meta: { _type: "gradio.FileData" }, orig_name: "miya-video.jpg" },
+    1280,
+    704,
+    frames,
+    35,
+    5,
+    -1
+  ];
+
+  const client = await Client.connect(WAN5B_SPACE, {
+    ...(process.env.HF_TOKEN ? { token: process.env.HF_TOKEN } : {}),
+    events: ["data", "status"]
+  });
+  const job = client.submit(endpoint, data);
+  const deadline = Date.now() + 210000;
+  let lastStatus = null;
+
+  for await (const msg of job) {
+    if (Date.now() > deadline) {
+      try { job.cancel(); } catch {}
+      throw new Error("Wan 2.2 TI2V-5B превысил лимит ожидания 210 секунд.");
+    }
+    if (msg?.type === "status") {
+      lastStatus = msg;
+      console.log("Miya Wan 5B status:", JSON.stringify(msg));
+      if (msg.stage === "error") {
+        throw new Error("Wan 5B Gradio error: " + (msg.message || msg.code || JSON.stringify(msg)));
+      }
+    }
+    if (msg?.type === "data") {
+      const output = Array.isArray(msg.data) ? msg.data[0] : msg.data;
+      const url = output?.url || output?.path || output?.video?.url || output?.videoUrl || output?.data?.url || output?.data?.path;
+      if (url && /\.mp4(?:$|\?)/i.test(String(url))) {
+        const sourceUrl = /^https?:\/\//i.test(String(url))
+          ? String(url)
+          : WAN5B_SPACE + "/gradio_api/file=" + String(url).replace(/^\//, "");
+        return { endpoint, sourceUrl, frames, duration: frames / 24, output };
+      }
+    }
+  }
+  throw new Error("Wan 2.2 TI2V-5B не вернул готовый MP4. " + (lastStatus?.message || lastStatus?.stage || "пустой ответ Gradio"));
+}
+
+async function uploadWan5bImage(dataUrl) {
+  const comma = dataUrl.indexOf(",");
+  if (comma < 0) throw new Error("Некорректный image data URL.");
+  const mime = (dataUrl.slice(5, comma).split(";")[0] || "image/jpeg");
+  const ext = mime.includes("png") ? "png" : "jpg";
+  const bytes = Buffer.from(dataUrl.slice(comma + 1), "base64");
+  const form = new FormData();
+  form.append("files", new Blob([bytes], { type: mime }), "miya-video." + ext);
+  const response = await fetch(WAN5B_SPACE + "/gradio_api/upload", {
+    method: "POST",
+    headers: authHeaders(),
+    body: form
+  });
+  const text = await response.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch {}
+  if (!response.ok) throw new Error("Wan 5B upload HTTP " + response.status + ": " + (text || ""));
+  const path = Array.isArray(data) ? data[0] : data?.path;
+  if (!path) throw new Error("Wan 5B upload не вернул путь файла.");
+  return path;
+}
+
 async function wanVideo({ prompt, duration, image }) {
   const info = await getWanInfo();
   const endpoint = findWanEndpoint(info);
@@ -410,7 +487,42 @@ export default async function handler(req, res) {
       return res.status(200).json({ success:true, done:true, videoUrl:data.videoUrl, provider:"AHM7 PixelSter", model:"Motion synthesis", fallbackUsed:false });
     }
 
-    if (model !== "wan22") {
+    if (model === "wan5b") {
+      try {
+        const wan = await wan5bVideo({ prompt, duration, image });
+        const videoResponse = await fetch(wan.sourceUrl, { headers: authHeaders() });
+        if (!videoResponse.ok) throw new Error("Wan 5B MP4 download HTTP " + videoResponse.status);
+        const videoBytes = Buffer.from(await videoResponse.arrayBuffer());
+        if (videoBytes.length < 10000) throw new Error("Wan 5B вернул слишком маленький MP4: " + videoBytes.length + " bytes");
+        return res.status(200).json({
+          success:true,
+          done:true,
+          videoUrl:"data:video/mp4;base64," + videoBytes.toString("base64"),
+          videoSourceUrl:wan.sourceUrl,
+          provider:"Hugging Face ZeroGPU",
+          model:"Wan 2.2 TI2V-5B",
+          audioAttached:false,
+          endpoint:wan.endpoint,
+          frames:wan.frames,
+          fps:24,
+          promptUsed:prompt,
+          fallbackUsed:false
+        });
+      } catch (wanError) {
+        console.error("Miya Wan 2.2 TI2V-5B video failed:", wanError);
+        return res.status(502).json({
+          success:false,
+          done:false,
+          error:"Wan 2.2 TI2V-5B не смог создать видео: " + (wanError?.message || "неизвестная ошибка"),
+          code:"WAN5B_FAILED",
+          provider:"Hugging Face ZeroGPU",
+          model:"Wan 2.2 TI2V-5B",
+          fallbackUsed:false
+        });
+      }
+    }
+
+    if (model !== "wan22" && model !== "wan5b") {
       return res.status(400).json({ success:false, error:"Неизвестная модель видео: "+model, code:"UNKNOWN_VIDEO_MODEL" });
     }
 
