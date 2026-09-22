@@ -301,6 +301,7 @@ async function startH3(prompt, duration, image, ratio) {
     taskId: taskIdFor({
       version: 6,
       provider: "h3",
+      phase: "run",
       eventId,
       model: "MiniMax H3 I2V",
       duration: seconds,
