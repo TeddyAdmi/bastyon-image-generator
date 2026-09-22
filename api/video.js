@@ -644,6 +644,28 @@ export default async function handler(req, res) {
     // During the LTX verification phase, legacy UI model IDs are routed to LTX too.
     // This lets the existing Miya editor test LTX immediately without requiring
     // a frontend deployment just to change the default selector.
+    if (model === "ltx23official") {
+      const task = await submitOfficialLtx({
+        space: LTX_SPACES[1],
+        image,
+        prompt,
+        duration: Number(body.duration) || 3,
+        aspect: body.aspect || body.ratio || "9:16"
+      });
+
+      return res.status(202).json({
+        success: true,
+        done: false,
+        taskId: task.taskId,
+        status: "QUEUED",
+        provider: "Hugging Face ZeroGPU",
+        model: "LTX-2.3 Official · Audio",
+        audioAttached: true,
+        endpoint: task.endpoint,
+        message: "LTX-2.3 Official: Image → Video + synchronized native audio."
+      });
+    }
+
     if (model === "ltx25" || model === "ltx23" || model === "wan22" || model === "wan5b" || model === "hunyuan") {
       let task;
       try {
