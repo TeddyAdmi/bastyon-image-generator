@@ -1,7 +1,15 @@
+import ffmpegPath from "ffmpeg-static";
+import { spawn } from "node:child_process";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import os from "node:os";
+
 const PIXELSTER = "https://ahm7xmakki.com/api";
 const WAN_SPACE = "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space";
 const WAN_INFO = WAN_SPACE + "/gradio_api/info";
 const WAN_AGENTS = "https://huggingface.co/spaces/zerogpu-aoti/wan2-2-fp8da-aoti-faster/agents.md";
+const AUDIO_SPACE = "https://stabilityai-stable-audio-3.hf.space";
+const AUDIO_API = AUDIO_SPACE + "/gradio_api";
 
 function isUrl(value) {
   try {
@@ -181,6 +189,81 @@ async function wanVideo({ prompt, duration, image }) {
   return { ...result, endpoint, bytes };
 }
 
+async function stableAudio({ prompt, duration }) {
+  const audioPrompt = "Sound effects only, no music, no singing, no speech. Create realistic cinematic environmental audio matching this video scene: " + String(prompt || "").trim();
+  const seed = Math.floor(Math.random() * 2147483647);
+  const response = await fetch(AUDIO_API + "/call/infer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({
+      data: ["small-sfx", audioPrompt, Math.min(5, Math.max(1, Number(duration) || 5)), 8, 1, "pingpong", seed]
+    })
+  });
+  const text = await response.text();
+  let payload = null;
+  try { payload = text ? JSON.parse(text) : null; } catch {}
+  if (!response.ok || !payload?.event_id) {
+    throw new Error("Stable Audio 3 call HTTP " + response.status + ": " + (payload?.error || text || "no event_id"));
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 120000);
+  try {
+    const poll = await fetch(
+      AUDIO_API + "/call/infer/" + encodeURIComponent(payload.event_id),
+      { headers: authHeaders(), signal: controller.signal }
+    );
+    if (!poll.ok) throw new Error("Stable Audio 3 polling HTTP " + poll.status);
+    const body = await poll.text();
+    let event = "";
+    for (const line of body.split(/\r?\n/)) {
+      if (line.startsWith("event:")) event = line.slice(6).trim();
+      if (line.startsWith("data:")) {
+        const raw = line.slice(5).trim();
+        if (!raw || raw === "null") continue;
+        let data;
+        try { data = JSON.parse(raw); } catch { data = raw; }
+        if (event === "error") throw new Error(typeof data === "string" ? data : JSON.stringify(data));
+        if (event === "complete") {
+          const first = Array.isArray(data) ? data[0] : data;
+          const url = first?.url || first?.path || first?.audio?.url;
+          if (!url) throw new Error("Stable Audio 3 не вернул WAV.");
+          const audioUrl = /^https?:\/\//i.test(url) ? url : AUDIO_SPACE + "/gradio_api/file=" + url.replace(/^\//, "");
+          const audioResponse = await fetch(audioUrl, { headers: authHeaders() });
+          if (!audioResponse.ok) throw new Error("Stable Audio 3 WAV download HTTP " + audioResponse.status);
+          return Buffer.from(await audioResponse.arrayBuffer());
+        }
+      }
+    }
+    throw new Error("Stable Audio 3 завершил запрос без события complete.");
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function muxVideoAudio(videoBytes, audioBytes) {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "miya-av-"));
+  const videoPath = path.join(dir, "video.mp4");
+  const audioPath = path.join(dir, "audio.wav");
+  const outputPath = path.join(dir, "final.mp4");
+  await fs.writeFile(videoPath, videoBytes);
+  await fs.writeFile(audioPath, audioBytes);
+  await new Promise((resolve, reject) => {
+    const proc = spawn(ffmpegPath, [
+      "-y", "-i", videoPath, "-i", audioPath,
+      "-map", "0:v:0", "-map", "1:a:0",
+      "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+      "-shortest", "-movflags", "faststart", outputPath
+    ]);
+    let stderr = "";
+    proc.stderr.on("data", d => { stderr += d.toString(); });
+    proc.on("error", reject);
+    proc.on("close", code => code === 0 ? resolve() : reject(new Error("FFmpeg mux failed: " + stderr.slice(-1200))));
+  });
+  const result = await fs.readFile(outputPath);
+  await fs.rm(dir, { recursive: true, force: true });
+  return result;
+}
+
 async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
   const response = await fetch(PIXELSTER + "/ptv", {
     method: "POST",
@@ -288,20 +371,22 @@ export default async function handler(req, res) {
     }
 
     try {
-      const wan = await wanVideo({
-        prompt,
-        duration,
-        image
-      });
+      const [wan, audio] = await Promise.all([
+        wanVideo({ prompt, duration, image }),
+        stableAudio({ prompt, duration })
+      ]);
+      const finalBytes = await muxVideoAudio(wan.bytes, audio);
       return res.status(200).json({
         success: true,
         done: true,
-        videoUrl: "data:video/mp4;base64," + wan.bytes.toString("base64"),
-        provider: "Hugging Face ZeroGPU",
+        videoUrl: "data:video/mp4;base64," + finalBytes.toString("base64"),
+        provider: "Hugging Face ZeroGPU + Stable Audio 3 SFX",
         model: "Wan 2.2 I2V 14B Fast",
+        audioModel: "Stable Audio 3 Small SFX",
         endpoint: wan.endpoint,
         promptUsed: prompt,
         promptLength: prompt.length,
+        audioPromptUsed: "Sound effects only, no music, no singing, no speech. Create realistic cinematic environmental audio matching this video scene: " + prompt,
         fallbackUsed: false
       });
     } catch (wanError) {
