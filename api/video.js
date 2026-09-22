@@ -103,8 +103,8 @@ async function callWan(endpoint, imagePath, prompt, duration) {
   const data = [
     { path: imagePath, meta: { _type: "gradio.FileData" }, orig_name: "miya-video.jpg" },
     String(prompt || "").trim(),
-    4,
-    "blurry, low quality, distorted, static",
+    6,
+    "blurry, low quality, distorted, static, frozen frame, no motion, deformed, extra limbs",
     Math.min(5, Math.max(1, Number(duration) || 5)),
     1,
     1,
@@ -300,6 +300,8 @@ export default async function handler(req, res) {
         provider: "Hugging Face ZeroGPU",
         model: "Wan 2.2 I2V 14B Fast",
         endpoint: wan.endpoint,
+        promptUsed: prompt,
+        promptLength: prompt.length,
         fallbackUsed: false
       });
     } catch (wanError) {
