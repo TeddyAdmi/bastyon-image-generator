@@ -310,10 +310,93 @@ async function startH3(prompt, duration, image, ratio) {
 }
 
 async function pollH3(task, timeout = 9000) {
+  // The H3 public Space exposes a two-stage async API:
+  // 1) /run returns its own event and creates a task_id.
+  // 2) /get_task_status is then called with that task_id.
+  if (task.phase === "run") {
+    const event = await readSse(
+      H3_SPACE +
+        "/gradio_api/call/run/" +
+        encodeURIComponent(task.eventId),
+      timeout
+    );
+
+    if (event.kind === "error") {
+      return {
+        done: true,
+        success: false,
+        error: event.error || "MiniMax H3 start error"
+      };
+    }
+
+    if (event.kind !== "complete" && event.kind !== "data") {
+      return { done: false, status: "QUEUED" };
+    }
+
+    const payload = event.data;
+    if (payload?.error) {
+      return {
+        done: true,
+        success: false,
+        error: payload.error.message || payload.error
+      };
+    }
+
+    const h3TaskId = payload?.task_id;
+    if (!h3TaskId) {
+      return {
+        done: false,
+        status: "QUEUED"
+      };
+    }
+
+    return {
+      done: false,
+      status: String(payload.status || "QUEUED").toUpperCase(),
+      taskId: taskIdFor({
+        ...task,
+        phase: "status",
+        h3TaskId
+      })
+    };
+  }
+
+  if (!task.h3TaskId) {
+    return {
+      done: true,
+      success: false,
+      error: "MiniMax H3 не вернул внутренний task_id."
+    };
+  }
+
+  const start = await fetch(H3_SPACE + "/gradio_api/call/get_task_status", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders()
+    },
+    body: JSON.stringify({ data: [task.h3TaskId] })
+  });
+
+  const startText = await start.text();
+  let startJson = {};
+  try {
+    startJson = startText ? JSON.parse(startText) : {};
+  } catch {}
+
+  if (!start.ok || !startJson.event_id) {
+    throw new Error(
+      "MiniMax H3 status HTTP " +
+        start.status +
+        ": " +
+        String(startJson.error || startText || "event_id отсутствует").slice(0, 700)
+    );
+  }
+
   const event = await readSse(
     H3_SPACE +
       "/gradio_api/call/get_task_status/" +
-      encodeURIComponent(task.eventId),
+      encodeURIComponent(startJson.event_id),
     timeout
   );
 
@@ -321,28 +404,16 @@ async function pollH3(task, timeout = 9000) {
     return {
       done: true,
       success: false,
-      error: event.error || "MiniMax H3 error"
+      error: event.error || "MiniMax H3 status error"
     };
   }
 
   if (event.kind !== "complete" && event.kind !== "data") {
-    return { done: false, status: "QUEUED" };
+    return { done: false, status: "PROCESSING" };
   }
 
-  const payload = event.data;
-
-  if (payload?.error) {
-    return {
-      done: true,
-      success: false,
-      error:
-        payload.error.message ||
-        payload.error ||
-        "MiniMax H3 task error"
-    };
-  }
-
-  const status = String(payload?.status || "").toLowerCase();
+  const payload = event.data || {};
+  const status = String(payload.status || "").toLowerCase();
 
   if (status === "failed" || status === "error") {
     return {
@@ -350,6 +421,7 @@ async function pollH3(task, timeout = 9000) {
       success: false,
       error:
         payload?.error?.message ||
+        payload?.error?.detail ||
         payload?.error ||
         "MiniMax H3 завершил задачу с ошибкой."
     };
@@ -359,11 +431,11 @@ async function pollH3(task, timeout = 9000) {
     return {
       done: false,
       status: status || "PROCESSING",
-      progress: payload?.progress ?? null
+      progress: payload.progress ?? null
     };
   }
 
-  const result = payload?.result || {};
+  const result = payload.result || {};
   const rawVideo =
     extractVideo(result.videos) ||
     extractVideo(result.video_path) ||
