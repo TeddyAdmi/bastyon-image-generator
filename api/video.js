@@ -633,9 +633,9 @@ export default async function handler(req, res) {
         res.setHeader("Content-Type","video/mp4");
         res.setHeader("Cache-Control","no-store");
         res.setHeader("Content-Disposition",'inline; filename="miya-wan.mp4"');
-        return new Promise((resolve) => {
-          upstream.body.on ? upstream.body.pipe(res).on("finish", resolve) : resolve();
-        });
+        for await (const chunk of upstream.body) res.write(Buffer.from(chunk));
+        res.end();
+        return;
       }
 
       const taskId = String(req.query?.taskId || "").trim();
