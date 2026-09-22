@@ -6,12 +6,47 @@ function authHeaders() {
   return token ? { Authorization: "Bearer " + token } : {};
 }
 
+function extractAudioUrl(data) {
+  const values = Array.isArray(data) ? data : [data];
+
+  for (const value of values) {
+    const candidates = [
+      value?.url,
+      value?.path,
+      value?.audio?.url,
+      value?.audio?.path,
+      value?.data?.url,
+      value?.data?.path,
+      value?.data?.[0]?.url,
+      value?.data?.[0]?.path
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        const raw = candidate.trim();
+        return /^https?:\/\//i.test(raw)
+          ? raw
+          : AUDIO_SPACE + "/gradio_api/file=" + raw.replace(/^\//, "");
+      }
+    }
+  }
+
+  return null;
+}
+
 async function generateAudio(prompt, duration) {
   const audioPrompt =
     "Sound effects only, no music, no singing, no speech. Realistic cinematic environmental audio matching this scene: " +
     String(prompt || "").trim();
 
-  const response = await fetch(AUDIO_API + "/call/infer", {
+  // Stable Audio 3 currently exposes /infer through Gradio's queue API.
+  // The public Space examples use fn_index 3 for the Simple /infer endpoint.
+  const sessionHash =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2) + Date.now();
+
+  const joinResponse = await fetch(AUDIO_API + "/queue/join", {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({
@@ -23,19 +58,25 @@ async function generateAudio(prompt, duration) {
         1.0,
         "pingpong",
         Math.floor(Math.random() * 2147483647)
-      ]
+      ],
+      fn_index: 3,
+      session_hash: sessionHash
     })
   });
 
-  const text = await response.text();
-  let payload = null;
-  try { payload = text ? JSON.parse(text) : null; } catch {}
+  const joinText = await joinResponse.text();
+  let joinPayload = null;
+  try { joinPayload = joinText ? JSON.parse(joinText) : null; } catch {}
 
-  if (!response.ok || !payload?.event_id) {
+  if (!joinResponse.ok) {
     throw new Error(
-      "Stable Audio 3 call HTTP " + response.status + ": " +
-      (payload?.error || payload?.message || text || "no event_id")
+      "Stable Audio 3 queue/join HTTP " + joinResponse.status + ": " +
+      (joinPayload?.error || joinPayload?.message || joinText || "unknown error")
     );
+  }
+
+  if (joinPayload?.error) {
+    throw new Error("Stable Audio 3 queue error: " + joinPayload.error);
   }
 
   const controller = new AbortController();
@@ -43,17 +84,24 @@ async function generateAudio(prompt, duration) {
 
   try {
     const poll = await fetch(
-      AUDIO_API + "/call/infer/" + encodeURIComponent(payload.event_id),
+      AUDIO_API + "/queue/data?session_hash=" + encodeURIComponent(sessionHash),
       {
         headers: { ...authHeaders(), Accept: "text/event-stream" },
         signal: controller.signal
       }
     );
 
-    if (!poll.ok) throw new Error("Stable Audio 3 polling HTTP " + poll.status);
+    if (!poll.ok) {
+      const errorText = await poll.text().catch(() => "");
+      throw new Error(
+        "Stable Audio 3 queue/data HTTP " + poll.status +
+        (errorText ? ": " + errorText.slice(0, 500) : "")
+      );
+    }
 
     const body = await poll.text();
     let event = "";
+    let lastData = null;
     const events = [];
 
     for (const line of body.split(/\r?\n/)) {
@@ -69,36 +117,41 @@ async function generateAudio(prompt, duration) {
 
       let data;
       try { data = JSON.parse(raw); } catch { data = raw; }
+      lastData = data;
+
+      if (event === "queue_full") {
+        throw new Error("Stable Audio 3 сейчас перегружен: очередь ZeroGPU заполнена.");
+      }
 
       if (event === "error" || event === "unexpected_error") {
         const message =
           typeof data === "string"
             ? data
-            : data?.error || data?.message || data?.detail || JSON.stringify(data);
+            : data?.error ||
+              data?.message ||
+              data?.detail ||
+              data?.msg ||
+              JSON.stringify(data);
         throw new Error("Stable Audio 3 Gradio error: " + message);
       }
 
-      if (event === "complete" || event === "process_completed" || event === "data") {
-        const first = Array.isArray(data) ? data[0] : data;
-        const url =
-          first?.url ||
-          first?.path ||
-          first?.audio?.url ||
-          first?.audio?.path ||
-          first?.data?.url ||
-          first?.data?.path;
+      if (event === "process_completed" || event === "complete" || event === "data") {
+        const url = extractAudioUrl(data);
+        if (url) return url;
 
-        if (!url) continue;
-
-        return /^https?:\/\//i.test(String(url))
-          ? String(url)
-          : AUDIO_SPACE + "/gradio_api/file=" + String(url).replace(/^\//, "");
+        if (event === "process_completed") {
+          throw new Error(
+            "Stable Audio 3 завершил генерацию, но не вернул WAV/аудиофайл. Данные: " +
+            JSON.stringify(data).slice(0, 800)
+          );
+        }
       }
     }
 
     throw new Error(
-      "Stable Audio 3 завершил запрос без готового аудио. " +
-      (events.length ? "События: " + events.join(", ") : "SSE-события не получены")
+      "Stable Audio 3 не вернул готовый звук. " +
+      (events.length ? "События: " + events.join(", ") : "SSE-события не получены") +
+      (lastData ? " Последние данные: " + JSON.stringify(lastData).slice(0, 700) : "")
     );
   } finally {
     clearTimeout(timer);
