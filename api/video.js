@@ -187,7 +187,7 @@ function buildWanPrompt(prompt) {
       space,
       endpoint,
       eventId: payload.event_id,
-      prompt: String(prompt || "").trim(),
+      prompt: buildWanPrompt(prompt),
       duration: Math.min(5, Math.max(1, Number(duration) || 5))
     }),
     endpoint,
@@ -486,13 +486,156 @@ async function runFfmpeg(args) {
   });
 }
 
+const AUDIO_SPACE = "stabilityai/stable-audio-3";
+const AUDIO_API = "https://stabilityai-stable-audio-3.hf.space";
+
+function buildAudioPrompt(prompt) {
+  const text = String(prompt || "").toLowerCase();
+  const parts = [];
+
+  if (/дожд|rain/.test(text)) parts.push("heavy realistic rain ambience");
+  if (/вода|море|океан|water|sea|ocean/.test(text)) parts.push("water ambience and splashes");
+  if (/шаг|ид[её]т|ходит|беж|walk|running|footstep/.test(text)) parts.push("realistic footsteps");
+  if (/машин|автомоб|дорог|traffic|car|street/.test(text)) parts.push("distant city traffic");
+  if (/двер|door/.test(text)) parts.push("door movement and latch");
+  if (/стекл|бутыл|glass|bottle/.test(text)) parts.push("glass movement and impact");
+  if (/металл|желез|кастрюл|сковород|metal|pan|pot/.test(text)) parts.push("metallic hit and resonance");
+  if (/удар|стук|врез|толка|огр[её]л|hit|impact|slam|crash/.test(text)) parts.push("strong physical impact");
+  if (/пад[ае]|fall|falls|falling/.test(text)) parts.push("body impact on the ground");
+  if (/огонь|пламя|горит|fire|flame|burn/.test(text)) parts.push("fire crackling");
+  if (/ветер|wind/.test(text)) parts.push("wind ambience");
+  if (/крик|крич|scream|shout/.test(text)) parts.push("human shout");
+  if (/смех|laugh/.test(text)) parts.push("human laughter");
+
+  const base = parts.length
+    ? parts.join(", ")
+    : "natural cinematic environmental ambience and realistic physical sound effects";
+
+  return "Cinematic realistic sound effects for a short video. " + base +
+    ". Clean production sound, natural perspective, no music, no melody, no singing, no artificial drone. Scene description: " +
+    String(prompt || "").replace(/\s+/g, " ").trim();
+}
+
+function extractAudioUrl(output) {
+  const values = Array.isArray(output) ? output : [output];
+  for (const item of values) {
+    if (!item) continue;
+    if (typeof item === "string" && /\.(wav|mp3|flac|ogg)(?:$|\?)/i.test(item)) return item;
+    const candidate =
+      item?.url ||
+      item?.path ||
+      item?.audio?.url ||
+      item?.audio?.path ||
+      item?.data?.url ||
+      item?.data?.path;
+    if (candidate && /\.(wav|mp3|flac|ogg)(?:$|\?)/i.test(String(candidate))) {
+      return String(candidate);
+    }
+  }
+  return null;
+}
+
+function makeProviderFileUrlGeneric(space, url) {
+  if (/^https?:\/\//i.test(String(url))) return String(url);
+  return space + "/gradio_api/file=" + String(url).replace(/^\//, "");
+}
+
+async function generateStableAudio(prompt, duration) {
+  const token = String(process.env.HF_TOKEN || "").trim();
+  if (!token) {
+    throw new Error("Для AI-звука нужен бесплатный HF_TOKEN с доступом к Stable Audio 3.");
+  }
+
+  const seconds = clamp(Number(duration) || 5, 1, 7);
+  const audioPrompt = buildAudioPrompt(prompt);
+
+  const start = await hfJson(AUDIO_API + "/gradio_api/call/infer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({
+      data: ["small-sfx", audioPrompt, Math.round(seconds), 8, 1.0, "pingpong", -1]
+    })
+  });
+
+  if (!start?.event_id) throw new Error("Stable Audio 3 не вернул event_id.");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 150000);
+
+  try {
+    const response = await fetch(
+      AUDIO_API + "/gradio_api/call/infer/" + encodeURIComponent(start.event_id),
+      { headers: { ...authHeaders(), Accept: "text/event-stream" }, signal: controller.signal }
+    );
+    if (!response.ok || !response.body) {
+      throw new Error("Stable Audio 3 polling HTTP " + response.status);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let currentEvent = "";
+    let audioUrl = null;
+    let errorMessage = null;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split(/\r?\n\r?\n/);
+      buffer = chunks.pop() || "";
+
+      for (const chunk of chunks) {
+        let raw = "";
+        for (const line of chunk.split(/\r?\n/)) {
+          if (line.startsWith("event:")) currentEvent = line.slice(6).trim();
+          else if (line.startsWith("data:")) raw += line.slice(5).trim();
+        }
+
+        if (!raw) continue;
+        let data;
+        try { data = JSON.parse(raw); } catch { data = raw; }
+
+        if (currentEvent === "error" || currentEvent === "unexpected_error") {
+          errorMessage = typeof data === "string"
+            ? data
+            : data?.error || data?.message || data?.detail || JSON.stringify(data);
+          break;
+        }
+
+        if (currentEvent === "complete" || currentEvent === "process_completed" || currentEvent === "data") {
+          audioUrl = extractAudioUrl(data);
+          if (audioUrl) break;
+        }
+      }
+
+      if (errorMessage || audioUrl) {
+        try { await reader.cancel(); } catch {}
+        break;
+      }
+    }
+
+    if (errorMessage) throw new Error("Stable Audio 3: " + errorMessage);
+    if (!audioUrl) throw new Error("Stable Audio 3 завершил задачу без WAV/MP3.");
+
+    return makeProviderFileUrlGeneric(AUDIO_API, audioUrl);
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Stable Audio 3 не успел создать SFX за 150 секунд.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function attachAutomaticSfx(videoUrl, prompt, duration) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return {
       videoUrl,
       audioAttached: false,
       audioPending: false,
-      audioError: "Для финального MP4 со звуком нужен Vercel Blob: BLOB_READ_WRITE_TOKEN не настроен."
+      audioError: "AI-звук готовится через Stable Audio 3, но для финального MP4 нужен BLOB_READ_WRITE_TOKEN."
     };
   }
 
@@ -507,7 +650,25 @@ async function attachAutomaticSfx(videoUrl, prompt, duration) {
     const videoBytes = Buffer.from(await response.arrayBuffer());
     if (videoBytes.length < 1000) throw new Error("Wan вернул пустой или повреждённый MP4.");
     await fs.writeFile(input, videoBytes);
-    await fs.writeFile(audio, createAutomaticSfxWav(prompt, duration));
+
+    let audioUrl;
+    try {
+      audioUrl = await generateStableAudio(prompt, duration);
+    } catch (audioError) {
+      console.error("Miya Stable Audio 3:", audioError);
+      return {
+        videoUrl,
+        audioAttached: false,
+        audioPending: false,
+        audioError: audioError?.message || "Stable Audio 3 не смог создать звук."
+      };
+    }
+
+    const audioResponse = await fetch(audioUrl, { headers: authHeaders() });
+    if (!audioResponse.ok) throw new Error("Не удалось скачать SFX Stable Audio: HTTP " + audioResponse.status);
+    const audioBytes = Buffer.from(await audioResponse.arrayBuffer());
+    if (audioBytes.length < 1000) throw new Error("Stable Audio 3 вернул пустой аудиофайл.");
+    await fs.writeFile(audio, audioBytes);
 
     await runFfmpeg([
       "-y",
@@ -517,7 +678,7 @@ async function attachAutomaticSfx(videoUrl, prompt, duration) {
       "-map", "1:a:0",
       "-c:v", "copy",
       "-c:a", "aac",
-      "-b:a", "128k",
+      "-b:a", "160k",
       "-ar", "44100",
       "-ac", "2",
       "-shortest",
@@ -541,8 +702,8 @@ async function attachAutomaticSfx(videoUrl, prompt, duration) {
       videoUrl: blob.url,
       audioAttached: true,
       audioPending: false,
-      audioProvider: "Miya automatic SFX",
-      audioTracks: "synthetic sound effects"
+      audioProvider: "Stable Audio 3 · small-sfx",
+      audioTracks: "AI-generated cinematic SFX"
     };
   } finally {
     await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
