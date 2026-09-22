@@ -84,7 +84,7 @@ function findVideo(value, baseUrl = "") {
   }
   if (Array.isArray(value)) {
     for (const item of value) {
-      const found = findVideo(item);
+      const found = findVideo(item, baseUrl);
       if (found) return found;
     }
     return null;
@@ -519,7 +519,7 @@ export default async function handler(req, res) {
           status: "ERROR",
           error: status.error || "LTX-2.3 не создал видео.",
           provider: "Hugging Face ZeroGPU",
-          model: "LTX-2.3 Fast · Audio",
+          model: task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
           taskId
         });
       }
@@ -627,10 +627,12 @@ export default async function handler(req, res) {
         taskId: task.taskId,
         status: "QUEUED",
         provider: "Hugging Face ZeroGPU",
-        model: "LTX-2.3 Fast · Audio",
+        model: task.model === "ltx23official-audio" ? "LTX-2.3 Official · Audio" : "LTX-2.3 Fast · Audio",
         audioAttached: true,
         endpoint: task.endpoint,
-        message: "LTX-2.3 Fast: Image → Video + synchronized native audio."
+        message: task.model === "ltx23official-audio"
+          ? "LTX-2.3 Official: Image → Video + synchronized native audio."
+          : "LTX-2.3 Fast: Image → Video + synchronized native audio."
       });
     }
 
