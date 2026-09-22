@@ -248,7 +248,7 @@ async function stableAudio({ prompt, duration }) {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({
-      data: ["small-sfx", audioPrompt, Math.min(5, Math.max(1, Number(duration) || 5)), 8, 1, "pingpong", seed]
+      data: ["medium", audioPrompt, Math.min(5, Math.max(1, Number(duration) || 5)), 8, 1.0, "pingpong", seed]
     })
   });
   const text = await response.text();
@@ -275,11 +275,19 @@ async function stableAudio({ prompt, duration }) {
         let data;
         try { data = JSON.parse(raw); } catch { data = raw; }
         if (event === "error") throw new Error(typeof data === "string" ? data : JSON.stringify(data));
-        if (event === "complete") {
+        if (event === "complete" || event === "process_completed" || event === "data") {
           const first = Array.isArray(data) ? data[0] : data;
-          const url = first?.url || first?.path || first?.audio?.url;
-          if (!url) throw new Error("Stable Audio 3 не вернул WAV.");
-          const audioUrl = /^https?:\/\//i.test(url) ? url : AUDIO_SPACE + "/gradio_api/file=" + url.replace(/^\//, "");
+          const url =
+            first?.url ||
+            first?.path ||
+            first?.audio?.url ||
+            first?.audio?.path ||
+            first?.data?.url ||
+            first?.data?.path;
+          if (!url) continue;
+          const audioUrl = /^https?:\/\//i.test(String(url))
+            ? String(url)
+            : AUDIO_SPACE + "/gradio_api/file=" + String(url).replace(/^\//, "");
           const audioResponse = await fetch(audioUrl, { headers: authHeaders() });
           if (!audioResponse.ok) throw new Error("Stable Audio 3 WAV download HTTP " + audioResponse.status);
           return Buffer.from(await audioResponse.arrayBuffer());
