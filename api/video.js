@@ -373,7 +373,7 @@ async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
   return data;
 }
 
-export default async function handler(req, res) {
+export const config = {\n  api: {\n    bodyParser: { sizeLimit: "12mb" }\n  }\n};\n\nexport default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
 
@@ -421,7 +421,25 @@ export default async function handler(req, res) {
 
     if (req.method !== "POST") return res.status(405).json({ success: false, error: "Method not allowed" });
 
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+    let body = req.body || {};
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        return res.status(400).json({
+          success: false,
+          error: "Некорректный JSON запроса.",
+          code: "INVALID_JSON"
+        });
+      }
+    }
+    if (!body || typeof body !== "object") {
+      return res.status(400).json({
+        success: false,
+        error: "Пустое тело запроса.",
+        code: "EMPTY_BODY"
+      });
+    }
     const prompt = String(body.prompt || "").trim();
     if (!prompt) return res.status(400).json({ success: false, error: "Введите сценарий движения." });
 
