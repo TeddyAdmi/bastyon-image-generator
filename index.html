@@ -397,14 +397,32 @@ async function runVideo(){
     // Poll sequentially: the previous request must finish before the next
     // one starts. This prevents multiple SSE connections from reusing the same
     // Gradio event_id and avoids the 404 race seen with the public Space.
+    let currentTaskId=d.taskId;
+    let ltxFallbackTried=false;
     for(let i=0;i<180;i++){
       await new Promise(r=>setTimeout(r,1500));
-      const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId));
+      const s=await api('/api/video?taskId='+encodeURIComponent(currentTaskId));
       if($('videoStatus')){
         $('videoStatus').textContent='Статус: '+(s.status||'RUNNING')+' · '+(s.model||'LTX-2.3 Fast · Audio');
       }
       if(s.done){
-        if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
+        if(!s.success||!s.videoUrl){
+          if(state.videoModel==='ltx25' && !ltxFallbackTried){
+            ltxFallbackTried=true;
+            if($('videoStatus'))$('videoStatus').textContent='LTX Fast недоступен · переключаемся на LTX-2.3 Official…';
+            setBusy(true,'Miya AI переключает видеосервер','LTX-2.3 Fast завершился с ошибкой · пробуем Official');
+            const fallbackBody={...body,model:'ltx23official'};
+            const fallback=await api('/api/video',{
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify(fallbackBody)
+            });
+            if(!fallback.taskId)throw new Error(fallback.error||'LTX-2.3 Official не вернул taskId.');
+            currentTaskId=fallback.taskId;
+            continue;
+          }
+          throw new Error(s.error||'Видео не создано.');
+        }
         const v=$('videoResult');
         if(v){
           v.pause();
@@ -412,7 +430,7 @@ async function runVideo(){
           v.classList.remove('hidden');
           try{v.load()}catch{}
         }
-        setBusy(false,'Видео готово',(s.model||'Wan 2.2 I2V Lightning · 4 steps')+' · '+(s.provider||'Hugging Face ZeroGPU'));
+        setBusy(false,'Видео готово',(s.model||'LTX-2.3 Fast · Audio')+' · '+(s.provider||'Hugging Face ZeroGPU'));
         return;
       }
     }
