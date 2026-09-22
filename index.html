@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded',function(){
  <div>
   <div class="card canvas-card">
    <div class="canvas-head"><div><div class="title">Холст видео</div><div class="sub">Отдельный image-to-video редактор</div></div><button id="videoReset" class="btn small">Очистить</button></div>
-   <div id="videoCanvas" class="canvas"><div id="videoEmpty" class="empty"><div class="emoji">🎬</div><b>Добавьте исходный кадр</b><p>Загрузите изображение или откройте его кнопкой «Анимировать».</p><button id="videoChoose" class="btn primary">Выбрать изображение</button></div><img id="videoImage" class="hidden" alt="Video source"><video id="videoResult" class="hidden" controls playsinline></video></div>
+   <div id="videoCanvas" class="canvas"><div id="videoEmpty" class="empty"><div class="emoji">🎬</div><b>Добавьте исходный кадр</b><p>Загрузите изображение или откройте его кнопкой «Анимировать».</p><button id="videoChoose" class="btn primary">Выбрать изображение</button></div><img id="videoImage" class="hidden" alt="Video source"><video id="videoResult" class="hidden" controls playsinline></video><audio id="videoAudio" preload="auto"></audio></div>
    <input id="videoFile" type="file" accept="image/*" hidden>
   </div>
   <div class="history card"><div class="history-head"><b>История картинок Miya AI</b><button class="btn small" data-history-clear="images">Очистить</button></div><div class="history-grid" id="videoHistory"></div></div>
@@ -350,9 +350,44 @@ async function runVideo(){
     }else body.imageUrl=source;
     const d=await api('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(d.done && d.videoUrl){
-      const v=$('videoResult');if(v){v.src=d.videoUrl;v.classList.remove('hidden');v.load()}
-      if($('videoStatus'))$('videoStatus').textContent='Готово · '+(d.model||'Motion synthesis')+' · '+(d.provider||'AHM7 PixelSter');
-      setBusy(false,'Видео готово',(d.model||'Motion synthesis')+' · '+(d.provider||'AHM7 PixelSter'));
+      const v=$('videoResult');
+      const a=$('videoAudio');
+      if(v){
+        v.src=d.videoUrl;
+        v.classList.remove('hidden');
+        v.load();
+      }
+      if(a){
+        a.pause();
+        a.removeAttribute('src');
+        a.load();
+      }
+
+      if($('videoStatus'))$('videoStatus').textContent='Видео готово · создаём звук…';
+      setBusy(false,'Видео готово · звук создаётся',(d.model||'Motion synthesis')+' · '+(d.provider||'Hugging Face'));
+
+      if(d.audioPending && state.videoModel==='wan22'){
+        try{
+          const ad=await api('/api/audio',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+              prompt,
+              duration:Number($('videoDuration')?.value||5)
+            })
+          });
+          if(ad.audioUrl && a){
+            a.src=ad.audioUrl;
+            a.load();
+            if($('videoStatus'))$('videoStatus').textContent='Готово · Wan 2.2 + звук';
+          }
+        }catch(audioError){
+          console.warn('Miya audio generation failed:',audioError);
+          if($('videoStatus'))$('videoStatus').textContent='Готово · видео без звука (аудио недоступно)';
+        }
+      }else if($('videoStatus')){
+        $('videoStatus').textContent='Готово · '+(d.model||'Motion synthesis')+' · '+(d.provider||'AHM7 PixelSter');
+      }
       return;
     }
     if(!d.taskId)throw new Error(d.error||'Видеосервер не вернул taskId или готовое видео.');
@@ -392,6 +427,33 @@ function renderHistory(){
       b.onclick=()=>openEditor(item.url);g.appendChild(b);
     });
   });
+}
+
+const videoResultEl=$('videoResult');
+const videoAudioEl=$('videoAudio');
+if(videoResultEl && videoAudioEl){
+  videoResultEl.addEventListener('play',async()=>{
+    if(videoAudioEl.src){
+      try{
+        videoAudioEl.currentTime=Math.min(videoResultEl.currentTime||0, videoAudioEl.duration||999999);
+        await videoAudioEl.play();
+      }catch{}
+    }
+  });
+  videoResultEl.addEventListener('pause',()=>videoAudioEl.pause());
+  videoResultEl.addEventListener('seeking',()=>{
+    if(Number.isFinite(videoAudioEl.duration)){
+      videoAudioEl.currentTime=Math.min(videoResultEl.currentTime||0,videoAudioEl.duration);
+    }
+  });
+  videoResultEl.addEventListener('timeupdate',()=>{
+    if(videoAudioEl.paused || !Number.isFinite(videoAudioEl.duration))return;
+    const drift=videoAudioEl.currentTime-videoResultEl.currentTime;
+    if(Math.abs(drift)>0.25){
+      videoAudioEl.currentTime=Math.min(videoResultEl.currentTime,videoAudioEl.duration);
+    }
+  });
+  videoResultEl.addEventListener('ended',()=>videoAudioEl.pause());
 }
 
 document.addEventListener('click',e=>{
