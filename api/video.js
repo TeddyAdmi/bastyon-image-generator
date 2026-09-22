@@ -352,6 +352,67 @@ export default async function handler(req, res) {
       if (!taskId) return res.status(400).json({ success: false, error: "Нужен taskId или health=1." });
 
       const task = taskFromId(taskId);
+
+      // Never expose the Hugging Face /tmp MP4 URL directly to the browser.
+      // Public Gradio file URLs can fail with NS_ERROR_DOM_NETWORK_ERR.
+      // Proxy the finished MP4 through our own Vercel endpoint instead.
+      const raw = String(req.query?.raw || "") === "1";
+      if (raw) {
+        if (task.v !== 3 || task.provider !== "huggingface" || !task.eventId || !task.endpoint || !task.space) {
+          return res.status(400).json({ success: false, error: "Некорректная задача видео." });
+        }
+
+        const status = await pollLightningTask(task, 12000);
+        if (!status.done) {
+          return res.status(202).json({
+            success: true,
+            done: false,
+            status: status.status || "RUNNING",
+            provider: "Hugging Face ZeroGPU",
+            model: "Wan 2.2 I2V Lightning · 4 steps",
+            taskId
+          });
+        }
+        if (!status.success || !status.videoUrl) {
+          return res.status(502).json({
+            success: false,
+            done: true,
+            status: "ERROR",
+            error: status.error || "Видео не готово.",
+            taskId
+          });
+        }
+
+        const upstream = await fetch(status.videoUrl, {
+          headers: { ...authHeaders(), "User-Agent": "Miya-AI/1.0" }
+        });
+        if (!upstream.ok || !upstream.body) {
+          return res.status(502).json({
+            success: false,
+            done: true,
+            error: "Не удалось получить MP4 от Hugging Face: HTTP " + upstream.status,
+            taskId
+          });
+        }
+
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "video/mp4");
+        res.setHeader("Content-Disposition", 'inline; filename="miya-ai-video.mp4"');
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+
+        const reader = upstream.body.getReader();
+        try {
+          while (true) {
+            const chunk = await reader.read();
+            if (chunk.done) break;
+            res.write(Buffer.from(chunk.value));
+          }
+        } finally {
+          try { reader.releaseLock(); } catch {}
+        }
+        return res.end();
+      }
       if (task.v !== 3 || task.provider !== "huggingface" || !task.eventId || !task.endpoint || !task.space) {
         return res.status(400).json({ success: false, error: "Некорректная задача видео." });
       }
@@ -388,7 +449,7 @@ export default async function handler(req, res) {
         success: true,
         done: true,
         status: "COMPLETED",
-        videoUrl: status.videoUrl,
+        videoUrl: "/api/video?taskId=" + encodeURIComponent(taskId) + "&raw=1",
         provider: "Hugging Face ZeroGPU",
         model: "Wan 2.2 I2V Lightning · 4 steps",
         audioAttached: false,
