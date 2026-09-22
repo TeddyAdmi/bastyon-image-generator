@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Miya AI — Image & Video Studio</title>
 <meta name="description" content="Miya AI — генератор изображений, фото-редактор и image-to-video редактор.">
-<meta name="miya-build" content="lightning-video-4step">
+<meta name="miya-build" content="ltx23-audio-video">
 <link rel="icon" href="data:,">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
@@ -49,7 +49,7 @@ textarea{width:100%;resize:vertical;min-height:125px;border:1px solid var(--line
 document.addEventListener('DOMContentLoaded',function(){
   document.querySelectorAll('#editorAnimate,#openVideo').forEach(function(b){b.style.display='inline-flex';b.style.visibility='visible';});
 });
-</script><!-- Miya AI video route: Wan 2.2 I2V Lightning 4-step -->
+</script><!-- Miya AI video route: LTX-2.3 Fast + native audio -->
 </head>
 <body>
 <div class="app">
@@ -110,16 +110,16 @@ document.addEventListener('DOMContentLoaded',function(){
   <div class="history card"><div class="history-head"><b>История картинок Miya AI</b><button class="btn small" data-history-clear="images">Очистить</button></div><div class="history-grid" id="videoHistory"></div></div>
  </div>
  <div class="side">
-  <div class="model-card"><div class="model-label">Выбранная модель · Видео</div><div id="videoModelName" class="model-name">Wan 2.2 I2V Lightning · 4 steps</div><div id="videoModelProvider" class="model-provider">Провайдер: Hugging Face ZeroGPU</div><div id="videoModelStatus" class="model-status">● Готова · Быстрый Image → Video</div></div>
+  <div class="model-card"><div class="model-label">Выбранная модель · Видео</div><div id="videoModelName" class="model-name">Wan 2.2 I2V Lightning · 4 steps</div><div id="videoModelProvider" class="model-provider">Провайдер: Hugging Face ZeroGPU</div><div id="videoModelStatus" class="model-status">● Подключена · Image → Video + Audio</div></div>
   <div class="card control"><h3>📷 Исходное изображение</h3><div class="hint" style="margin-bottom:9px">Загрузите фото для анимации. Можно выбрать файл, перетащить его на холст или открыть результат из генератора.</div><div class="row"><button id="videoChooseSide" class="btn primary">📷 Выбрать фото</button><button id="videoUseEditor" class="btn">🖼️ Из фото-редактора</button></div></div><div class="card control"><h3>Сценарий движения</h3><textarea id="videoPrompt" placeholder="Например: животные начинают двигаться, смотрят друг на друга, камера плавно приближается, естественная физика..."></textarea><div id="videoError" class="error"></div><div id="videoStatus" class="status"></div><button id="videoGenerate" class="btn primary full" style="margin-top:10px">🎬 Создать видео</button></div>
-  <div class="card control"><h3>Модель видео</h3><div id="videoModels" class="ratios"><button class="ratio" data-video-model="pixelster-motion">Motion synthesis</button><button class="ratio active" data-video-model="wan22">⚡ Wan 2.2 I2V Lightning · 4 steps</button></div><div id="videoModelHint" class="hint" style="margin-top:8px">⚡ Быстрый режим Miya AI: Wan 2.2 I2V Lightning LoRA · 4 шага. Для первого теста выбрана эта модель; публичный ZeroGPU может иметь очередь.</div></div>
+  <div class="card control"><h3>Модель видео</h3><div id="videoModels" class="ratios"><button class="ratio active" data-video-model="ltx25">🔊 LTX-2.3 Fast · Audio</button><button class="ratio" data-video-model="pixelster-motion">Motion synthesis</button></div><div id="videoModelHint" class="hint" style="margin-top:8px">🔊 LTX-2.3 Fast · 22B: Image → Video с синхронизированным нативным звуком через публичный Hugging Face ZeroGPU. Тестовый режим: 5–10 секунд, 720p.</div></div>
   <div class="card control"><h3>Формат видео</h3><div id="videoRatios" class="ratios"><button class="ratio active" data-ratio="16:9">16:9</button><button class="ratio" data-ratio="9:16">9:16</button><button class="ratio" data-ratio="1:1">1:1</button><button class="ratio" data-ratio="4:3">4:3</button></div><h3 style="margin-top:16px">Длительность</h3><select id="videoDuration" style="width:100%;border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff"><option value="3" selected>3 секунды</option><option value="4">4 секунды</option><option value="6">6 секунд</option><option value="8">8 секунд</option><option value="10">10 секунд</option></select><div class="hint" style="margin-top:7px">Длительность ограничивается возможностями подключённого GPU.</div></div>
   <div class="card control"><h3>Видеосервер</h3><div id="videoBackend" class="backend">Проверяем подключение…</div><button id="videoReplace" class="btn full" style="margin-top:8px">Заменить изображение</button></div>
  </div>
 </div>
 </section>
 
-<div class="footer">Miya AI · FLUX · Wan 2.2 I2V Lightning · Motion synthesis</div>
+<div class="footer">Miya AI · FLUX · LTX-2.3 Fast · Native Audio</div>
 </div>
 <div id="loading" class="loading"><div class="loader"><div class="spinner"></div><b id="loadingTitle">Miya AI работает</b><div id="loadingText" style="font-size:12px;color:#777181;margin-top:5px">Подождите…</div></div></div>
 
@@ -135,7 +135,7 @@ const state = {
   genImage:'',
   editorImage:'',
   videoImage:'',
-  videoModel:'wan22'
+  videoModel:'ltx25'
 };
 
 const ideas = [
@@ -352,7 +352,7 @@ async function runVideo(){
   if(!source)return showError('videoError','Сначала загрузите изображение.');
   if(!prompt)return showError('videoError','Введите сценарий движения.');
   const b=$('videoGenerate');if(b)b.disabled=true;
-  showError('videoError','');setBusy(true,'Miya AI создаёт видео',videoModelLabel(state.videoModel)+' · Lightning 4 шага · запуск…');
+  showError('videoError','');setBusy(true,'Miya AI создаёт видео',videoModelLabel(state.videoModel)+' · запуск…');
   try{
     const body={prompt,aspect:state.videoRatio,duration:Number($('videoDuration')?.value||3),model:state.videoModel};
     if(source.startsWith('data:image/')){
@@ -376,7 +376,7 @@ async function runVideo(){
       }
 
       if($('videoStatus'))$('videoStatus').textContent =
-        d.audioAttached ? 'Готово · Wan 2.2 + звук внутри MP4' : 'Готово · '+(d.model||'Motion synthesis')+' · '+(d.provider||'AHM7 PixelSter');
+        d.audioAttached ? 'Готово · LTX-2.3 + синхронизированный звук внутри MP4' : 'Готово · '+(d.model||'Motion synthesis')+' · '+(d.provider||'AHM7 PixelSter');
       setBusy(false,'Видео готово · MP4',(d.model||'Motion synthesis')+' · '+(d.provider||'Hugging Face'));
 
       // The Wan route now returns a self-contained MP4 with AAC audio.
@@ -396,7 +396,7 @@ async function runVideo(){
       await new Promise(r=>setTimeout(r,1500));
       const s=await api('/api/video?taskId='+encodeURIComponent(d.taskId));
       if($('videoStatus')){
-        $('videoStatus').textContent='Статус: '+(s.status||'RUNNING')+' · '+(s.model||'Wan 2.2 I2V Lightning · 4 steps');
+        $('videoStatus').textContent='Статус: '+(s.status||'RUNNING')+' · '+(s.model||'LTX-2.3 Fast · Audio');
       }
       if(s.done){
         if(!s.success||!s.videoUrl)throw new Error(s.error||'Видео не создано.');
@@ -576,13 +576,13 @@ try{
 try{
   let savedModel=localStorage.getItem('miyaVideoModel');
   // Migrate the old default so existing users see the new LTX route.
-  if(savedModel==='pixelster-motion' || savedModel==='wan22') savedModel='ltx25';
+  if(savedModel==='pixelster-motion' || savedModel==='wan22' || savedModel==='wan5b' || savedModel==='hunyuan') savedModel='ltx25';
   if(savedModel && ['pixelster-motion','wan22','wan5b','ltx25','hunyuan'].includes(savedModel)){
     state.videoModel=savedModel;
     const btn=document.querySelector('#videoModels [data-video-model="'+savedModel+'"]');
     if(btn)selectVideoModel(btn);
   } else {
-    const btn=document.querySelector('#videoModels [data-video-model="wan22"]');
+    const btn=document.querySelector('#videoModels [data-video-model="ltx25"]');
     if(btn)selectVideoModel(btn);
   }
 }catch{}
