@@ -373,7 +373,13 @@ async function pixelsterVideo({ prompt, ratio, duration, imageBase64 }) {
   return data;
 }
 
-export const config = {\n  api: {\n    bodyParser: { sizeLimit: "12mb" }\n  }\n};\n\nexport default async function handler(req, res) {
+export const config = {
+  api: {
+    bodyParser: { sizeLimit: "12mb" }
+  }
+};
+
+export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
 
