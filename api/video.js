@@ -1,7 +1,6 @@
-import { promises as fs } from "node:fs";
-
 const LIGHTNING_SPACE = "https://saravutw-wan2-2-i2v-lightning-4-8step-custom.hf.space";
 const LIGHTNING_INFO = LIGHTNING_SPACE + "/gradio_api/info";
+const LIGHTNING_API_NAMES = ["/generate_video", "generate_video"];
 const PIXELSTER = "https://ahm7xmakki.com/api";
 
 function isUrl(value) {
@@ -164,20 +163,54 @@ async function startLightningTask({ prompt, duration, image }) {
     true
   ];
 
-  const response = await fetch(LIGHTNING_SPACE + "/gradio_api/call/" + endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ data })
-  });
-  const text = await response.text();
+  // Wake the public Space before submitting. Public ZeroGPU Spaces can sleep;
+  // the first request may otherwise hit a transient 404 while the runtime starts.
+  try {
+    await fetch(LIGHTNING_SPACE + "/", {
+      method: "GET",
+      headers: authHeaders(),
+      signal: AbortSignal.timeout(15000)
+    });
+  } catch {}
+
   let payload = null;
-  try { payload = text ? JSON.parse(text) : null; } catch {}
-  if (!response.ok) {
-    const error = new Error("Wan Lightning call HTTP " + response.status + ": " + (payload?.error || text || ""));
+  let last404 = null;
+
+  // Gradio 5/6 normally exposes /gradio_api/call/<endpoint>.
+  // Try the discovered endpoint first, then the canonical name once more.
+  for (const apiName of ["/" + String(endpoint).replace(/^\//, ""), ...LIGHTNING_API_NAMES]) {
+    const response = await fetch(
+      LIGHTNING_SPACE + "/gradio_api/call/" + encodeURIComponent(apiName.replace(/^\//, "")),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ data })
+      }
+    );
+    const text = await response.text();
+    try { payload = text ? JSON.parse(text) : null; } catch { payload = null; }
+
+    if (response.ok && payload?.event_id) break;
+    if (response.status === 404) {
+      last404 = text;
+      continue;
+    }
+
+    const error = new Error(
+      "Wan Lightning call HTTP " + response.status + ": " + (payload?.error || text || "")
+    );
     error.statusCode = response.status;
     throw error;
   }
-  if (!payload?.event_id) throw new Error("Wan Lightning не вернул event_id.");
+
+  if (!payload?.event_id) {
+    const error = new Error(
+      "Wan Lightning: endpoint не найден (404). Space доступен, но его Gradio API сейчас не публикует generate_video. " +
+      (last404 ? String(last404).slice(0, 300) : "")
+    );
+    error.statusCode = 502;
+    throw error;
+  }
 
   return {
     taskId: taskIdFor({
@@ -201,7 +234,7 @@ async function pollLightningTask(task, timeoutMs = 12000) {
 
   try {
     const response = await fetch(
-      task.space + "/gradio_api/call/" + task.endpoint + "/" + encodeURIComponent(task.eventId),
+      task.space + "/gradio_api/call/" + String(task.endpoint).replace(/^\//, "") + "/" + encodeURIComponent(task.eventId),
       {
         headers: { ...authHeaders(), Accept: "text/event-stream" },
         signal: controller.signal
