@@ -391,13 +391,20 @@ async function pollLtxTask(task, timeoutMs = 12000) {
 
           if (event === "heartbeat" || event === "generating" || event === "progress") continue;
 
-          if (event === "error" || event === "unexpected_error") {
+          if (event === "error" || event === "unexpected_error" || event === "broken_connection") {
             const raw = typeof data === "string" ? data : JSON.stringify(data ?? {});
+            const detail =
+              data?.message ||
+              data?.error ||
+              data?.detail ||
+              data?.status?.message ||
+              (typeof data?.status === "string" ? data.status : "") ||
+              raw;
             return {
               done: true,
               success: false,
               status: "ERROR",
-              error: "LTX-2.3 provider error: " + (raw || "empty SSE error event")
+              error: "LTX-2.3 provider error: " + (detail && detail !== "{}" ? detail : "провайдер завершил SSE-задачу с ошибкой без подробностей.")
             };
           }
 
