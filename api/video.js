@@ -236,6 +236,17 @@ async function wanVideo({ prompt, duration, image }) {
   return { ...result, endpoint, sourceUrl };
 }
 
+function validateWav(bytes) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < 44) {
+    throw new Error("Stable Audio 3 вернул слишком маленький WAV.");
+  }
+  const riff = bytes.toString("ascii", 0, 4);
+  const wave = bytes.toString("ascii", 8, 12);
+  if (riff !== "RIFF" || wave !== "WAVE") {
+    throw new Error("Stable Audio 3 вернул файл, который не является WAV.");
+  }
+}
+
 async function stableAudio({ prompt, duration }) {
   const { Client } = await import("@gradio/client");
   const audioPrompt =
