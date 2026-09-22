@@ -103,12 +103,18 @@ function buildWanPrompt(prompt) {
 }
 
 function providerFileUrl(url) {
-  if (/^https?:\/\//i.test(String(url))) return String(url);
+  const value = String(url || "");
+
+  if (/^https?:\/\//i.test(value)) return value;
+
+  if (value.startsWith("/gradio_api/file=")) {
+    return LIGHTNING_SPACE + value;
+  }
 
   return (
     LIGHTNING_SPACE +
     "/gradio_api/file=" +
-    String(url).replace(/^\//, "")
+    (value.startsWith("/") ? value : "/" + value)
   );
 }
 
