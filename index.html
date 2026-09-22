@@ -246,7 +246,7 @@ function setRatio(group,key,button){
 }
 
 function videoModelLabel(id){
-  return ({'pixelster-motion':'Motion synthesis','wan22':'Wan 2.2 I2V Lightning · 4 steps','wan5b':'Wan 2.2 TI2V-5B · 24fps','ltx25':'LTX 2.5 Free','hunyuan':'HunyuanVideo'})[id]||'Видео';
+  return ({'pixelster-motion':'Motion synthesis','wan22':'Wan 2.2 I2V Lightning · 4 steps','wan5b':'Wan 2.2 TI2V-5B · 24fps','ltx25':'LTX 2.3 Fast + Audio','hunyuan':'HunyuanVideo'})[id]||'Видео';
 }
 function selectVideoModel(button){
   const id=button.dataset.videoModel;
@@ -257,9 +257,9 @@ function selectVideoModel(button){
   try{localStorage.setItem('miyaVideoModel',id)}catch{}
   const map={
     'pixelster-motion':{name:'Motion synthesis',provider:'AHM7 PixelSter',status:'● Готова · Image → Video',hint:'Motion synthesis от AHM7 PixelSter. Надёжный fallback.'},
-    'wan22':{name:'Wan 2.2 I2V Lightning · 4 steps',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video',hint:'Wan 2.2 I2V Lightning LoRA · 4 шага. Быстрый режим; публичный ZeroGPU всё равно может иметь очередь.'},
+    'wan22':{name:'Wan 2.2 I2V Lightning · 4 steps',provider:'Hugging Face ZeroGPU',status:'● Legacy fallback',hint:'Старый Wan-маршрут сохранён как fallback, но основной видео-провайдер Miya теперь LTX-2.3.'},
     'wan5b':{name:'Wan 2.2 TI2V-5B · 24fps',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video',hint:'TI2V-5B: 720p, 24 fps, 35 steps, guidance 5.0. Быстрый тест физики и движения.'},
-    'ltx25':{name:'LTX 2.5 Free',provider:'Hugging Face ZeroGPU',status:'● Тестовый маршрут · требуется доступ к модели',hint:'LTX 2.5 поддерживает image-to-video и синхронизированный звук, но публичный Space требует HF-доступ к лицензии. Кнопка теперь выбирается и сообщает это явно.'},
+    'ltx25':{name:'LTX 2.3 Fast + Audio',provider:'Hugging Face ZeroGPU',status:'● Подключена · Image → Video + Audio',hint:'LTX-2.3 Fast · 22B. Image → Video с синхронизированным звуком через публичный Hugging Face ZeroGPU. 5–10 сек, 720p/1080p.'},
     'hunyuan':{name:'HunyuanVideo',provider:'Hugging Face / ZeroGPU',status:'● Тестовый маршрут · I2V',hint:'HunyuanVideo I2V — отдельный GPU-маршрут. Кнопка выбора работает; backend сообщит, если публичный Space недоступен.'}
   }[id];
   if(!map)return;
@@ -575,8 +575,8 @@ try{
 }catch{}
 try{
   let savedModel=localStorage.getItem('miyaVideoModel');
-  // Migrate the old default so existing users see the new fast Wan route.
-  if(savedModel==='pixelster-motion') savedModel='wan22';
+  // Migrate the old default so existing users see the new LTX route.
+  if(savedModel==='pixelster-motion' || savedModel==='wan22') savedModel='ltx25';
   if(savedModel && ['pixelster-motion','wan22','wan5b','ltx25','hunyuan'].includes(savedModel)){
     state.videoModel=savedModel;
     const btn=document.querySelector('#videoModels [data-video-model="'+savedModel+'"]');
