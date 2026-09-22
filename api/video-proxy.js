@@ -1,5 +1,3 @@
-import { Readable } from "node:stream";
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Range, Content-Type");
@@ -29,37 +27,18 @@ export default async function handler(req, res) {
     return res.status(403).json({ success: false, error: "Video source is not allowed" });
   }
 
-  const controller = new AbortController();
-  let clientClosed = false;
-
-  const closeUpstream = () => {
-    if (!res.writableEnded) {
-      clientClosed = true;
-      controller.abort();
-    }
-  };
-
-  req.once("aborted", closeUpstream);
-  res.once("close", () => {
-    if (!res.writableEnded) closeUpstream();
-  });
-
   try {
-    const headers = {
-      Accept: "video/mp4,video/*;q=0.9,*/*;q=0.8"
-    };
-
-    if (req.headers.range) {
-      headers.Range = String(req.headers.range);
-    }
-
+    // Download the small Wan MP4 completely before responding.
+    // This is intentionally buffered: Gradio temporary-file URLs can
+    // behave poorly with browser Range/stream cancellation when proxied
+    // directly through a serverless Web stream.
     const upstream = await fetch(source.toString(), {
-      method: req.method,
-      headers,
-      signal: controller.signal
+      headers: {
+        Accept: "video/mp4,video/*;q=0.9,*/*;q=0.8"
+      }
     });
 
-    if (!upstream.ok && upstream.status !== 206) {
+    if (!upstream.ok) {
       const detail = await upstream.text().catch(() => "");
       return res.status(upstream.status).json({
         success: false,
@@ -68,53 +47,77 @@ export default async function handler(req, res) {
       });
     }
 
-    res.statusCode = upstream.status;
-
     const contentType = upstream.headers.get("content-type") || "video/mp4";
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+
+    if (!buffer.length) {
+      return res.status(502).json({
+        success: false,
+        error: "Wan returned an empty video file"
+      });
+    }
+
+    const total = buffer.length;
     res.setHeader("Content-Type", contentType);
+    res.setHeader("Accept-Ranges", "bytes");
+    res.setHeader("Content-Length", String(total));
 
-    for (const name of [
-      "content-length",
-      "content-range",
-      "accept-ranges",
-      "etag",
-      "last-modified"
-    ]) {
-      const value = upstream.headers.get(name);
-      if (value) res.setHeader(name, value);
+    if (req.method === "HEAD") {
+      return res.status(200).end();
     }
 
-    // Firefox/HTMLVideoElement relies on byte ranges for seeking and
-    // incremental playback. Keep the upstream 206 response intact.
-    if (!res.getHeader("Accept-Ranges")) {
-      res.setHeader("Accept-Ranges", "bytes");
+    const range = String(req.headers.range || "").trim();
+
+    if (!range) {
+      res.statusCode = 200;
+      return res.end(buffer);
     }
 
-    if (req.method === "HEAD" || !upstream.body) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+    if (!match) {
+      res.statusCode = 416;
+      res.setHeader("Content-Range", "bytes */" + total);
       return res.end();
     }
 
-    // Let Node stream the Web Readable directly to the HTTP response.
-    // This avoids buffering the MP4 in memory and handles backpressure.
-    const stream = Readable.fromWeb(upstream.body);
+    let start = match[1] ? Number(match[1]) : 0;
+    let end = match[2] ? Number(match[2]) : total - 1;
 
-    stream.on("error", (error) => {
-      if (!clientClosed && !res.headersSent) {
-        res.status(502).json({
-          success: false,
-          error: error?.message || "Video stream error"
-        });
-      } else if (!res.writableEnded) {
-        res.destroy();
+    if (!match[1] && match[2]) {
+      const suffixLength = Number(match[2]);
+      if (!Number.isFinite(suffixLength) || suffixLength <= 0) {
+        res.statusCode = 416;
+        res.setHeader("Content-Range", "bytes */" + total);
+        return res.end();
       }
-    });
-
-    stream.pipe(res);
-  } catch (error) {
-    if (error?.name === "AbortError" && clientClosed) {
-      return;
+      start = Math.max(0, total - suffixLength);
+      end = total - 1;
     }
 
+    if (
+      !Number.isFinite(start) ||
+      !Number.isFinite(end) ||
+      start < 0 ||
+      end < start ||
+      start >= total
+    ) {
+      res.statusCode = 416;
+      res.setHeader("Content-Range", "bytes */" + total);
+      return res.end();
+    }
+
+    end = Math.min(end, total - 1);
+
+    const chunk = buffer.subarray(start, end + 1);
+    res.statusCode = 206;
+    res.setHeader(
+      "Content-Range",
+      "bytes " + start + "-" + end + "/" + total
+    );
+    res.setHeader("Content-Length", String(chunk.length));
+
+    return res.end(chunk);
+  } catch (error) {
     console.error("Miya video proxy:", error);
 
     if (!res.headersSent) {
