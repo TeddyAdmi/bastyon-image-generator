@@ -255,11 +255,17 @@ async function startLightningTask({ prompt, duration, image }) {
    * stream. Persist those resolved values in the task so a later Vercel
    * request can reconnect to the exact same queue namespace.
    */
-  const apiPrefix = String(app.api_prefix || "/gradio_api")
+  // Gradio api_prefix may legitimately be empty. Never invent /gradio_api.
+  const apiPrefix = String(app.api_prefix ?? "")
     .replace(/^\/+/, "")
     .replace(/\/+$/, "");
 
   const protocol = String(app.protocol || "");
+  const fnIndex =
+    app.api_map && Object.prototype.hasOwnProperty.call(app.api_map, LIGHTNING_ENDPOINT)
+      ? Number(app.api_map[LIGHTNING_ENDPOINT])
+      : null;
+  const root = String(app.config?.root || LIGHTNING_SPACE).replace(/\/$/, "");
 
   return {
     taskId: taskIdFor({
@@ -272,6 +278,8 @@ async function startLightningTask({ prompt, duration, image }) {
       sessionHash,
       apiPrefix,
       protocol,
+      fnIndex,
+      root,
       prompt: wanPrompt,
       duration: seconds
     }),
@@ -447,16 +455,25 @@ async function pollQueueEndpoint(task, timeoutMs) {
      * The previous implementation hard-coded /gradio_api and therefore
      * could hit a 404 even though the Space itself was healthy.
      */
-    const prefix = String(task.apiPrefix || "gradio_api")
+    const prefix = String(task.apiPrefix ?? "")
       .replace(/^\/+/, "")
       .replace(/\/+$/, "");
 
+    const root = String(task.root || task.space).replace(/\/$/, "");
     const url = new URL(
-      task.space.replace(/\/$/, "") +
-        "/" +
-        prefix +
-        "/queue/data"
+      root + (prefix ? "/" + prefix : "") + "/queue/data"
     );
+
+    if (String(task.protocol) === "sse") {
+      if (
+        task.fnIndex === null ||
+        task.fnIndex === undefined ||
+        Number.isNaN(Number(task.fnIndex))
+      ) {
+        throw new Error("Wan Lightning: Gradio did not expose fn_index for the endpoint.");
+      }
+      url.searchParams.set("fn_index", String(task.fnIndex));
+    }
 
     url.searchParams.set("session_hash", task.sessionHash);
 
@@ -717,7 +734,8 @@ export default async function handler(req, res) {
         task.v !== 7 ||
         task.provider !== "huggingface" ||
         !task.eventId ||
-        !task.space
+        !task.space ||
+        !task.sessionHash
       ) {
         return res.status(400).json({
           success: false,
