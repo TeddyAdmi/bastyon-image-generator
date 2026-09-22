@@ -170,7 +170,19 @@ async function waitWan(endpoint, eventId, timeoutMs = 220000) {
       lastData = data;
 
       if (event === "error" || event === "unexpected_error") {
-        throw new Error(typeof data === "string" ? data : JSON.stringify(data));
+        const message =
+          typeof data === "string"
+            ? data
+            : data?.error ||
+              data?.message ||
+              data?.detail ||
+              data?.msg ||
+              (Array.isArray(data) ? data.map(x => x?.error || x?.message || x).join(" | ") : JSON.stringify(data));
+        const e = new Error("Wan Gradio error: " + message);
+        e.code = "WAN_GRADIO_ERROR";
+        e.gradioEvent = event;
+        e.gradioData = data;
+        throw e;
       }
 
       // Gradio versions use both "complete" and "process_completed".
@@ -411,22 +423,46 @@ export default async function handler(req, res) {
     }
 
     try {
-      const [wan, audio] = await Promise.all([
-        wanVideo({ prompt, duration, image }),
-        stableAudio({ prompt, duration })
-      ]);
-      const finalBytes = await muxVideoAudio(wan.bytes, audio);
+      const wan = await wanVideo({ prompt, duration, image });
+
+      let audio = null;
+      let audioError = null;
+      try {
+        audio = await stableAudio({ prompt, duration });
+      } catch (error) {
+        audioError = error?.message || "Stable Audio 3 не смог создать звук.";
+        console.error("Miya Stable Audio 3 failed:", error);
+      }
+
+      if (audio) {
+        const finalBytes = await muxVideoAudio(wan.bytes, audio);
+        return res.status(200).json({
+          success: true,
+          done: true,
+          videoUrl: "data:video/mp4;base64," + finalBytes.toString("base64"),
+          provider: "Hugging Face ZeroGPU + Stable Audio 3 SFX",
+          model: "Wan 2.2 I2V 14B Fast",
+          audioModel: "Stable Audio 3 Small SFX",
+          audioAttached: true,
+          endpoint: wan.endpoint,
+          promptUsed: prompt,
+          promptLength: prompt.length,
+          audioPromptUsed: "Sound effects only, no music, no singing, no speech. Create realistic cinematic environmental audio matching this video scene: " + prompt,
+          fallbackUsed: false
+        });
+      }
+
       return res.status(200).json({
         success: true,
         done: true,
-        videoUrl: "data:video/mp4;base64," + finalBytes.toString("base64"),
-        provider: "Hugging Face ZeroGPU + Stable Audio 3 SFX",
+        videoUrl: "data:video/mp4;base64," + wan.bytes.toString("base64"),
+        provider: "Hugging Face ZeroGPU",
         model: "Wan 2.2 I2V 14B Fast",
-        audioModel: "Stable Audio 3 Small SFX",
+        audioAttached: false,
+        audioError,
         endpoint: wan.endpoint,
         promptUsed: prompt,
         promptLength: prompt.length,
-        audioPromptUsed: "Sound effects only, no music, no singing, no speech. Create realistic cinematic environmental audio matching this video scene: " + prompt,
         fallbackUsed: false
       });
     } catch (wanError) {
