@@ -1,3 +1,5 @@
+const LTX_FAST_SPACE = "https://lightricks-ltx-video-distilled.hf.space";
+const LTX_FAST_INFO = LTX_FAST_SPACE + "/gradio_api/info";
 const LIGHTNING_SPACE = "https://saravutw-wan2-2-i2v-lightning-4-8step-custom.hf.space";
 const LIGHTNING_INFO = LIGHTNING_SPACE + "/gradio_api/info";
 const PIXELSTER = "https://ahm7xmakki.com/api";
@@ -126,6 +128,85 @@ async function pollTask(task,timeout=10000){
   }catch(e){if(e?.name==="AbortError")return {done:false,status:"RUNNING"};throw e}
   finally{clearTimeout(timer)}
 }
+function ltxDimensions(ratio){
+  if(ratio==="9:16") return {height:704,width:512};
+  if(ratio==="1:1") return {height:576,width:576};
+  if(ratio==="4:3") return {height:576,width:768};
+  return {height:384,width:704};
+}
+async function startLtxTask(prompt,duration,image,ratio){
+  const imagePath=await uploadLtxImage(image);
+  const seconds=Math.min(4,Math.max(2,Number(duration)||3));
+  const frames=Math.max(9,Math.min(121,Math.round((seconds*30-1)/8)*8+1));
+  const {height,width}=ltxDimensions(ratio);
+  const data=[
+    buildPrompt(prompt),
+    "worst quality, inconsistent motion, blurry, jittery, distorted, frozen frame, identity change, text, watermark",
+    {path:imagePath,meta:{_type:"gradio.FileData"},orig_name:"miya-video.jpg"},
+    null,
+    height,width,
+    "image-to-video",
+    seconds,
+    9,
+    Math.floor(Math.random()*4294967295),
+    true,
+    3,
+    false
+  ];
+  const r=await fetch(LTX_FAST_SPACE+"/gradio_api/call/image_to_video",{
+    method:"POST",
+    headers:{"Content-Type":"application/json",...authHeaders()},
+    body:JSON.stringify({data})
+  });
+  const t=await r.text();let d={};try{d=JSON.parse(t)}catch{}
+  if(!r.ok||!d.event_id)throw new Error("LTX Video Fast start HTTP "+r.status+": "+(d.error||t).slice(0,800));
+  return {taskId:taskIdFor({v:5,provider:"ltx-fast",space:LTX_FAST_SPACE,endpoint:"image_to_video",eventId:d.event_id,model:"ltx-fast",duration:seconds})};
+}
+async function uploadLtxImage(dataUrl){
+  const i=dataUrl.indexOf(",");if(i<0)throw new Error("Некорректное изображение.");
+  const mime=dataUrl.slice(5,i).split(";")[0]||"image/jpeg";
+  const bytes=Buffer.from(dataUrl.slice(i+1),"base64");
+  const form=new FormData();
+  form.append("files",new Blob([bytes],{type:mime}),"miya-video.jpg");
+  const r=await fetch(LTX_FAST_SPACE+"/gradio_api/upload",{method:"POST",headers:authHeaders(),body:form});
+  const t=await r.text();let d;try{d=JSON.parse(t)}catch{d=null}
+  if(!r.ok)throw new Error("LTX upload HTTP "+r.status+": "+t.slice(0,500));
+  const path=Array.isArray(d)?d[0]:d?.path;
+  if(!path)throw new Error("LTX upload не вернул файл.");
+  return path;
+}
+async function pollLtxTask(task,timeout=10000){
+  const c=new AbortController(),timer=setTimeout(()=>c.abort(),timeout);
+  try{
+    const r=await fetch(task.space+"/gradio_api/call/"+task.endpoint+"/"+encodeURIComponent(task.eventId),{headers:{...authHeaders(),Accept:"text/event-stream"},signal:c.signal});
+    if(r.status===404)return {done:false,status:"QUEUED"};
+    if(!r.ok)throw new Error("LTX polling HTTP "+r.status+": "+(await r.text()).slice(0,500));
+    const reader=r.body.getReader(),dec=new TextDecoder();let buf="",event="";
+    while(true){
+      const q=await reader.read();if(q.done)break;
+      buf+=dec.decode(q.value,{stream:true});
+      const parts=buf.split(/\r?\n\r?\n/);buf=parts.pop()||"";
+      for(const part of parts){
+        let raw="";
+        for(const line of part.split(/\r?\n/)){
+          if(line.startsWith("event:"))event=line.slice(6).trim();
+          if(line.startsWith("data:"))raw+=line.slice(5).trim();
+        }
+        let d=null;try{d=raw?JSON.parse(raw):null}catch{}
+        if(event==="error"||event==="unexpected_error")return {done:true,success:false,error:typeof d==="string"?d:(d?.error||d?.message||"LTX error")};
+        const u=extractVideo(d);
+        if(u)return {done:true,success:true,videoUrl:fileUrlLtx(u)};
+      }
+    }
+    return {done:false,status:"RUNNING"};
+  }catch(e){if(e?.name==="AbortError")return {done:false,status:"RUNNING"};throw e}
+  finally{clearTimeout(timer)}
+}
+function fileUrlLtx(v){
+  if(/^https?:\/\//i.test(v))return v;
+  return LTX_FAST_SPACE+"/gradio_api/file="+String(v).replace(/^\//,"");
+}
+
 async function pixelster(prompt,image,ratio,duration){
   const c=new AbortController(),timer=setTimeout(()=>c.abort(),25000);
   try{
@@ -140,12 +221,26 @@ export default async function handler(req,res){
   res.setHeader("Cache-Control","no-store");
   try{
     if(req.method==="GET"){
+      if(String(req.query?.health||"")==="ltx"){
+        try{
+          const info=await fetchJson(LTX_FAST_INFO,{headers:{Accept:"application/json"}});
+          return res.status(200).json({success:true,provider:"Hugging Face ZeroGPU",model:"LTX Video 0.9.8 · 13B distilled",space:LTX_FAST_SPACE,endpoint:"image_to_video",free:true,nonChinese:true});
+        }catch(e){
+          return res.status(502).json({success:false,model:"LTX Video 0.9.8 · 13B distilled",space:LTX_FAST_SPACE,error:e?.message||"LTX недоступен."});
+        }
+      }
       if(String(req.query?.health||"")==="1"){
         const info=await fetchJson(LIGHTNING_INFO,{headers:{Accept:"application/json"}});
         return res.status(200).json({success:true,provider:"Hugging Face ZeroGPU",model:"Wan 2.2 I2V Lightning · 4 steps",space:LIGHTNING_SPACE,endpoint:findEndpoint(info),free:true});
       }
       const id=String(req.query?.taskId||""); if(!id)return res.status(400).json({error:"Нужен taskId."});
       const task=taskFromId(id);
+      if(task.v===5){
+        const s=await pollLtxTask(task,10000);
+        if(!s.done)return res.status(200).json({success:true,done:false,status:s.status||"RUNNING",provider:"Hugging Face ZeroGPU",model:"LTX Video Fast · 0.9.8 · 13B distilled",taskId:id});
+        if(!s.success)return res.status(200).json({success:false,done:true,status:"ERROR",error:s.error||"LTX завершил задачу с ошибкой.",taskId:id});
+        return res.status(200).json({success:true,done:true,status:"COMPLETED",videoUrl:s.videoUrl,provider:"Hugging Face ZeroGPU",model:"LTX Video Fast · 0.9.8 · 13B distilled",audioAttached:false,taskId:id});
+      }
       if(task.v!==4)throw new Error("Задача создана старой версией видео API. Запустите видео заново.");
       const s=await pollTask(task,10000);
       if(!s.done)return res.status(200).json({success:true,done:false,status:s.status||"RUNNING",provider:"Hugging Face ZeroGPU",model:"Wan 2.2 I2V Lightning · 4 steps",taskId:id});
@@ -158,6 +253,10 @@ export default async function handler(req,res){
     const image=await normalizeImage(b.imageBase64,b.imageUrl);
     const model=String(b.model||"wan22");
     const duration=Math.min(5,Math.max(3,Number(b.duration)||3));
+    if(model==="ltx-fast"){
+      const task=await startLtxTask(prompt,duration,image,b.aspect||"9:16");
+      return res.status(202).json({success:true,done:false,taskId:task.taskId,status:"QUEUED",provider:"Hugging Face ZeroGPU",model:"LTX Video Fast · 0.9.8 · 13B distilled"});
+    }
     if(model==="pixelster-motion"){
       const u=await pixelster(prompt,image,b.aspect||"9:16",Math.max(5,duration));
       return res.status(200).json({success:true,done:true,videoUrl:u,provider:"AHM7 PixelSter",model:"Motion synthesis",audioAttached:false});
