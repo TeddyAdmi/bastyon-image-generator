@@ -303,21 +303,16 @@ export default async function handler(req, res) {
         fallbackUsed: false
       });
     } catch (wanError) {
-      console.error("Miya Wan 2.2 video failed; falling back to PixelSter:", wanError);
-      const data = await pixelsterVideo({
-        prompt,
-        ratio: body.aspect || body.ratio || "9:16",
-        duration: 5,
-        imageBase64: image
-      });
-      return res.status(200).json({
-        success: true,
-        done: true,
-        videoUrl: data.videoUrl,
-        provider: "AHM7 PixelSter",
-        model: "Motion synthesis",
-        fallbackUsed: true,
-        wanError: wanError?.message || "Wan failed"
+      console.error("Miya Wan 2.2 video failed:", wanError);
+      return res.status(wanError?.statusCode || 502).json({
+        success: false,
+        done: false,
+        error: "Wan 2.2 не смог создать видео: " + (wanError?.message || "неизвестная ошибка"),
+        code: "WAN22_FAILED",
+        provider: "Hugging Face ZeroGPU",
+        model: "Wan 2.2 I2V 14B Fast",
+        promptReceived: Boolean(prompt),
+        fallbackUsed: false
       });
     }
   } catch (error) {
