@@ -1,10 +1,7 @@
 {
-  "name": "bastyon-image-generator",
+  "name": "miya-ai",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "dependencies": {
-    "@vercel/blob": "^2.4.0",
-    "@gradio/client": "^2.7.0",
-    "ffmpeg-static": "5.3.0"
-  }
+  "engines": { "node": ">=20" }
 }
