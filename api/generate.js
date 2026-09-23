@@ -1,65 +1,21 @@
-import { generateImage, getProviderStatus } from "./_lib/image-providers.js";
-
 export default async function handler(req, res) {
-  if (req.method === "GET") {
-    return res.status(200).json({
-      success: true,
-      providers: getProviderStatus(),
-      architecture: "unified-image-providers"
-    });
-  }
-
+  res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") {
-    return res.status(405).json({ success: false, error: "Method not allowed" });
+    return res.status(405).json({ ok: false, error: "METHOD_NOT_ALLOWED" });
   }
 
-  try {
-    const {
-      prompt,
-      ratio = "1:1",
-      model = "or-nano-banana-2",
-      quality = "auto",
-      size = "auto",
-      outputFormat = "png"
-    } = req.body || {};
+  const body = req.body || {};
+  const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+  const ratio = typeof body.ratio === "string" ? body.ratio : "1:1";
+  const mode = typeof body.mode === "string" ? body.mode : "image";
 
-    const cleanPrompt = String(prompt || "").trim();
+  if (!prompt) return res.status(400).json({ ok: false, error: "PROMPT_REQUIRED" });
 
-    if (!cleanPrompt) {
-      return res.status(400).json({
-        success: false,
-        error: "Введите описание изображения"
-      });
-    }
-
-    const result = await generateImage({
-      prompt: cleanPrompt,
-      ratio,
-      model,
-      quality,
-      size,
-      outputFormat
-    });
-
-    return res.status(200).json({
-      success: true,
-      imageUrl: result.imageUrl,
-      prompt: cleanPrompt,
-      ratio,
-      size,
-      quality,
-      outputFormat,
-      provider: result.provider,
-      model: result.model,
-      architecture: "unified-image-providers",
-      historyPersistent: !String(result.imageUrl).startsWith("data:")
-    });
-  } catch (error) {
-    console.error("Generate error:", error);
-
-    return res.status(502).json({
-      success: false,
-      error: error.message || "Ошибка генерации изображения"
-    });
-  }
+  // Foundation contract only. Provider adapters will be connected through the router.
+  return res.status(501).json({
+    ok: false,
+    error: "ROUTER_NOT_CONNECTED",
+    app: "Miya AI",
+    task: { type: mode, prompt, ratio }
+  });
 }
