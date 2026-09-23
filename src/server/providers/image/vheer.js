@@ -2,17 +2,36 @@ const provider = "vheer";
 
 export const model = "Flux Dev";
 
-function endpoint() {
-  return String(process.env.MIYA_VHEER_URL || "").trim();
+function generateEndpoint() {
+  return String(process.env.MIYA_VHEER_GENERATE_URL || "").trim();
+}
+
+function editEndpoint() {
+  return String(process.env.MIYA_VHEER_EDIT_URL || "").trim();
 }
 
 export function enabled() {
-  return Boolean(endpoint());
+  return Boolean(generateEndpoint());
 }
 
-async function request(path, payload) {
-  const base = endpoint().replace(/\/$/, "");
-  const response = await fetch(base + path, {
+function extractImageUrl(data) {
+  const candidates = [
+    data?.imageUrl,
+    data?.image_url,
+    data?.url,
+    data?.output?.imageUrl,
+    data?.output?.url,
+    Array.isArray(data?.images) ? data.images[0] : null,
+    Array.isArray(data?.output) ? data.output[0] : null
+  ];
+
+  return candidates.find(
+    value => typeof value === "string" && /^https?:\/\//i.test(value)
+  ) || null;
+}
+
+async function post(url, payload) {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -43,19 +62,25 @@ async function request(path, payload) {
 }
 
 export async function generate(input) {
-  if (!enabled()) {
+  const url = generateEndpoint();
+  if (!url) {
     const error = new Error("VHEER_NOT_CONFIGURED");
     error.statusCode = 503;
     throw error;
   }
 
-  // Provider-specific payload stays here. The router never knows Vheer's API shape.
-  const data = await request("/tti", {
+  const data = await post(url, {
     prompt: input.prompt,
-    ratio: input.ratio || "1:1"
+    ratio: input.ratio,
+    model: input.model,
+    quality: input.quality,
+    size: input.size,
+    outputFormat: input.outputFormat,
+    ...input.options
   });
 
-  if (!data?.imageUrl) {
+  const imageUrl = extractImageUrl(data);
+  if (!imageUrl) {
     const error = new Error("VHEER_IMAGE_URL_MISSING");
     error.statusCode = 502;
     throw error;
@@ -63,33 +88,31 @@ export async function generate(input) {
 
   return {
     provider,
-    model,
-    imageUrl: String(data.imageUrl),
+    model: input.model !== "auto" ? input.model : model,
+    imageUrl,
     meta: { transport: "http-json" }
   };
 }
 
 export async function edit(input) {
-  if (!enabled()) {
-    const error = new Error("VHEER_NOT_CONFIGURED");
+  const url = editEndpoint();
+  if (!url) {
+    const error = new Error("VHEER_EDIT_NOT_CONFIGURED");
     error.statusCode = 503;
     throw error;
   }
 
-  if (!input.imageBase64 && !input.imageUrl) {
-    const error = new Error("EDIT_IMAGE_REQUIRED");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const data = await request("/pti", {
+  const data = await post(url, {
     prompt: input.prompt,
-    ratio: input.ratio || "auto",
+    ratio: input.ratio,
+    model: input.model,
+    imageUrl: input.imageUrl,
     imageBase64: input.imageBase64,
-    imageUrl: input.imageUrl
+    ...input.options
   });
 
-  if (!data?.imageUrl) {
+  const imageUrl = extractImageUrl(data);
+  if (!imageUrl) {
     const error = new Error("VHEER_IMAGE_URL_MISSING");
     error.statusCode = 502;
     throw error;
@@ -97,8 +120,8 @@ export async function edit(input) {
 
   return {
     provider,
-    model: "Flux Kontext Dev",
-    imageUrl: String(data.imageUrl),
+    model: input.model !== "auto" ? input.model : "Flux Kontext Dev",
+    imageUrl,
     meta: { transport: "http-json" }
   };
 }
