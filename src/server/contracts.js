@@ -1,4 +1,4 @@
-const MODES = new Set(["image","edit","video","audio"]);
+const MODES = new Set(["image", "edit", "video", "audio"]);
 
 export function normalizeRequest(body = {}) {
   const mode = String(body.mode || "image").trim().toLowerCase();
@@ -15,22 +15,20 @@ export function normalizeRequest(body = {}) {
     throw error;
   }
 
-  const ratio = typeof body.ratio === "string" ? body.ratio : "1:1";
-  const model = typeof body.model === "string" ? body.model : "auto";
-  const quality = typeof body.quality === "string" ? body.quality : "auto";
-  const size = typeof body.size === "string" ? body.size : "auto";
-  const outputFormat =
-    typeof body.outputFormat === "string" ? body.outputFormat : "png";
-
   return Object.freeze({
     id: typeof body.requestId === "string" ? body.requestId : null,
     mode,
+    provider:
+      typeof body.provider === "string"
+        ? body.provider.trim().toLowerCase()
+        : "auto",
     prompt,
-    ratio,
-    model,
-    quality,
-    size,
-    outputFormat,
+    ratio: typeof body.ratio === "string" ? body.ratio : "1:1",
+    model: typeof body.model === "string" ? body.model : "auto",
+    quality: typeof body.quality === "string" ? body.quality : "auto",
+    size: typeof body.size === "string" ? body.size : "auto",
+    outputFormat:
+      typeof body.outputFormat === "string" ? body.outputFormat : "png",
     imageUrl: typeof body.imageUrl === "string" ? body.imageUrl : null,
     imageBase64:
       typeof body.imageBase64 === "string" ? body.imageBase64 : null,
@@ -51,14 +49,5 @@ export function result(payload = {}) {
     audioUrl: payload.audioUrl || null,
     requestId: payload.requestId || null,
     meta: payload.meta || {}
-  };
-}
-
-export function errorResult(error) {
-  const code = error?.code || error?.message || "INTERNAL_ERROR";
-  return {
-    ok: false,
-    error: code,
-    message: error?.message || "Miya AI router error"
   };
 }
