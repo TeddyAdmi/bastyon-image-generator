@@ -1,22 +1,86 @@
 # Miya AI
 
-Miya AI is an image, video and audio studio designed for Web, Mobile Web and Bastyon Mini Apps.
+Miya AI is built around a strict provider-independent generation architecture.
 
-## Architecture
+## Server architecture
 
-Browser / Bastyon -> Miya UI -> API Gateway / Router -> Task Router -> Image / Video / Audio providers -> Post-process -> Result URL.
+```
+Vercel API
+   │
+   ▼
+Router
+   │
+   ├── Adapters
+   │      ├── image
+   │      ├── edit
+   │      ├── video
+   │      └── audio
+   │
+   ▼
+Providers
+   ├── image/vheer
+   ├── image/*
+   ├── video/*
+   └── audio/*
+```
 
-The frontend is provider-agnostic. AI providers are adapters, not UI components.
+### Rules
 
-Principles:
-- keep the frontend lightweight;
-- never put provider secrets in client code;
-- avoid sending large video payloads through Vercel Functions;
-- treat every AI Space/provider as a separate adapter;
-- add fallbacks at the router layer;
-- keep Bastyon integration isolated in src/bastyon.js;
-- keep UI state isolated from providers.
+1. `api/*.js` contains only thin Vercel handlers.
+2. The router owns task validation and routing.
+3. Adapters translate Miya's canonical contract into provider calls.
+4. Providers own external API details, URLs, authentication and response normalization.
+5. The frontend never knows provider URLs or provider-specific payloads.
+6. Adding or replacing a provider must not require changing the UI.
+7. Large media must not be proxied through Vercel as base64 when a URL/job contract can be used.
+8. Video/audio providers are intentionally disconnected until their contracts are verified.
 
-Current stage: foundation only. Providers are intentionally not wired yet.
+## Image provider configuration
 
-Deployment: GitHub main -> Vercel Production. Bastyon loads the Vercel production URL through b_manifest.json.
+The Vheer adapter is isolated in:
+
+`src/server/providers/image/vheer.js`
+
+It is enabled only when:
+
+`MIYA_VHEER_URL`
+
+is present in Vercel environment variables.
+
+The adapter expects:
+
+- `POST /tti` for text-to-image
+- `POST /pti` for image-to-image
+
+This assumption is isolated to one file. If the provider contract changes, replace only that provider module.
+
+## API contract
+
+`POST /api/generate`
+
+Example:
+
+```json
+{
+  "mode": "image",
+  "prompt": "cinematic realistic portrait",
+  "ratio": "9:16"
+}
+```
+
+The API returns a canonical result:
+
+```json
+{
+  "ok": true,
+  "mode": "image",
+  "status": "completed",
+  "provider": "vheer",
+  "model": "Flux Dev",
+  "imageUrl": "https://...",
+  "requestId": null,
+  "meta": {}
+}
+```
+
+For unconfigured providers the API returns HTTP 503 instead of hiding the failure behind a fake success response.
