@@ -1,21 +1,25 @@
+import { routeGeneration } from "../src/server/index.js";
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "METHOD_NOT_ALLOWED" });
   }
 
-  const body = req.body || {};
-  const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
-  const ratio = typeof body.ratio === "string" ? body.ratio : "1:1";
-  const mode = typeof body.mode === "string" ? body.mode : "image";
+  try {
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
 
-  if (!prompt) return res.status(400).json({ ok: false, error: "PROMPT_REQUIRED" });
-
-  // Foundation contract only. Provider adapters will be connected through the router.
-  return res.status(501).json({
-    ok: false,
-    error: "ROUTER_NOT_CONNECTED",
-    app: "Miya AI",
-    task: { type: mode, prompt, ratio }
-  });
+    const output = await routeGeneration(body);
+    return res.status(200).json(output);
+  } catch (error) {
+    console.error("Miya router:", error);
+    const status = Number(error?.statusCode) || 500;
+    return res.status(status).json({
+      ok: false,
+      error: error?.message || "ROUTER_ERROR"
+    });
+  }
 }
