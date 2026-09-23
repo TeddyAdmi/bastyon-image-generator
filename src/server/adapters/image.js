@@ -2,10 +2,12 @@ import { getImageProvider } from "../providers/registry.js";
 
 function providerName(request) {
   return String(
-    request.model && request.model !== "auto"
-      ? request.model
+    request.provider !== "auto"
+      ? request.provider
       : process.env.MIYA_IMAGE_PROVIDER || "vheer"
-  ).trim().toLowerCase();
+  )
+    .trim()
+    .toLowerCase();
 }
 
 export async function routeImage(request) {
@@ -27,6 +29,7 @@ export async function routeImage(request) {
   const input = {
     prompt: request.prompt,
     ratio: request.ratio,
+    model: request.model,
     quality: request.quality,
     size: request.size,
     outputFormat: request.outputFormat,
@@ -42,7 +45,7 @@ export async function routeImage(request) {
 
   return {
     provider: response.provider || name,
-    model: response.model || null,
+    model: response.model || request.model || null,
     imageUrl: response.imageUrl || null,
     meta: response.meta || {}
   };
