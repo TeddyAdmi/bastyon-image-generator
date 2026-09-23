@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "functions": { "api/**/*.js": { "maxDuration": 60 } },
+  "headers": [
+    { "source": "/b_manifest.json", "headers": [
+      { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" },
+      { "key": "Content-Type", "value": "application/json" }
+    ]}
+  ]
+}
