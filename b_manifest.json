@@ -1,9 +1,13 @@
 {
   "manifest_version": 1,
+  "id": "miya-ai.vercel.app",
   "name": "Miya AI",
   "short_name": "Miya AI",
-  "description": "Free AI image generator and AI image editor powered by Flux",
-  "version": "1.1.0",
+  "description": "Miya AI — студия генерации и редактирования изображений, видео и аудио.",
+  "version": "2.0.0",
+  "author": "REPLACE_WITH_BASTYON_AUTHOR",
+  "scope": "miya-ai.vercel.app",
+  "permissions": ["account"],
   "start_url": "/",
   "display": "standalone"
 }
